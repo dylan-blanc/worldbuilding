@@ -10,7 +10,13 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@tiptap/react": "^3.27.1",
     "nuxt": "^4.4.8",
+    "react-color": "^2.19.3",
+    "react-grid-layout": "^2.2.3",
+    "tailwindcss": "^4.3.1",
+    "tiptap-extension-resize-image": "^1.4.3",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"
   }

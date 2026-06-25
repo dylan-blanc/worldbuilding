@@ -26,3 +26,9 @@ logs
 
 # Secrets
 secrets/*
+
+# Instructions IA
+AGENTS.md
+
+# Doc perso
+TODO.md
