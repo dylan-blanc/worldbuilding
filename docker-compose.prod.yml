@@ -1,0 +1,70 @@
+services:
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+      target: prod
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-worldbuilding}
+      DB_USER: ${MYSQL_USER:-worldbuilding}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-worldbuilding}
+      FRONTEND_URL: ${PROD_FRONTEND_URL:-https://worldbuilding.molternate.com}
+      API_TOKEN_FILE: /run/secrets/api_token
+      JWT_TOKEN_FILE: /run/secrets/jwt_token
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+    depends_on:
+      - db
+    secrets:
+      - api_token
+      - jwt_token
+    expose:
+      - "80"
+    restart: unless-stopped
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+      target: prod
+    depends_on:
+      - backend
+    expose:
+      - "80"
+    restart: unless-stopped
+
+  nginx:
+    container_name: nginx
+    image: nginx:1.30-alpine
+    ports:
+      - "${PROD_WEB_PORT:-80}:80"
+      - "${PROD_WEB_SSL_PORT:-443}:443"
+    volumes:
+      - ./frontend/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  db:
+    container_name: db
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-worldbuilding}
+      MYSQL_USER: ${MYSQL_USER:-worldbuilding}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-worldbuilding}
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  db_data:
+
+secrets:
+  api_token:
+    file: ./secrets/api_token
+  jwt_token:
+    file: ./secrets/jwt_token
