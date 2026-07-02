@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "scripts": {
+    "check": "git check-ignore -v .env .env.local backend/.env frontend/.env secrets/test.key && python -m pre_commit run --all-files && git status --short"
+  }
+}
