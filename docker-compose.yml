@@ -8,9 +8,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE:-worldbuilding}
-      DB_USER: ${MYSQL_USER:-wbadmin}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-wbpassword}
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - ./backend:/var/www/html
     expose:
@@ -42,10 +42,10 @@ services:
   db:
     image: mysql:8
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-worldbuilding}
-      MYSQL_USER: ${MYSQL_USER:-wbadmin}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wbpassword}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
     expose:

@@ -7,10 +7,10 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE:-worldbuilding}
-      DB_USER: ${MYSQL_USER:-worldbuilding}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-worldbuilding}
-      FRONTEND_URL: ${PROD_FRONTEND_URL:-https://worldbuilding.molternate.com}
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      FRONTEND_URL: ${PROD_FRONTEND_URL}
       API_TOKEN_FILE: /run/secrets/api_token
       JWT_TOKEN_FILE: /run/secrets/jwt_token
       JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
