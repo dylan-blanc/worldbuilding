@@ -26,6 +26,7 @@ logs
 
 # Secrets
 secrets/*
+!secrets/*_example*
 
 # Instructions IA
 AGENTS.md
