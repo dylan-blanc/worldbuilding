@@ -48,6 +48,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
+      - ./backend/db/db.sql:/docker-entrypoint-initdb.d/01-db.sql:ro
     expose:
       - "3306"
 

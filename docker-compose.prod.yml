@@ -7,9 +7,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE}
-      DB_USER: ${MYSQL_USER}
-      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE:-worldbuilding}
+      DB_USER_FILE: /run/secrets/mysql_user
+      DB_PASSWORD_FILE: /run/secrets/mysql_password
       FRONTEND_URL: ${PROD_FRONTEND_URL}
       API_TOKEN_FILE: /run/secrets/api_token
       JWT_TOKEN_FILE: /run/secrets/jwt_token
@@ -19,6 +19,8 @@ services:
     secrets:
       - api_token
       - jwt_token
+      - mysql_user
+      - mysql_password
     expose:
       - "80"
     healthcheck:
@@ -58,13 +60,38 @@ services:
     container_name: db
     image: mysql:8
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
       MYSQL_DATABASE: ${MYSQL_DATABASE:-worldbuilding}
-      MYSQL_USER: ${MYSQL_USER:-worldbuilding}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-worldbuilding}
+      MYSQL_USER_FILE: /run/secrets/mysql_user
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+    secrets:
+      - mysql_root_password
+      - mysql_user
+      - mysql_password
     volumes:
       - db_data:/var/lib/mysql
+      - ./backend/db/db.sql:/docker-entrypoint-initdb.d/01-db.sql:ro
     restart: unless-stopped
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin:5.2-apache
+    profiles:
+      - "admin"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    ports:
+      - "127.0.0.1:${PHPMYADMIN_PROD_PORT}:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+    # pour lancer le service phpmyadmin en prod, accessible sur http://localhost:8081
+    # docker compose -f docker-compose.prod.yml --profile admin up -d phpmyadmin
+
+    # pour l'arreter :
+    # docker compose -f docker-compose.prod.yml stop phpmyadmin
+
 
 volumes:
   db_data:
@@ -74,3 +101,9 @@ secrets:
     file: ./secrets/api_token
   jwt_token:
     file: ./secrets/jwt_token
+  mysql_root_password:
+    file: ./secrets/mysql_root_password
+  mysql_user:
+    file: ./secrets/mysql_user
+  mysql_password:
+    file: ./secrets/mysql_password
