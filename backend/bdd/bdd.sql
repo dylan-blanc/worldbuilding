@@ -67,3 +67,14 @@ CREATE TABLE IF NOT EXISTS page_filters (
     FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE,
     FOREIGN KEY (filter_id) REFERENCES filters(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS users_engagement (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    page_id INT NOT NULL,
+    engagement_type ENUM('like', 'follow') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE
+);
+
