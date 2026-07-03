@@ -1,8 +1,10 @@
 CREATE DATABASE IF NOT EXISTS worldbuilding;
 
-CREATE USER IF NOT EXISTS 'secretadmin'@'%' IDENTIFIED BY 'secretpassword';
-GRANT ALL PRIVILEGES ON worldbuilding.* TO 'secretadmin'@'%';
-FLUSH PRIVILEGES;
+-- CREATE USER IF NOT EXISTS 'secretadmin'@'%' IDENTIFIED BY 'secretpassword';
+-- GRANT ALL PRIVILEGES ON worldbuilding.* TO 'secretadmin'@'%';
+-- FLUSH PRIVILEGES;
+-- deja pris en comptent par le fichier docker-compose dev et prod
+-- sert juste de demonstration
 
 USE worldbuilding;
 
