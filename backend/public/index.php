@@ -2,20 +2,25 @@
 
 declare(strict_types=1);
 
-header('Content-Type: application/json; charset=utf-8');
+require_once __DIR__ . "/../core/Response.php";
 
-$path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$path = parse_url($_SERVER["REQUEST_URI"] ?? "/", PHP_URL_PATH) ?: "/";
+$method = $_SERVER["REQUEST_METHOD"] ?? "GET";
 
-if (str_starts_with($path, '/api/')) {
-    echo json_encode([
-        'status' => 'ok',
-        'service' => 'worldbuilding-api',
+if ($path === "/api" || $path === "/api/") {
+    Response::json(200, [
+        "status" => "ok",
+        "service" => "worldbuilding-api",
     ]);
+}
+
+require_once __DIR__ . "/../config/database.php";
+require_once __DIR__ . "/../routes/auth.php";
+
+if (dispatchAuthRoutes($path, $method, $pdo)) {
     exit;
 }
 
-http_response_code(404);
-
-echo json_encode([
-    'error' => 'Not found',
+Response::json(404, [
+    "error" => "Not found",
 ]);
