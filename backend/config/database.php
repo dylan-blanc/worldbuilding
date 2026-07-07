@@ -2,20 +2,7 @@
 
 declare(strict_types=1);
 
-if (!function_exists("envValue")) {
-    function envValue(string $name, string $default): string
-    {
-        $file = getenv($name . "_FILE");
-
-        if ($file !== false && is_readable($file)) {
-            return trim(file_get_contents($file));
-        }
-
-        $value = getenv($name);
-
-        return $value !== false && $value !== "" ? $value : $default;
-    }
-}
+require_once __DIR__ . "/env.php";
 
 defined("DB_HOST") || define("DB_HOST", envValue("DB_HOST", "db"));
 defined("DB_PORT") || define("DB_PORT", envValue("DB_PORT", "3306"));
@@ -39,7 +26,7 @@ try {
     }
 
     echo json_encode([
-        "error" => "Echec de la connexion \u{00E0} la base de donn\u{00E9}es"
+        "error" => "Echec de la connexion a la base de donnees"
     ], JSON_UNESCAPED_UNICODE);
 
     exit(1);
