@@ -4,8 +4,9 @@ WORKDIR /var/www/html
 
 RUN docker-php-ext-install pdo_mysql \
     && a2enmod rewrite \
-    && sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri -e 's!/var/www/!/var/www/html/public!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+    && sed -ri -e "s!/var/www/html!/var/www/html/public!g" /etc/apache2/sites-available/*.conf \
+    && sed -ri -e "s!/var/www/!/var/www/html/public!g" /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf \
+    && sed -ri -e "/<Directory \/var\/www\/html\/public>/,/<\/Directory>/s/AllowOverride None/AllowOverride All/g" /etc/apache2/apache2.conf
 
 EXPOSE 80
 
