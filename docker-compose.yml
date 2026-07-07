@@ -62,6 +62,18 @@ services:
     depends_on:
       - frontend
       - backend
+  
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin:5.2-apache
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    ports:
+      - "127.0.0.1:${PHPMYADMIN_PROD_PORT}:80"
+    depends_on:
+      - db
+    restart: unless-stopped
 
 volumes:
   db_data:
