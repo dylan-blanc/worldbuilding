@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . "/../core/Response.php";
+require_once __DIR__ . "/../vendor/autoload.php";
 
 $path = parse_url($_SERVER["REQUEST_URI"] ?? "/", PHP_URL_PATH) ?: "/";
 $method = $_SERVER["REQUEST_METHOD"] ?? "GET";
@@ -15,7 +15,6 @@ if ($path === "/api" || $path === "/api/") {
 }
 
 require_once __DIR__ . "/../config/database.php";
-require_once __DIR__ . "/../routes/auth.php";
 
 if (dispatchAuthRoutes($path, $method, $pdo)) {
     exit;

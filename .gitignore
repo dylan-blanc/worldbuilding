@@ -9,6 +9,9 @@ dist
 # Node dependencies
 node_modules
 
+# composer
+vendor
+
 # Logs
 logs
 *.log
@@ -37,3 +40,5 @@ tutoPreCommit.md
 
 # bdd
 backend/db/db.sql
+backend/db/dbseed.sql
+

@@ -1,0 +1,24 @@
+{
+    "name": "seidan/backend",
+    "type": "project",
+    "license": "proprietary",
+    "autoload": {
+        "classmap": [
+            "controllers/",
+            "core/",
+            "models/"
+        ],
+        "files": [
+            "config/env.php",
+            "routes/auth.php"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Dylan",
+            "email": "dylan.blanc@laplateforme.io"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}

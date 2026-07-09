@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . "/env.php";
-
 defined("DB_HOST") || define("DB_HOST", envValue("DB_HOST", "db"));
 defined("DB_PORT") || define("DB_PORT", envValue("DB_PORT", "3306"));
 defined("DB_NAME") || define("DB_NAME", envValue("DB_NAME", "dbname"));

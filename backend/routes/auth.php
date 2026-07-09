@@ -2,9 +2,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . "/../controllers/AuthController.php";
-require_once __DIR__ . "/../core/Response.php";
-
 function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
 {
     $route = preg_replace("#^/api#", "", $path) ?: "/";
