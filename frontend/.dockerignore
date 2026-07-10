@@ -1,6 +1,7 @@
 node_modules
 .nuxt
 .output
+dist
 .git
 dev.log
 dev.err.log
