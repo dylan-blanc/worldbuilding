@@ -21,8 +21,9 @@ CREATE TABLE IF NOT EXISTS filters (
     id INT AUTO_INCREMENT PRIMARY KEY,
     filter_name VARCHAR(255) NOT NULL UNIQUE,
     filter_type ENUM('theme', 'category', 'subcategory') NOT NULL,
-    belong_to VARCHAR(255) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    belong_to INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (belong_to) REFERENCES filters(id)
 );
 
 CREATE TABLE IF NOT EXISTS pages (
@@ -67,7 +68,7 @@ CREATE TABLE IF NOT EXISTS page_filters (
     filter_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE,
-    FOREIGN KEY (filter_id) REFERENCES filters(id) ON DELETE CASCADE
+    FOREIGN KEY (filter_id) REFERENCES filters(id)
 );
 
 CREATE TABLE IF NOT EXISTS users_engagement (
