@@ -14,9 +14,11 @@ if ($path === "/api" || $path === "/api/") {
     ]);
 }
 
-require_once __DIR__ . "/../config/database.php";
-
 if (dispatchAuthRoutes($path, $method, $pdo)) {
+    exit;
+}
+
+if (dispatchFilterRoutes($path, $method, $pdo)) {
     exit;
 }
 

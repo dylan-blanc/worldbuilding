@@ -10,7 +10,9 @@
         ],
         "files": [
             "config/env.php",
-            "routes/auth.php"
+            "config/database.php",
+            "routes/auth.php",
+            "routes/filters.php"
         ]
     },
     "authors": [
