@@ -49,7 +49,7 @@ const handleRegister = async () => {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-slate-50 text-slate-950">
+  <div class="primary-background primary-color flex min-h-screen flex-col">
     <Header />
 
     <main class="mx-auto flex w-full max-w-6xl flex-1 items-center px-4 py-12">
@@ -58,27 +58,27 @@ const handleRegister = async () => {
 
         <form method="post" action="/api/register" class="mt-6 flex flex-col gap-4" @submit.prevent="handleRegister">
             <div>
-                <label for="username" class="block text-sm font-medium text-slate-700">Nom d'utilisateur</label>
-                <input v-model="username" type="text" id="username" name="username" required autocomplete="username" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <label for="username" class="secondary-color block text-sm font-medium">Nom d'utilisateur</label>
+                <input v-model="username" type="text" id="username" name="username" required autocomplete="username" class="form-control mt-1 block w-full rounded-md shadow-sm sm:text-sm" />
             </div>
             <div>
-                <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
-                <input v-model="email" type="email" id="email" name="email" required autocomplete="email" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <label for="email" class="secondary-color block text-sm font-medium">Email</label>
+                <input v-model="email" type="email" id="email" name="email" required autocomplete="email" class="form-control mt-1 block w-full rounded-md shadow-sm sm:text-sm" />
             </div>
 
             <div>
-                <label for="password" class="block text-sm font-medium text-slate-700">Mot de passe</label>
-                <input v-model="password" type="password" id="password" name="password" required autocomplete="new-password" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <label for="password" class="secondary-color block text-sm font-medium">Mot de passe</label>
+                <input v-model="password" type="password" id="password" name="password" required autocomplete="new-password" class="form-control mt-1 block w-full rounded-md shadow-sm sm:text-sm" />
             </div>
                 <div>
-                <label for="confirm-password" class="block text-sm font-medium text-slate-700">Confirmer le mot de passe</label>
-                <input v-model="confirmPassword" type="password" id="confirm-password" name="confirm-password" required autocomplete="new-password" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <label for="confirm-password" class="secondary-color block text-sm font-medium">Confirmer le mot de passe</label>
+                <input v-model="confirmPassword" type="password" id="confirm-password" name="confirm-password" required autocomplete="new-password" class="form-control mt-1 block w-full rounded-md shadow-sm sm:text-sm" />
             </div>
 
-          <p v-if="error" class="text-sm font-medium text-red-600">{{ error }}</p>
-          <p v-if="success" class="text-sm font-medium text-emerald-700">{{ success }}</p>
+          <p v-if="error" class="error-color text-sm font-medium">{{ error }}</p>
+          <p v-if="success" class="success-color text-sm font-medium">{{ success }}</p>
 
-          <button type="submit" :disabled="pending" class="mt-4 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400">{{ pending ? "Inscription..." : "S'inscrire" }}</button>
+          <button type="submit" :disabled="pending" class="button-primary mt-4 inline-flex justify-center rounded-md border border-transparent py-2 px-4 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed">{{ pending ? "Inscription..." : "S'inscrire" }}</button>
         </form>
       </section>
     </main>

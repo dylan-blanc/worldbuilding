@@ -11,6 +11,7 @@ RUN docker-php-ext-install pdo_mysql \
 EXPOSE 80
 
 FROM base AS dev
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . .
 
 FROM base AS prod

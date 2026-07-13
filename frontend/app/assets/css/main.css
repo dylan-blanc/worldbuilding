@@ -1,1 +1,69 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --primary-color: #071a33;
+  --secondary-color: #3a5274;
+  --third-color: #6d7f99;
+  --primary-background: #ffffff;
+  --secondary-background: #e4edf8;
+  --third-background: #cbd9ea;
+  --primary-border: #9eb2ca;
+  --accent-color: #0b3b75;
+  --accent-hover-color: #072d5a;
+  --focus-color: #2563eb;
+  --error-color: #b42318;
+  --success-color: #067647;
+}
+
+html.theme-dark {
+  color-scheme: dark;
+  --primary-color: #e6f0ff;
+  --secondary-color: #b9c9e1;
+  --third-color: #8ea2bf;
+  --primary-background: #07101f;
+  --secondary-background: #10233d;
+  --third-background: #19314f;
+  --primary-border: #385779;
+  --accent-color: #4c8fdc;
+  --accent-hover-color: #77adf0;
+  --focus-color: #93c5fd;
+  --error-color: #fda29b;
+  --success-color: #6ce9a6;
+}
+
+body {
+  background: var(--primary-background);
+  color: var(--primary-color);
+}
+
+/* Utilitaires globaux : couleurs sémantiques partagées par toute l'application. */
+.primary-color { color: var(--primary-color); }
+.secondary-color { color: var(--secondary-color); }
+.third-color { color: var(--third-color); }
+.error-color { color: var(--error-color); }
+.success-color { color: var(--success-color); }
+.primary-background { background-color: var(--primary-background); }
+.secondary-background { background-color: var(--secondary-background); }
+.third-background { background-color: var(--third-background); }
+.primary-border { border-color: var(--primary-border); }
+
+.form-control {
+  border-color: var(--primary-border);
+  background-color: var(--primary-background);
+  color: var(--primary-color);
+}
+
+.form-control:focus {
+  border-color: var(--focus-color);
+  --tw-ring-color: var(--focus-color);
+}
+
+.button-primary {
+  background-color: var(--accent-color);
+  color: var(--primary-background);
+}
+
+.button-primary:hover { background-color: var(--accent-hover-color); }
+.button-primary:focus { --tw-ring-color: var(--focus-color); }
+.button-primary:disabled { background-color: var(--third-background); }

@@ -37,7 +37,7 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-slate-50 text-slate-950">
+  <div class="primary-background primary-color flex min-h-screen flex-col">
     <Header />
 
     <main class="mx-auto flex w-full max-w-6xl flex-1 align-items-center items-center px-4 py-12">
@@ -46,16 +46,21 @@ const handleLogin = async () => {
 
         <form method="post" action="/api/login" class="mt-6 flex flex-col gap-4" @submit.prevent="handleLogin">
             <div>
-                <label for="email" class="block text-sm font-medium text-slate-700">Email</label>
-                <input v-model="email" type="email" id="email" name="email" required autocomplete="email" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <label for="email" class="secondary-color block text-sm font-medium">Email</label>
+                <input v-model="email" type="email" id="email" name="email" required autocomplete="email" class="form-control mt-1 block w-full rounded-md shadow-sm sm:text-sm" />
             </div>
             <div>
-                <label for="password" class="block text-sm font-medium text-slate-700">Mot de passe</label>
-                <input v-model="password" type="password" id="password" name="password" required autocomplete="current-password" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <label for="password" class="secondary-color block text-sm font-medium">Mot de passe</label>
+                <input v-model="password" type="password" id="password" name="password" required autocomplete="current-password" class="form-control mt-1 block w-full rounded-md shadow-sm sm:text-sm" />
             </div>
-          <p v-if="error" class="text-sm font-medium text-red-600">{{ error }}</p>
-          <button type="submit" :disabled="pending" class="mt-4 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400">{{ pending ? "Connexion..." : "Se connecter" }}</button>
+          <p v-if="error" class="error-color text-sm font-medium">{{ error }}</p>
+          <button type="submit" :disabled="pending" class="button-primary mt-4 inline-flex justify-center rounded-md border border-transparent py-2 px-4 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed">{{ pending ? "Connexion..." : "Se connecter" }}</button>
         </form>
+
+        <p class="secondary-color mt-4 text-sm">
+          Pas encore de compte ?
+          <NuxtLink to="/register" class="primary-color font-medium underline">S'inscrire</NuxtLink>
+        </p>
       </section>
     </main>
 

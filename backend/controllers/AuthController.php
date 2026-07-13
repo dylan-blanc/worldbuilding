@@ -2,11 +2,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . "/../core/Request.php";
-require_once __DIR__ . "/../core/Response.php";
-require_once __DIR__ . "/../core/Session.php";
-require_once __DIR__ . "/../models/User.php";
-
 final class AuthController
 {
     private const USERNAME_KEYS = ["username"];
