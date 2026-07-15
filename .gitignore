@@ -33,6 +33,7 @@ secrets/*
 
 # Instructions IA
 AGENTS.md
+.agents
 
 # Doc perso
 TODO.md
