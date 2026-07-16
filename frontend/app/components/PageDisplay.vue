@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { EyeIcon, HeartIcon } from "@heroicons/vue/24/outline"
+import { StarIcon } from "@heroicons/vue/24/solid"
+
 type PublicPage = {
   id: number
   owner_user_id: number
@@ -90,13 +93,7 @@ onMounted(async () => {
             class="absolute right-3 top-2 flex flex-col items-center text-sm leading-none text-(--primary-color)"
             aria-label="Vote en attente"
           >
-            <svg
-              class="h-7 w-7 fill-current"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path d="M12 2l2.9 6.4 7 .8-5.2 4.8 1.4 6.9-6.1-3.5-6.1 3.5 1.4-6.9-5.2-4.8 7-.8L12 2z" />
-            </svg>
+            <StarIcon class="h-7 w-7" aria-hidden="true" />
             <span>--</span>
           </div>
 
@@ -114,24 +111,11 @@ onMounted(async () => {
 
             <div class="flex items-center gap-4 text-sm text-(--primary-color)">
               <span title="Followers" class="inline-flex items-center gap-1">
-                <svg
-                  class="h-4 w-4 fill-none stroke-current stroke-2"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
+                <EyeIcon class="h-4 w-4" aria-hidden="true" />
                 {{ page.number_of_followers }}
               </span>
               <span title="Likes" class="inline-flex items-center gap-1">
-                <svg
-                  class="h-4 w-4 fill-none stroke-current stroke-2"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
-                </svg>
+                <HeartIcon class="h-4 w-4" aria-hidden="true" />
                 {{ page.number_of_likes }}
               </span>
             </div>
