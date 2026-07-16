@@ -6,6 +6,7 @@
       <section class="flex w-full flex-col gap-6">
         <h1 class="text-3xl font-semibold">Accueil</h1>
         <FilterBar />
+        <PageDisplay />
       </section>
     </main>
 
