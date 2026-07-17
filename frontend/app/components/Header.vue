@@ -3,6 +3,7 @@ import {
   Bars3Icon,
   BookOpenIcon,
   Cog6ToothIcon,
+  HomeIcon,
   MoonIcon,
   SunIcon,
   UserCircleIcon,
@@ -20,6 +21,11 @@ const themePreference = useCookie<ThemePreference>("theme-preference", {
 })
 
 const favoriteFilters = ["Univers fantasy", "Personnages", "Lieux à explorer"]
+const route = useRoute()
+const personalPagePath = "/personnalpage"
+const isPersonalPage = computed(() => route.path === personalPagePath)
+const pagesLinkPath = computed(() => isPersonalPage.value ? "/" : personalPagePath)
+const pagesLinkLabel = computed(() => isPersonalPage.value ? "Retour vers l'accueil" : "Mes pages")
 
 const applyTheme = (dark: boolean) => {
   isDark.value = dark
@@ -74,9 +80,10 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
       </form>
 
       <nav class="hidden items-center gap-8 md:flex" aria-label="Navigation principale">
-        <button type="button" aria-label="Mes pages" title="Mes pages">
-          <BookOpenIcon class="size-9" />
-        </button>
+        <NuxtLink :to="pagesLinkPath" :aria-label="pagesLinkLabel" :title="pagesLinkLabel">
+          <HomeIcon v-if="isPersonalPage" class="size-9" />
+          <BookOpenIcon v-else class="size-9" />
+        </NuxtLink>
         <button type="button" :aria-label="isDark ? 'Activer le mode clair' : 'Activer le mode sombre'" @click="toggleTheme">
           <SunIcon v-if="isDark" class="size-9" />
           <MoonIcon v-else class="size-9" />
@@ -110,7 +117,15 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
             <span>Paramètres</span>
             <Cog6ToothIcon class="size-10" />
           </button>
-          <button type="button" class="menu-action h-16 border-2 px-3 text-left text-2xl">Mes Pages</button>
+          <NuxtLink
+            :to="pagesLinkPath"
+            class="menu-action flex h-16 items-center justify-between border-2 px-3 text-left text-2xl"
+            @click="toggleMenu"
+          >
+            <span>{{ pagesLinkLabel }}</span>
+            <HomeIcon v-if="isPersonalPage" class="size-10" />
+            <BookOpenIcon v-else class="size-10" />
+          </NuxtLink>
           <div class="menu-action border-2 p-3">
             <p class="text-2xl">Mes favoris</p>
             <ul class="secondary-color mt-2 space-y-1 text-sm">
