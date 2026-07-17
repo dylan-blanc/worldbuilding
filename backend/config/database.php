@@ -8,6 +8,8 @@ defined("DB_NAME") || define("DB_NAME", envValue("DB_NAME", "dbname"));
 defined("DB_USER") || define("DB_USER", envValue("DB_USER", "dbuser"));
 defined("DB_PASSWORD") || define("DB_PASSWORD", envValue("DB_PASSWORD", "dbpassword"));
 
+global $pdo;
+
 try {
     $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
 

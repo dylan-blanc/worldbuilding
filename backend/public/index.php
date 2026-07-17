@@ -22,6 +22,10 @@ if (dispatchFilterRoutes($path, $method, $pdo)) {
     exit;
 }
 
+if (dispatchPageRoutes($path, $method, $pdo)) {
+    exit;
+}
+
 Response::json(404, [
     "error" => "Not found",
 ]);

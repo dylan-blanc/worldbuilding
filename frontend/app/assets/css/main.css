@@ -37,7 +37,7 @@ body {
   color: var(--primary-color);
 }
 
-/* Utilitaires globaux : couleurs sémantiques partagées par toute l'application. */
+/* Utilitaires globaux : couleurs partagées par toute l'application. */
 .primary-color { color: var(--primary-color); }
 .secondary-color { color: var(--secondary-color); }
 .third-color { color: var(--third-color); }

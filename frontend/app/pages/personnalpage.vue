@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import Accueil from '~/views/accueil.vue'
+
+import Firstcreation from '~/views/firstcreation.vue'
 </script>
 
 <template>
-  <Accueil />
+  <firstcreation />
 </template>

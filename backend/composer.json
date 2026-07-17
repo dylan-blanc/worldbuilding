@@ -12,7 +12,8 @@
             "config/env.php",
             "config/database.php",
             "routes/auth.php",
-            "routes/filters.php"
+            "routes/filters.php",
+            "routes/pages.php"
         ]
     },
     "authors": [
