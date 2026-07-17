@@ -40,6 +40,8 @@ TODO.md
 tutoPreCommit.md
 
 # bdd
-backend/db/db.sql
 backend/db/dbseed.sql
+
+# police d'ecriture
+frontend/app/assets/fonts
 
