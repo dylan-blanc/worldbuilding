@@ -15,8 +15,26 @@ final class PageController
 
     public function index(): void
     {
+        $themeId = $this->optionalPositiveIntQuery("theme_id");
+        $categoryId = $this->optionalPositiveIntQuery("category_id");
+        $subcategoryId = $this->optionalPositiveIntQuery("subcategory_id");
+        $sortBy = $this->optionalEnumQuery("sort_by", ["date", "like", "view"]);
+        $sortOrder = $this->optionalEnumQuery("sort_order", ["asc", "desc"]);
+
+        if (($sortBy === null) !== ($sortOrder === null)) {
+            Response::error("Le type et l'ordre du tri sont requis ensemble", 422);
+        }
+
+        $this->validateFavoriteQuery();
+
         Response::json(200, [
-            "pages" => $this->pages->findPublicCards(),
+            "pages" => $this->pages->findPublicCards(
+                $themeId,
+                $categoryId,
+                $subcategoryId,
+                $sortBy,
+                $sortOrder
+            ),
         ]);
     }
 
@@ -195,5 +213,56 @@ final class PageController
         $value = trim((string) $body[$key]);
 
         return $value === "" ? null : $value;
+    }
+
+    private function optionalPositiveIntQuery(string $key): ?int
+    {
+        if (!array_key_exists($key, $_GET) || $_GET[$key] === "") {
+            return null;
+        }
+
+        if (!is_scalar($_GET[$key])) {
+            Response::error("Parametre " . $key . " invalide", 422);
+        }
+
+        $value = filter_var($_GET[$key], FILTER_VALIDATE_INT, [
+            "options" => ["min_range" => 1],
+        ]);
+
+        if ($value === false) {
+            Response::error("Parametre " . $key . " invalide", 422);
+        }
+
+        return (int) $value;
+    }
+
+    private function optionalEnumQuery(string $key, array $allowedValues): ?string
+    {
+        if (!array_key_exists($key, $_GET) || $_GET[$key] === "") {
+            return null;
+        }
+
+        if (!is_scalar($_GET[$key])) {
+            Response::error("Parametre " . $key . " invalide", 422);
+        }
+
+        $value = strtolower(trim((string) $_GET[$key]));
+
+        if (!in_array($value, $allowedValues, true)) {
+            Response::error("Parametre " . $key . " invalide", 422);
+        }
+
+        return $value;
+    }
+
+    private function validateFavoriteQuery(): void
+    {
+        if (!array_key_exists("is_favorite", $_GET) || $_GET["is_favorite"] === "") {
+            return;
+        }
+
+        if (!is_scalar($_GET["is_favorite"]) || !in_array((string) $_GET["is_favorite"], ["0", "1"], true)) {
+            Response::error("Parametre is_favorite invalide", 422);
+        }
     }
 }

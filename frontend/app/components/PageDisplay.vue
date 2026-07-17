@@ -9,10 +9,12 @@ type PublicPage = {
   page_title: string
   page_status: "public" | "private" | "anonymous" | "banned"
   number_of_likes: number
+  number_of_view: number
   number_of_followers: number
   page_description: string | null
   page_picture: string | null
   created_at: string
+  updated_at: string
 }
 
 type PagesResponse = {
@@ -20,6 +22,7 @@ type PagesResponse = {
 }
 
 const config = useRuntimeConfig()
+const route = useRoute()
 const pages = ref<PublicPage[]>([])
 const pending = ref(true)
 const errorMessage = ref("")
@@ -28,15 +31,53 @@ function pagePicture(page: PublicPage): string | null {
   return page.page_picture || null
 }
 
-onMounted(async () => {
+const apiQuery = computed(() => {
+  const query: Record<string, string> = {}
+  const allowedParameters = [
+    "theme_id",
+    "category_id",
+    "subcategory_id",
+    "sort_by",
+    "sort_order",
+    "is_favorite",
+  ]
+
+  for (const parameter of allowedParameters) {
+    const value = route.query[parameter]
+
+    if (typeof value === "string" && value !== "") query[parameter] = value
+  }
+
+  return query
+})
+
+const apiQueryKey = computed(() => JSON.stringify(apiQuery.value))
+let latestRequest = 0
+
+async function fetchPages(): Promise<void> {
+  const requestId = ++latestRequest
+  pending.value = true
+  errorMessage.value = ""
+
   try {
-    const response = await $fetch<PagesResponse>(`${config.public.apiBase}/pages`)
+    const response = await $fetch<PagesResponse>(`${config.public.apiBase}/pages`, {
+      query: apiQuery.value,
+    })
+
+    if (requestId !== latestRequest) return
+
     pages.value = response.pages || []
   } catch {
+    if (requestId !== latestRequest) return
+
     errorMessage.value = "Impossible de charger les pages"
   } finally {
-    pending.value = false
+    if (requestId === latestRequest) pending.value = false
   }
+}
+
+onMounted(() => {
+  watch(apiQueryKey, fetchPages, { immediate: true })
 })
 </script>
 
@@ -63,6 +104,13 @@ onMounted(async () => {
         aria-hidden="true"
       ></span>
     </div>
+
+    <p
+      v-else-if="pages.length === 0"
+      class="secondary-color flex min-h-48 items-center justify-center text-center"
+    >
+      Aucune page ne correspond aux filtres selectionnes.
+    </p>
 
     <div
       v-else
@@ -110,9 +158,9 @@ onMounted(async () => {
             </h2>
 
             <div class="flex items-center gap-4 text-sm text-(--primary-color)">
-              <span title="Followers" class="inline-flex items-center gap-1">
+              <span title="Vues" class="inline-flex items-center gap-1">
                 <EyeIcon class="h-4 w-4" aria-hidden="true" />
-                {{ page.number_of_followers }}
+                {{ page.number_of_view }}
               </span>
               <span title="Likes" class="inline-flex items-center gap-1">
                 <HeartIcon class="h-4 w-4" aria-hidden="true" />
