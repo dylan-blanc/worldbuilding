@@ -4,10 +4,11 @@ import { StarIcon } from "@heroicons/vue/24/solid"
 
 type PublicPage = {
   id: number
-  owner_user_id: number
-  owner_username: string
+  owner_user_id: number | null
+  owner_username: string | null
   page_title: string
-  page_status: "public" | "private" | "anonymous" | "banned"
+  page_status: "public" | "private" | "banned"
+  is_anonymous: boolean
   number_of_likes: number
   number_of_view: number
   number_of_followers: number
@@ -83,26 +84,19 @@ onMounted(() => {
 
 <template>
   <section class="flex flex-col gap-4">
-    <div
+    <LoadingSpinner
       v-if="pending"
-      class="secondary-color flex min-h-48 items-center justify-center"
-      aria-label="Chargement des pages"
-    >
-      <span
-        class="h-10 w-10 animate-spin rounded-full border-4 border-current border-r-transparent"
-        aria-hidden="true"
-      ></span>
-    </div>
+      label="Chargement des pages"
+    />
 
     <div
       v-else-if="errorMessage"
-      class="error-color flex min-h-48 items-center justify-center"
-      aria-label="Erreur de chargement des pages"
+      class="flex min-h-48 flex-col items-center justify-center gap-4 text-center"
     >
-      <span
-        class="h-10 w-10 animate-spin rounded-full border-4 border-current border-r-transparent"
-        aria-hidden="true"
-      ></span>
+      <p class="error-color">{{ errorMessage }}</p>
+      <button type="button" class="button-primary rounded-md px-4 py-2" @click="fetchPages">
+        Réessayer
+      </button>
     </div>
 
     <p
@@ -146,11 +140,11 @@ onMounted(() => {
           </div>
 
           <div class="absolute bottom-4 left-4 flex flex-col gap-2">
-            <div :title="page.owner_username" class="flex items-center">
+            <div :title="page.owner_username || 'Anonyme'" class="flex items-center">
               <span class="flex h-10 w-10 items-center justify-center rounded-full bg-(--primary-color) text-base font-bold text-(--primary-background)">
-                {{ page.owner_username.slice(0, 1).toUpperCase() }}
+                {{ page.owner_username?.slice(0, 1).toUpperCase() || "A" }}
               </span>
-              <span class="sr-only">{{ page.owner_username }}</span>
+              <span class="sr-only">{{ page.owner_username || "Anonyme" }}</span>
             </div>
 
             <h2 class="inline-block max-w-60 bg-(--primary-background) px-2 py-0.5 text-sm font-semibold leading-tight text-(--primary-color) [overflow-wrap:anywhere]">

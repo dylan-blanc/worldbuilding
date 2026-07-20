@@ -51,7 +51,7 @@ final class PageController
     {
         $page = $this->pages->findContentById($id);
 
-        if ($page === null || in_array($page["page_status"], ["anonymous", "banned"], true)) {
+        if ($page === null || $page["page_status"] === "banned") {
             Response::error("Page introuvable", 404);
         }
 
@@ -59,6 +59,10 @@ final class PageController
 
         if ($page["page_status"] === "private" && $userId !== (int) $page["owner_user_id"]) {
             Response::error("Page introuvable", 404);
+        }
+
+        if ((bool) $page["is_anonymous"] && $userId !== (int) $page["owner_user_id"]) {
+            $page["owner_user_id"] = null;
         }
 
         Response::json(200, [
@@ -127,7 +131,16 @@ final class PageController
     public function updateStatus(int $id): void
     {
         $userId = $this->authenticatedUserId();
-        $this->requireOwnedPage($id, $userId);
+        $ownedPage = $this->pages->findOwnedById($id, $userId);
+
+        if ($ownedPage === null) {
+            Response::error("Page introuvable", 404);
+        }
+
+        if ($ownedPage["page_status"] === "banned") {
+            Response::error("Une page bannie ne peut pas etre modifiee", 403);
+        }
+
         $body = Request::body();
         $status = Request::field($body, ["page_status", "status"]);
 

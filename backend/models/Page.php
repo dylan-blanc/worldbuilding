@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class Page
 {
-    private const STATUSES = ["public", "private", "anonymous", "banned"];
+    private const STATUSES = ["public", "private"];
 
     public function __construct(private PDO $pdo) {}
 
@@ -80,8 +80,10 @@ final class Page
             $orderBy = $sortColumns[$sortBy] . " " . $direction . ", pages.id " . $direction;
         }
 
-        $sql = "SELECT pages.id, pages.owner_user_id, users.username AS owner_username,
-                pages.page_title, pages.page_status, pages.number_of_likes,
+        $sql = "SELECT pages.id,
+                CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE pages.owner_user_id END AS owner_user_id,
+                CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.username END AS owner_username,
+                pages.page_title, pages.page_status, pages.is_anonymous, pages.number_of_likes,
                 pages.number_of_view, pages.number_of_followers, pages.page_description,
                 pages.page_picture, pages.created_at, pages.updated_at
             FROM pages
@@ -98,7 +100,7 @@ final class Page
 
     public function findCardsByOwnerId(int $ownerUserId): array
     {
-        $sql = "SELECT id, owner_user_id, page_title, page_status, number_of_likes,
+        $sql = "SELECT id, owner_user_id, page_title, page_status, is_anonymous, number_of_likes,
                 number_of_view, number_of_followers, page_description, page_picture,
                 created_at, updated_at
             FROM pages
@@ -116,7 +118,7 @@ final class Page
 
     public function findContentById(int $id): ?array
     {
-        $sql = "SELECT id, owner_user_id, page_title, page_status, pagecontent
+        $sql = "SELECT id, owner_user_id, page_title, page_status, is_anonymous, pagecontent
             FROM pages
             WHERE id = :id
             LIMIT 1";
@@ -132,7 +134,7 @@ final class Page
 
     public function findOwnedById(int $id, int $ownerUserId): ?array
     {
-        $sql = "SELECT id, owner_user_id, page_title, page_status, number_of_likes,
+        $sql = "SELECT id, owner_user_id, page_title, page_status, is_anonymous, number_of_likes,
                 number_of_view, number_of_followers, page_description, page_picture,
                 created_at, updated_at
             FROM pages
@@ -153,7 +155,7 @@ final class Page
 
     public function findOwnedContentById(int $id, int $ownerUserId): ?array
     {
-        $sql = "SELECT id, owner_user_id, page_title, page_status, pagecontent
+        $sql = "SELECT id, owner_user_id, page_title, page_status, is_anonymous, pagecontent
             FROM pages
             WHERE id = :id AND owner_user_id = :owner_user_id
             LIMIT 1";
