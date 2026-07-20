@@ -3,17 +3,21 @@ import type {
   OwnedPage,
   OwnedPageMessage,
   OwnedPageStatus,
-} from "~/types/owned-page"
+} from "~/types/owned-page";
 
 defineProps<{
-  pages: OwnedPage[]
-  savingPageId: number | null
-  pageMessages: Record<number, OwnedPageMessage>
-}>()
+  pages: OwnedPage[];
+  savingPageId: number | null;
+  pageMessages: Record<number, OwnedPageMessage>;
+}>();
 
 const emit = defineEmits<{
-  save: [id: number, pageStatus: Exclude<OwnedPageStatus, "banned">, isAnonymous: boolean]
-}>()
+  save: [
+    id: number,
+    pageStatus: Exclude<OwnedPageStatus, "banned">,
+    isAnonymous: boolean,
+  ];
+}>();
 </script>
 
 <template>
@@ -23,8 +27,16 @@ const emit = defineEmits<{
     <main class="mx-auto flex w-full max-w-6xl flex-1 px-4 py-12">
       <section class="flex w-full flex-col gap-6">
         <div>
+          <NuxtLink
+            to="/pagecms"
+            class="button-primary inline-block rounded-md px-4 py-2"
+          >
+            Créer une page
+          </NuxtLink>
+        </div>
+        <div>
           <h1 class="text-3xl font-semibold">Mes pages</h1>
-          <p class="secondary-color mt-2">Gérez la visibilité et les informations de vos univers.</p>
+          <p class="secondary-color mt-2">Gérez la visibilité de vos pages.</p>
         </div>
 
         <OwnedPageDisplay
