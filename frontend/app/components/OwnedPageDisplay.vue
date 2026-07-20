@@ -5,19 +5,30 @@ import {
   HeartIcon,
   UserGroupIcon,
 } from "@heroicons/vue/24/outline"
-import type { OwnedPage, OwnedPageStatus } from "~/composables/useOwnedPages"
+import type {
+  OwnedPage,
+  OwnedPageMessage,
+  OwnedPageStatus,
+} from "~/types/owned-page"
 
 type PageSettings = {
   page_status: Exclude<OwnedPageStatus, "banned">
   is_anonymous: boolean
 }
 
-const { pages, saveOwnedPageSettings } = useOwnedPages()
-const settings = reactive<Record<number, PageSettings>>({})
-const savingPageId = ref<number | null>(null)
-const pageMessages = reactive<Record<number, { type: "error" | "success", text: string }>>({})
+const props = defineProps<{
+  pages: OwnedPage[]
+  savingPageId: number | null
+  pageMessages: Record<number, OwnedPageMessage>
+}>()
 
-watch(pages, currentPages => {
+const emit = defineEmits<{
+  save: [{ id: number, pageStatus: Exclude<OwnedPageStatus, "banned">, isAnonymous: boolean }]
+}>()
+
+const settings = reactive<Record<number, PageSettings>>({})
+
+watch(() => props.pages, currentPages => {
   for (const page of currentPages) {
     settings[page.id] = {
       page_status: page.page_status === "public" ? "public" : "private",
@@ -49,38 +60,14 @@ function formatDate(value: string): string {
   }).format(new Date(value))
 }
 
-function errorText(error: unknown): string {
-  if (typeof error !== "object" || error === null) return "Enregistrement impossible"
-
-  const candidate = error as { data?: { error?: string } }
-
-  return candidate.data?.error || "Enregistrement impossible"
-}
-
-async function saveSettings(page: OwnedPage): Promise<void> {
+function saveSettings(page: OwnedPage): void {
   if (page.page_status === "banned" || !settings[page.id]) return
 
-  savingPageId.value = page.id
-  delete pageMessages[page.id]
-
-  try {
-    await saveOwnedPageSettings(
-      page.id,
-      settings[page.id].page_status,
-      settings[page.id].is_anonymous,
-    )
-    pageMessages[page.id] = {
-      type: "success",
-      text: "Paramètres enregistrés",
-    }
-  } catch (error) {
-    pageMessages[page.id] = {
-      type: "error",
-      text: errorText(error),
-    }
-  } finally {
-    savingPageId.value = null
-  }
+  emit("save", {
+    id: page.id,
+    pageStatus: settings[page.id].page_status,
+    isAnonymous: settings[page.id].is_anonymous,
+  })
 }
 </script>
 
