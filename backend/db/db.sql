@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS pages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     owner_user_id INT NOT NULL,
     page_title VARCHAR(255) NOT NULL,
-    page_status ENUM('public', 'private', 'anonymous', 'banned') NOT NULL DEFAULT 'private',
+    page_status ENUM('public', 'private', 'banned') NOT NULL DEFAULT 'private',
+    is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
     number_of_likes INT DEFAULT 0,
     number_of_view INT DEFAULT 0,
     number_of_followers INT DEFAULT 0,
@@ -85,10 +86,10 @@ CREATE TABLE IF NOT EXISTS users_engagement (
 );
 
 INSERT INTO users (id, username, useremail, userpassword, profil_picture, roles) VALUES
-    (1, 'admin', 'admin@gmail.com', 'test', '/images/profiles/aeliana.webp', 'admin'),
-    (2, 'kael', 'kael@example.test', 'test', '/images/profiles/kael.webp', 'user'),
-    (3, 'mirelda', 'mirelda@example.test', 'test', NULL, 'user'),
-    (4, 'test', 'test@test.com', 'test', NULL, 'user');
+    (1, 'admin', 'admin@gmail.com', '$2y$10$.jJe/dABEtFutGw8yX6qMeQVT9wMQy6Po5Ojg6XVAyLbjooaCwTqS', '/images/profiles/aeliana.webp', 'admin'),
+    (2, 'kael', 'kael@example.test', '$2y$10$ZTsDvmHTVNoSs.7p26rLm.mKSNtfRqc/wHO2xddoj3hnyEcXwRxxi', '/images/profiles/kael.webp', 'user'),
+    (3, 'mirelda', 'mirelda@example.test', '$2y$10$ZTsDvmHTVNoSs.7p26rLm.mKSNtfRqc/wHO2xddoj3hnyEcXwRxxi', NULL, 'user'),
+    (4, 'test', 'test@test.com', '$2y$10$ZTsDvmHTVNoSs.7p26rLm.mKSNtfRqc/wHO2xddoj3hnyEcXwRxxi', NULL, 'user');
 
 INSERT INTO filters (id, filter_name, filter_type, belong_to) VALUES
     (1, 'Fantasy', 'theme', NULL),
