@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const config = useRuntimeConfig()
+const route = useRoute()
 const email = ref("")
 const password = ref("")
 const error = ref("")
@@ -27,7 +28,8 @@ const handleLogin = async () => {
 
     localStorage.removeItem("auth_token")
     localStorage.setItem("auth_user", JSON.stringify(response.user))
-    await navigateTo("/")
+    const redirectPath = route.query.redirect === "/pagecms" ? "/pagecms" : "/"
+    await navigateTo(redirectPath)
   } catch (exception) {
     error.value = exception instanceof Error ? exception.message : "Connexion impossible"
   } finally {
