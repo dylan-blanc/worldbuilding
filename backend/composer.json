@@ -13,6 +13,7 @@
             "config/database.php",
             "routes/auth.php",
             "routes/filters.php",
+            "routes/owned-pages.php",
             "routes/pages.php"
         ]
     },

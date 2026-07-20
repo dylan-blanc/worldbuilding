@@ -4,7 +4,12 @@
 
     <main class="mx-auto flex w-full max-w-6xl flex-1 px-4 py-12">
       <section class="flex w-full flex-col gap-6">
-        <h1>test</h1>
+        <div>
+          <h1 class="text-3xl font-semibold">Mes pages</h1>
+          <p class="secondary-color mt-2">Gérez la visibilité et les informations de vos univers.</p>
+        </div>
+
+        <OwnedPageDisplay />
       </section>
     </main>
 
