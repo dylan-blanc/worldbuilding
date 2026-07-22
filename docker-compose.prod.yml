@@ -1,3 +1,5 @@
+# Orchestrates production services with file-backed Docker secrets and persistent data.
+# MinIO remains internal to the application network while its console is bound to localhost.
 services:
   backend:
     container_name: backend
@@ -11,20 +13,24 @@ services:
       DB_USER_FILE: /run/secrets/mysql_user
       DB_PASSWORD_FILE: /run/secrets/mysql_password
       FRONTEND_URL: ${PROD_FRONTEND_URL}
-      API_TOKEN_FILE: /run/secrets/api_token
-      JWT_TOKEN_FILE: /run/secrets/jwt_token
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_REGION: "us-east-1"
+      MINIO_BUCKET: "${BUCKET}"
+      MINIO_ACCESS_KEY_FILE: /run/secrets/minio_access_key
+      MINIO_SECRET_KEY_FILE: /run/secrets/minio_secret_key
+      MINIO_PATH_STYLE: "true"
     depends_on:
       - db
+      - minio
     secrets:
-      - api_token
-      - jwt_token
       - mysql_user
       - mysql_password
+      - minio_access_key
+      - minio_secret_key
     expose:
       - "80"
     healthcheck:
-      test: ["CMD", "php", "-r", "require \"/var/www/html/config/database.php\";"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents(\"http://127.0.0.1/api\") === false ? 1 : 0);"]
       interval: "10s"
       timeout: "5s"
       retries: 5
@@ -36,10 +42,17 @@ services:
     build:
       context: ./frontend
       target: prod
-    depends_on:
-      - backend
     expose:
       - "80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: "5s"
+      timeout: "3s"
+      retries: 10
+      start_period: "10s"
+    depends_on:
+      backend:
+        condition: "service_healthy"
     restart: unless-stopped
 
   nginx:
@@ -52,8 +65,10 @@ services:
       - ./frontend/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: "service_healthy"
+      backend:
+        condition: "service_healthy"
     restart: unless-stopped
 
   db:
@@ -92,18 +107,42 @@ services:
     # pour l'arreter :
     # docker compose -f docker-compose.prod.yml stop phpmyadmin
 
+  minio:
+    container_name: "minio"
+    image: "pgsty/minio:RELEASE.2026-06-18T00-00-00Z"
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER_FILE: "/run/secrets/minio_root_user"
+      MINIO_ROOT_PASSWORD_FILE: "/run/secrets/minio_root_password"
+    secrets:
+      - minio_root_user
+      - minio_root_password
+    volumes:
+      - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
+    ports:
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    restart: "unless-stopped"
+
 
 volumes:
   db_data:
+  minio_data:
 
 secrets:
-  api_token:
-    file: ./secrets/api_token
-  jwt_token:
-    file: ./secrets/jwt_token
   mysql_root_password:
     file: ./secrets/mysql_root_password
   mysql_user:
     file: ./secrets/mysql_user
   mysql_password:
     file: ./secrets/mysql_password
+  minio_root_user:
+    file: ./secrets/minio_root_user
+  minio_root_password:
+    file: ./secrets/minio_root_password
+  minio_access_key:
+    file: ./secrets/minio_access_key
+  minio_secret_key:
+    file: ./secrets/minio_secret_key

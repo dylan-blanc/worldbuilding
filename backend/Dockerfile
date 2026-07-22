@@ -1,3 +1,7 @@
+# syntax=docker/dockerfile:1
+
+# Builds the PHP-Apache backend used by Docker Compose in development and production.
+# The production dependency stage installs Composer packages before the application is copied into the runtime image.
 FROM php:8.4-apache AS base
 
 WORKDIR /var/www/html
@@ -14,5 +18,15 @@ FROM base AS dev
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . .
 
-FROM base AS prod
+FROM composer:2 AS prod-dependencies
+
+WORKDIR /app
+
 COPY . .
+
+RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+FROM base AS prod
+
+COPY . .
+COPY --from=prod-dependencies /app/vendor ./vendor
