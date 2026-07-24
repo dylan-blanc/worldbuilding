@@ -1,5 +1,6 @@
 {
     "name": "seidan/backend",
+    "description": "PHP API pour le projet Worldbuilding",
     "type": "project",
     "license": "proprietary",
     "autoload": {
@@ -24,5 +25,7 @@
         }
     ],
     "minimum-stability": "stable",
-    "require": {}
+    "require": {
+        "aws/aws-sdk-php": "^3.0"
+    }
 }
