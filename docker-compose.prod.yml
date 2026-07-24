@@ -19,9 +19,13 @@ services:
       MINIO_ACCESS_KEY_FILE: /run/secrets/minio_access_key
       MINIO_SECRET_KEY_FILE: /run/secrets/minio_secret_key
       MINIO_PATH_STYLE: "true"
+      MINIO_SSE_MODE: "${MINIO_SSE_MODE:-}"
+      MINIO_SSE_KMS_KEY_ID: "${MINIO_SSE_KMS_KEY_ID:-}"
     depends_on:
-      - db
-      - minio
+      db:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
     secrets:
       - mysql_user
       - mysql_password
@@ -125,6 +129,36 @@ services:
     ports:
       - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     restart: "unless-stopped"
+
+  # Creates the private CMS bucket, service account and bucket-scoped policy without exposing MinIO publicly.
+  minio-init:
+    image: "pgsty/mc:RELEASE.2026-04-17T00-00-00Z"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        export MINIO_ROOT_USER="$$(cat /run/secrets/minio_root_user)"
+        export MINIO_ROOT_PASSWORD="$$(cat /run/secrets/minio_root_password)"
+        export MINIO_ACCESS_KEY="$$(cat /run/secrets/minio_access_key)"
+        export MINIO_SECRET_KEY="$$(cat /run/secrets/minio_secret_key)"
+        until mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" --api S3v4 --path on; do
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+        mc admin user add local "$${MINIO_ACCESS_KEY}" "$${MINIO_SECRET_KEY}" || true
+        mc admin policy create local cms-media /policies/cms-policy.json
+        mc admin policy attach local cms-media --user "$${MINIO_ACCESS_KEY}"
+    environment:
+      MINIO_BUCKET: "${BUCKET:-users-data}"
+    secrets:
+      - minio_root_user
+      - minio_root_password
+      - minio_access_key
+      - minio_secret_key
+    volumes:
+      - ./docker/minio/cms-policy.json:/policies/cms-policy.json:ro
+    depends_on:
+      - minio
+    restart: "no"
 
 
 volumes:
