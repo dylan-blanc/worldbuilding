@@ -43,6 +43,34 @@ CREATE TABLE IF NOT EXISTS pages (
     FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS page_revision (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    page_id INT NOT NULL,
+    created_by_user_id INT,
+    revision_number INT UNSIGNED NOT NULL,
+    revision_status ENUM('draft', 'published', 'archived') NOT NULL DEFAULT 'draft',
+    is_current BOOLEAN NOT NULL DEFAULT TRUE,
+    pagecontent JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    published_at TIMESTAMP NULL DEFAULT NULL,
+    current_draft_page_id INT,
+    current_published_page_id INT,
+    UNIQUE KEY unique_page_revision_number (page_id, revision_number),
+    UNIQUE KEY unique_current_page_draft (current_draft_page_id),
+    UNIQUE KEY unique_current_page_publication (current_published_page_id),
+    INDEX page_revision_lookup (page_id, revision_status, is_current),
+    CONSTRAINT valid_current_page_revision CHECK (
+        (is_current = FALSE AND current_draft_page_id IS NULL AND current_published_page_id IS NULL)
+        OR (is_current = TRUE AND revision_status = 'draft' AND current_draft_page_id IS NOT NULL
+            AND current_draft_page_id = page_id AND current_published_page_id IS NULL)
+        OR (is_current = TRUE AND revision_status = 'published' AND current_published_page_id IS NOT NULL
+            AND current_published_page_id = page_id AND current_draft_page_id IS NULL)
+    ),
+    FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS subpages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     master_page_id INT NOT NULL,
@@ -297,6 +325,35 @@ INSERT INTO pages (
         '2026-06-25 15:45:00',
         '2026-07-14 08:55:00'
     );
+
+-- temporaire, pour le dev, a supprimer plus tard
+INSERT INTO page_revision (
+    page_id,
+    created_by_user_id,
+    revision_number,
+    revision_status,
+    is_current,
+    current_draft_page_id,
+    current_published_page_id,
+    pagecontent,
+    created_at,
+    updated_at,
+    published_at
+)
+SELECT
+    id,
+    owner_user_id,
+    1,
+    CASE WHEN page_status = 'public' THEN 'published' ELSE 'draft' END,
+    TRUE,
+    CASE WHEN page_status = 'public' THEN NULL ELSE id END,
+    CASE WHEN page_status = 'public' THEN id ELSE NULL END,
+    pagecontent,
+    created_at,
+    updated_at,
+    CASE WHEN page_status = 'public' THEN updated_at ELSE NULL END
+FROM pages
+ON DUPLICATE KEY UPDATE page_id = VALUES(page_id);
 
 INSERT INTO page_filters (id, page_id, filter_id) VALUES
     (1, 4, 1),
