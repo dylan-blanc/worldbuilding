@@ -6,6 +6,11 @@
 <script setup lang="ts">
 import { ArrowUpIcon } from "@heroicons/vue/24/solid"
 
+defineProps<{
+  isStarting: boolean
+  errorMessage: string
+}>()
+
 const emit = defineEmits<{
   startFreeEdition: []
 }>()
@@ -13,14 +18,16 @@ const emit = defineEmits<{
 
 <template>
   <section class="mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-6 py-14 md:grid-cols-[1fr_auto_1fr] md:px-10">
-    <div class="flex justify-center">
+    <div class="flex flex-col items-center justify-center">
       <button
         type="button"
         class="form-control rounded-xl border px-8 py-3 text-xl font-medium shadow-sm transition hover:bg-(--secondary-background) focus:outline-none focus:ring-2"
+        :disabled="isStarting"
         @click="emit('startFreeEdition')"
       >
-        Édition libre
+        {{ isStarting ? "Création…" : "Édition libre" }}
       </button>
+      <p v-if="errorMessage" class="error-color mt-3 text-sm">{{ errorMessage }}</p>
     </div>
 
     <p class="text-center text-3xl font-semibold underline underline-offset-8">ou</p>

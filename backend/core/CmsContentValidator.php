@@ -1,0 +1,350 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Validates CMS JSON before PageRevision writes it to page_revision or publishes it to pages.pagecontent.
+ * PageController passes PUT /pages/{id}/draft and POST /pages/{id}/publish data through this allow-list.
+ * Links are stored only when they are internal paths or HTTPS navigation targets without executable file extensions.
+ */
+final class CmsContentValidator
+{
+    private const MAX_DOCUMENT_BYTES = 2_000_000;
+    private const MAX_BLOCKS = 200;
+    private const MAX_STRING_LENGTH = 200_000;
+    private const BLOCK_TYPES = ["section", "text", "image", "banner", "gallery", "video", "separator"];
+    private const BREAKPOINTS = ["lg", "md", "sm", "xs"];
+    private const DOCUMENT_KEYS = ["schemaVersion", "settings", "blocks", "layouts"];
+    private const SETTINGS_KEYS = ["desktopColumns", "responsiveStrategy"];
+    private const BLOCK_KEYS = ["id", "type", "props"];
+    private const LAYOUT_KEYS = ["i", "parentId", "x", "y", "w", "h", "minW", "minH", "maxW", "maxH"];
+    private const DANGEROUS_KEYS = ["download", "html", "rawhtml", "innerhtml", "srcdoc", "script", "style", "css"];
+    private const DANGEROUS_NODE_TYPES = ["script", "iframe", "object", "embed", "style", "html"];
+    private const NAVIGATION_EXTENSIONS = ["html", "htm"];
+    private const FONT_FAMILIES = ["sans-serif", "serif", "monospace"];
+    private const FONT_SIZES = ["12px", "14px", "16px", "18px", "24px", "32px"];
+    private const LINE_HEIGHTS = ["1", "1.25", "1.5", "1.75", "2"];
+
+    public static function emptyDocument(): array
+    {
+        return [
+            "schemaVersion" => 1,
+            "settings" => [
+                "desktopColumns" => 12,
+                "responsiveStrategy" => "auto-stack",
+            ],
+            "blocks" => [],
+            "layouts" => [
+                "lg" => [],
+                "md" => [],
+                "sm" => [],
+                "xs" => [],
+            ],
+        ];
+    }
+
+    public static function validate(array $document, int $ownerUserId, int $pageId): array
+    {
+        $encoded = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+        if (strlen($encoded) > self::MAX_DOCUMENT_BYTES) {
+            throw new DomainException("Le contenu de la page depasse 2 Mo");
+        }
+
+        if (array_diff(array_keys($document), self::DOCUMENT_KEYS) !== []
+            || array_diff(self::DOCUMENT_KEYS, array_keys($document)) !== []
+        ) {
+            throw new DomainException("Structure racine du document CMS invalide");
+        }
+
+        if (($document["schemaVersion"] ?? null) !== 1) {
+            throw new DomainException("Version du document CMS invalide");
+        }
+
+        self::validateSettings($document["settings"] ?? null);
+        $blocks = $document["blocks"] ?? null;
+        $layouts = $document["layouts"] ?? null;
+
+        if (!is_array($blocks)
+            || !is_array($layouts)
+            || count($blocks) > self::MAX_BLOCKS
+            || array_diff(array_keys($layouts), self::BREAKPOINTS) !== []
+        ) {
+            throw new DomainException("Structure des blocs CMS invalide");
+        }
+
+        foreach ($blocks as $id => $block) {
+            self::validateBlock((string) $id, $block, $ownerUserId, $pageId);
+        }
+
+        self::validateLayouts($layouts, $blocks);
+
+        return $document;
+    }
+
+    private static function validateSettings(mixed $settings): void
+    {
+        if (!is_array($settings)
+            || array_diff(array_keys($settings), self::SETTINGS_KEYS) !== []
+            || array_diff(self::SETTINGS_KEYS, array_keys($settings)) !== []
+            || ($settings["desktopColumns"] ?? null) !== 12
+            || ($settings["responsiveStrategy"] ?? null) !== "auto-stack"
+        ) {
+            throw new DomainException("Parametres du document CMS invalides");
+        }
+    }
+
+    private static function validateBlock(string $id, mixed $block, int $ownerUserId, int $pageId): void
+    {
+        if (!preg_match("/^[A-Za-z0-9-]{1,64}$/", $id)
+            || !is_array($block)
+            || array_diff(array_keys($block), self::BLOCK_KEYS) !== []
+            || array_diff(self::BLOCK_KEYS, array_keys($block)) !== []
+            || ($block["id"] ?? null) !== $id
+            || !in_array($block["type"] ?? null, self::BLOCK_TYPES, true)
+            || !is_array($block["props"] ?? null)
+        ) {
+            throw new DomainException("Bloc CMS invalide: " . $id);
+        }
+
+        self::validateProperties($block["props"], $ownerUserId, $pageId, 0);
+    }
+
+    private static function validateProperties(array $properties, int $ownerUserId, int $pageId, int $depth): void
+    {
+        if ($depth > 12) {
+            throw new DomainException("Proprietes CMS trop profondes");
+        }
+
+        foreach ($properties as $key => $value) {
+            $normalizedKey = strtolower((string) $key);
+
+            if (str_starts_with($normalizedKey, "on") || in_array($normalizedKey, self::DANGEROUS_KEYS, true)) {
+                throw new DomainException("Propriete CMS interdite: " . $key);
+            }
+
+            if ($normalizedKey === "type" && is_string($value) && in_array(strtolower($value), self::DANGEROUS_NODE_TYPES, true)) {
+                throw new DomainException("Type de contenu enrichi interdit");
+            }
+
+            if (in_array($normalizedKey, ["href", "url", "link"], true)) {
+                self::validateLink($value);
+            }
+
+            if ($normalizedKey === "objectkey" && $value !== null && $value !== "") {
+                self::validateObjectKey($value, $ownerUserId, $pageId);
+            }
+
+            self::validateTextFormattingAttribute($normalizedKey, $value);
+
+            if (is_array($value)) {
+                self::validateProperties($value, $ownerUserId, $pageId, $depth + 1);
+                continue;
+            }
+
+            if (is_string($value)) {
+                if (strlen($value) > self::MAX_STRING_LENGTH || preg_match("/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/", $value)) {
+                    throw new DomainException("Texte CMS invalide ou trop long");
+                }
+
+                continue;
+            }
+
+            if ($value !== null && !is_int($value) && !is_float($value) && !is_bool($value)) {
+                throw new DomainException("Valeur CMS invalide");
+            }
+        }
+    }
+
+    private static function validateLink(mixed $value): void
+    {
+        if (!is_string($value) || $value === "" || preg_match("/[\\x00-\\x20\\x7F\\\\]/", $value)) {
+            throw new DomainException("Lien hypertexte invalide");
+        }
+
+        if (str_starts_with($value, "/") && !str_starts_with($value, "//")) {
+            $parts = parse_url($value);
+
+            if (!is_array($parts)) {
+                throw new DomainException("Lien hypertexte invalide");
+            }
+
+            self::validateNavigationTarget((string) ($parts["path"] ?? ""), (string) ($parts["query"] ?? ""));
+            return;
+        }
+
+        $parts = parse_url($value);
+
+        if (filter_var($value, FILTER_VALIDATE_URL) === false
+            || !is_array($parts)
+            || strtolower((string) ($parts["scheme"] ?? "")) !== "https"
+            || !isset($parts["host"])
+            || isset($parts["user"])
+            || isset($parts["pass"])
+            || (isset($parts["port"]) && (int) $parts["port"] !== 443)
+        ) {
+            throw new DomainException("Seuls les liens internes et HTTPS sont autorises");
+        }
+
+        self::validateNavigationTarget((string) ($parts["path"] ?? ""), (string) ($parts["query"] ?? ""));
+    }
+
+    private static function validateNavigationTarget(string $path, string $query): void
+    {
+        $decodedPath = rawurldecode($path);
+        $extension = strtolower(pathinfo($decodedPath, PATHINFO_EXTENSION));
+        $downloadQuery = preg_match("/(?:^|[&;])(download|attachment|file|filename)(?:=|&|;|$)/i", $query) === 1;
+        $downloadPath = preg_match("#/(downloads?|attachments?)(?:/|$)#i", $decodedPath) === 1;
+
+        if (($extension !== "" && !in_array($extension, self::NAVIGATION_EXTENSIONS, true)) || $downloadQuery || $downloadPath) {
+            throw new DomainException("Les liens directs vers des fichiers telechargeables sont interdits");
+        }
+    }
+
+    private static function validateObjectKey(mixed $value, int $ownerUserId, int $pageId): void
+    {
+        if (!is_string($value)
+            || !preg_match(
+                "#^" . preg_quote((string) $ownerUserId, "#") . "/pages/" . preg_quote((string) $pageId, "#") . "/(images|videos)/[a-f0-9]{32}\\.(jpg|png|webp|avif|gif|mp4|webm)$#",
+                $value
+            )
+        ) {
+            throw new DomainException("Cle media MinIO invalide");
+        }
+    }
+
+    private static function validateTextFormattingAttribute(string $key, mixed $value): void
+    {
+        if (in_array($key, ["color", "backgroundcolor"], true)
+            && $value !== null
+            && (!is_string($value) || preg_match("/^#[0-9a-fA-F]{6}$/", $value) !== 1)
+        ) {
+            throw new DomainException("Couleur de texte invalide");
+        }
+
+        if ($key === "textalign"
+            && $value !== null
+            && (!is_string($value) || !in_array($value, ["left", "center", "right", "justify"], true))
+        ) {
+            throw new DomainException("Alignement de texte invalide");
+        }
+
+        if ($key === "fontfamily"
+            && $value !== null
+            && (!is_string($value) || !in_array($value, self::FONT_FAMILIES, true))
+        ) {
+            throw new DomainException("Police de texte invalide");
+        }
+
+        if ($key === "fontsize"
+            && $value !== null
+            && (!is_string($value) || !in_array($value, self::FONT_SIZES, true))
+        ) {
+            throw new DomainException("Taille de texte invalide");
+        }
+
+        if ($key === "lineheight"
+            && $value !== null
+            && (!is_string($value) || !in_array($value, self::LINE_HEIGHTS, true))
+        ) {
+            throw new DomainException("Interligne invalide");
+        }
+
+        if ($key === "level" && (!is_int($value) || $value < 1 || $value > 6)) {
+            throw new DomainException("Niveau de titre invalide");
+        }
+
+        if ($key === "target" && $value !== null && !in_array($value, ["_blank", "_self"], true)) {
+            throw new DomainException("Cible de lien invalide");
+        }
+
+        if ($key === "rel"
+            && $value !== null
+            && (!is_string($value) || !in_array($value, ["noopener noreferrer", "noopener noreferrer nofollow"], true))
+        ) {
+            throw new DomainException("Attribut de lien invalide");
+        }
+
+        if (in_array($key, ["class", "classname"], true) && $value !== null && $value !== "") {
+            throw new DomainException("Classe CSS utilisateur interdite");
+        }
+    }
+
+    private static function validateLayouts(array $layouts, array $blocks): void
+    {
+        foreach (self::BREAKPOINTS as $breakpoint) {
+            if (!array_key_exists($breakpoint, $layouts) || !is_array($layouts[$breakpoint])) {
+                throw new DomainException("Layout responsive manquant: " . $breakpoint);
+            }
+
+            $seen = [];
+
+            foreach ($layouts[$breakpoint] as $item) {
+                self::validateLayoutItem($item, $blocks, $seen, $breakpoint);
+                $seen[] = $item["i"];
+            }
+
+            foreach ($layouts[$breakpoint] as $item) {
+                $parentId = $item["parentId"] ?? null;
+
+                if ($parentId !== null && !in_array($parentId, $seen, true)) {
+                    throw new DomainException("Le container parent doit exister dans le meme layout");
+                }
+            }
+        }
+
+        $desktopIds = array_column($layouts["lg"], "i");
+
+        if (count($desktopIds) !== count($blocks) || array_diff(array_keys($blocks), $desktopIds) !== []) {
+            throw new DomainException("Chaque bloc doit apparaitre une fois dans le layout desktop");
+        }
+    }
+
+    private static function validateLayoutItem(mixed $item, array $blocks, array $seen, string $breakpoint): void
+    {
+        if (!is_array($item) || array_diff(array_keys($item), self::LAYOUT_KEYS) !== []) {
+            throw new DomainException("Element de layout invalide");
+        }
+
+        foreach (["i", "x", "y", "w", "h"] as $requiredKey) {
+            if (!array_key_exists($requiredKey, $item)) {
+                throw new DomainException("Coordonnees de layout incompletes");
+            }
+        }
+
+        $id = $item["i"];
+
+        if (!is_string($id) || !array_key_exists($id, $blocks)) {
+            throw new DomainException("Reference de bloc inconnue dans le layout " . $breakpoint);
+        }
+
+        if (in_array($id, $seen, true)) {
+            throw new DomainException("Reference de bloc dupliquee dans le layout " . $breakpoint . ": " . $id);
+        }
+
+        $parentId = $item["parentId"] ?? null;
+
+        if ($parentId !== null
+            && (!is_string($parentId)
+                || $parentId === $id
+                || !isset($blocks[$parentId])
+                || ($blocks[$parentId]["type"] ?? null) !== "section"
+                || ($blocks[$id]["type"] ?? null) === "section")
+        ) {
+            throw new DomainException("Container parent invalide");
+        }
+
+        foreach (["x", "y", "w", "h", "minW", "minH", "maxW", "maxH"] as $numericKey) {
+            if (array_key_exists($numericKey, $item) && !is_int($item[$numericKey])) {
+                throw new DomainException("Coordonnee de layout invalide");
+            }
+        }
+
+        if ($item["x"] < 0 || $item["x"] > 11 || $item["y"] < 0 || $item["y"] > 10_000
+            || $item["w"] < 1 || $item["w"] > 12 || $item["h"] < 1 || $item["h"] > 200
+            || $item["x"] + $item["w"] > 12
+        ) {
+            throw new DomainException("Dimensions XYWH hors de la grille");
+        }
+    }
+}

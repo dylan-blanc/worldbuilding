@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+/**
+ * Reads and creates SQL users for authentication and authorization.
+ * AuthController uses the public identity queries, while page read controllers
+ * call isAdmin() before PageReadAccess authorizes banned published content.
+ */
 final class User
 {
     public function __construct(private PDO $pdo)
@@ -55,6 +60,22 @@ final class User
         ]);
 
         return $statement->fetch() !== false;
+    }
+
+    public function isAdmin(int $id): bool
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT 1
+            FROM users
+            WHERE id = :id AND roles = :role
+            LIMIT 1"
+        );
+        $statement->execute([
+            ":id" => $id,
+            ":role" => "admin",
+        ]);
+
+        return $statement->fetchColumn() !== false;
     }
 
     public function create(string $username, string $email, string $passwordHash): array

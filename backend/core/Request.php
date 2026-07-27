@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+/**
+ * Reads JSON, form and multipart request data for every PHP controller.
+ * State-changing CMS endpoints also call requireSameOrigin before model SQL or MinIO operations.
+ * This keeps browser session cookies scoped to requests originating from the configured frontend.
+ */
 final class Request
 {
     public static function body(): array
@@ -33,5 +38,19 @@ final class Request
         }
 
         return "";
+    }
+
+    public static function requireSameOrigin(): void
+    {
+        if (PHP_SAPI === "cli") {
+            return;
+        }
+
+        $origin = rtrim((string) ($_SERVER["HTTP_ORIGIN"] ?? ""), "/");
+        $allowedOrigin = rtrim(envValue("FRONTEND_URL", ""), "/");
+
+        if ($origin === "" || $allowedOrigin === "" || !hash_equals($allowedOrigin, $origin)) {
+            Response::error("Origine de la requete refusee", 403, "invalid_request_origin");
+        }
     }
 }
