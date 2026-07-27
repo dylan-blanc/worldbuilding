@@ -62,6 +62,24 @@ final class User
         return $statement->fetch() !== false;
     }
 
+    public function existsByUsernameOrEmailExceptId(string $username, string $email, int $excludedId): bool
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT id
+            FROM users
+            WHERE (username = :username OR useremail = :useremail)
+                AND id <> :excluded_id
+            LIMIT 1"
+        );
+        $statement->execute([
+            ":username" => $username,
+            ":useremail" => $email,
+            ":excluded_id" => $excludedId,
+        ]);
+
+        return $statement->fetch() !== false;
+    }
+
     public function isAdmin(int $id): bool
     {
         $statement = $this->pdo->prepare(
@@ -94,6 +112,38 @@ final class User
 
         if ($user === null) {
             throw new RuntimeException("Utilisateur introuvable apres creation");
+        }
+
+        return $user;
+    }
+
+    public function updateProfile(
+        int $id,
+        string $username,
+        string $email,
+        ?string $passwordHash,
+        ?string $profilePicture
+    ): array {
+        $statement = $this->pdo->prepare(
+            "UPDATE users
+            SET username = :username,
+                useremail = :useremail,
+                userpassword = COALESCE(:userpassword, userpassword),
+                profil_picture = :profil_picture
+            WHERE id = :id"
+        );
+        $statement->execute([
+            ":id" => $id,
+            ":username" => $username,
+            ":useremail" => $email,
+            ":userpassword" => $passwordHash,
+            ":profil_picture" => $profilePicture,
+        ]);
+
+        $user = $this->findById($id);
+
+        if ($user === null) {
+            throw new RuntimeException("Utilisateur introuvable apres modification");
         }
 
         return $user;
