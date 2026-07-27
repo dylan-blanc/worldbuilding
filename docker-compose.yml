@@ -110,8 +110,9 @@ services:
       - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     restart: "unless-stopped"
 
-  # Used to generate mock data in MinIO for development purposes
-  # This service runs once and exits after initializing the bucket and uploading a test file
+  # create backend user to not rely on root and copy the local user rights into the bucket
+  # run once and then stop
+  # copy local mock data to test out minio container
   minio-init:
     image: "pgsty/mc:RELEASE.2026-04-17T00-00-00Z"
     entrypoint: ["/bin/sh", "-c"]
