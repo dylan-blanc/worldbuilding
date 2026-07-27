@@ -115,20 +115,26 @@ onMounted(() => {
         :key="page.id"
         class="group relative h-[410px] w-[310px] justify-self-center overflow-hidden bg-(--third-background) text-(--primary-color) transition-[height,width,box-shadow] duration-200 ease-in-out hover:h-[430px] hover:w-[330px] hover:shadow-xl focus-within:h-[430px] focus-within:w-[330px] focus-within:shadow-xl"
       >
-        <img
-          v-if="pagePicture(page)"
-          :src="pagePicture(page) || undefined"
-          :alt="page.page_title"
-          class="block h-full w-full object-cover"
+        <NuxtLink
+          :to="`/pageresult/${page.id}`"
+          class="block size-full focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--focus-color)"
+          :aria-label="`Lire ${page.page_title}`"
         >
+          <img
+            v-if="pagePicture(page)"
+            :src="pagePicture(page) || undefined"
+            :alt="page.page_title"
+            class="block size-full object-cover"
+          >
 
-        <div
-          v-else
-          class="flex h-full w-full items-center justify-center bg-(--third-background)"
-          aria-hidden="true"
-        >
-          <span class="rotate-24 text-3xl font-medium text-(--primary-color)">IMAGE</span>
-        </div>
+          <div
+            v-else
+            class="flex size-full items-center justify-center bg-(--third-background)"
+            aria-hidden="true"
+          >
+            <span class="rotate-24 text-3xl font-medium text-(--primary-color)">IMAGE</span>
+          </div>
+        </NuxtLink>
 
         <div class="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
           <div
