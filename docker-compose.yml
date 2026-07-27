@@ -112,7 +112,7 @@ services:
 
   # create backend user to not rely on root and copy the local user rights into the bucket
   # run once and then stop
-  # copy local mock data to test out minio container
+  # copy the integration fixture so the backend test can verify the initialization flow
   minio-init:
     image: "pgsty/mc:RELEASE.2026-04-17T00-00-00Z"
     entrypoint: ["/bin/sh", "-c"]
@@ -125,7 +125,7 @@ services:
         mc admin user add local "$${MINIO_ACCESS_KEY}" "$${MINIO_SECRET_KEY}" || true
         mc admin policy create local cms-media /policies/cms-policy.json
         mc admin policy attach local cms-media --user "$${MINIO_ACCESS_KEY}"
-        mc cp "/mock-data/01/test.txt" "local/$${MINIO_BUCKET}/01/test.txt"
+        mc cp "/test-fixtures/minio-init.txt" "local/$${MINIO_BUCKET}/integration-tests/minio-init.txt"
     environment:
       MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
       MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
@@ -133,7 +133,7 @@ services:
       MINIO_ACCESS_KEY: "${minio_access_key}"
       MINIO_SECRET_KEY: "${minio_secret_key}"
     volumes:
-      - ./docker/minio/mock-data:/mock-data:ro
+      - ./backend/tests/fixtures:/test-fixtures:ro
       - ./docker/minio/cms-policy.json:/policies/cms-policy.json:ro
     depends_on:
       - minio
