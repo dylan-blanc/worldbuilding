@@ -40,7 +40,8 @@ const handleLogin = async () => {
 
     localStorage.removeItem("auth_token")
     localStorage.setItem("auth_user", JSON.stringify(response.user))
-    const redirectPath = route.query.redirect === "/pagecms" ? "/pagecms" : "/"
+    const requestedPath = typeof route.query.redirect === "string" ? route.query.redirect : ""
+    const redirectPath = requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : "/"
     await navigateTo(redirectPath)
   } catch (exception) {
     error.value = errorText(exception)
