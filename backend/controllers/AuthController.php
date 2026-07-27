@@ -73,26 +73,6 @@ final class AuthController
         $this->respondWithSession("Connexion reussie", $user, 200);
     }
 
-    public function me(): void
-    {
-        $userId = Session::userId();
-
-        if ($userId === null) {
-            Response::error("Non authentifie", 401);
-        }
-
-        $user = $this->users->findById($userId);
-
-        if ($user === null) {
-            Session::logout();
-            Response::error("Non authentifie", 401);
-        }
-
-        Response::json(200, [
-            "user" => $this->publicUser($user),
-        ]);
-    }
-
     public function logout(): void
     {
         Session::logout();
