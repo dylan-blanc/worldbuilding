@@ -1,31 +1,46 @@
 <!--
   This component is the upper CMS tool layer mounted by pagecms.vue below Header.
-  It owns the visual editing controls, temporary preset/layout values and the preview drawer state.
-  Its mode flows through v-model to pagecms.vue; editor tool actions remain intentionally visual for now.
+  It owns the visual editing controls, temporary preset/layout values, preview drawer state and the full-width
+  teleport host used by the focused CmsTextBlockEditor without placing formatting controls inside the canvas.
+  Its mode and history actions flow to pagecms.vue, which delegates undo/redo to the active Freepage editor.
 -->
 <script setup lang="ts">
 import {
+  ArrowUturnLeftIcon,
+  ArrowUturnRightIcon,
   QuestionMarkCircleIcon,
   RectangleGroupIcon,
   Squares2X2Icon,
   ViewColumnsIcon,
 } from "@heroicons/vue/24/outline"
+import CmsBlockPalette from "~/components/CmsBlockPalette.vue"
 
 const props = defineProps<{
   isEditing: boolean
+  blockPaletteEnabled: boolean
+  canUndo: boolean
+  canRedo: boolean
 }>()
 
 const emit = defineEmits<{
   "update:isEditing": [value: boolean]
+  undo: []
+  redo: []
 }>()
 
 const selectedPreset = ref("")
 const selectedLayout = ref("")
+const isBlockPaletteOpen = ref(false)
 const helpText = "Choissez un Preset suivi d'un Layout afin de commencer a créer plus rapidement, vous pourez toujours modifier ceux-ci vous même, Sinon, Vous pouvez aussi Créer a partir d'une page blanche"
 const presetOptions = ["Article", "Encyclopédie", "Fiche de personnage"]
 const layoutOptions = ["Colonne unique", "Deux colonnes", "Grille"]
 
 const setMode = (editing: boolean) => emit("update:isEditing", editing)
+const toggleBlockPalette = () => {
+  props.blockPaletteEnabled && (isBlockPaletteOpen.value = !isBlockPaletteOpen.value)
+}
+
+watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = false))
 </script>
 
 <template>
@@ -37,13 +52,42 @@ const setMode = (editing: boolean) => emit("update:isEditing", editing)
       <div class="min-h-0">
         <div class="secondary-background flex min-h-20 flex-wrap items-center justify-between gap-4 px-4 py-3 md:px-8">
           <div class="flex items-center gap-2" aria-label="Outils de disposition à venir">
+            <button
+              type="button"
+              class="form-control rounded-md border p-2"
+              :disabled="!props.canUndo"
+              aria-label="Revenir en arrière"
+              title="Annuler la dernière modification (Ctrl+Z)"
+              @click="emit('undo')"
+            >
+              <ArrowUturnLeftIcon class="size-6" />
+            </button>
+            <button
+              type="button"
+              class="form-control rounded-md border p-2"
+              :disabled="!props.canRedo"
+              aria-label="Rétablir la modification"
+              title="Rétablir la modification (Ctrl+Maj+Z)"
+              @click="emit('redo')"
+            >
+              <ArrowUturnRightIcon class="size-6" />
+            </button>
             <button type="button" class="form-control rounded-md border p-2" aria-label="Disposition latérale">
               <ViewColumnsIcon class="size-6" />
             </button>
             <button type="button" class="form-control rounded-md border p-2" aria-label="Disposition centrale">
               <RectangleGroupIcon class="size-6" />
             </button>
-            <button type="button" class="form-control rounded-md border p-2" aria-label="Disposition en grille">
+            <button
+              type="button"
+              class="rounded-md border p-2"
+              :class="isBlockPaletteOpen ? 'button-primary' : 'form-control'"
+              :disabled="!props.blockPaletteEnabled"
+              :aria-expanded="isBlockPaletteOpen"
+              aria-label="Afficher les blocs à glisser"
+              title="Blocs de contenu"
+              @click="toggleBlockPalette"
+            >
               <Squares2X2Icon class="size-6" />
             </button>
           </div>
@@ -92,6 +136,12 @@ const setMode = (editing: boolean) => emit("update:isEditing", editing)
             </div>
           </div>
         </div>
+
+        <div
+          id="cms-text-toolbar-host"
+          class="secondary-background primary-border w-full empty:hidden border-t px-[5px] py-2"
+          aria-label="Outils du bloc texte sélectionné"
+        />
       </div>
     </div>
 
@@ -104,5 +154,7 @@ const setMode = (editing: boolean) => emit("update:isEditing", editing)
     >
       Édition
     </button>
+
+    <CmsBlockPalette v-if="props.isEditing && props.blockPaletteEnabled && isBlockPaletteOpen" />
   </section>
 </template>
