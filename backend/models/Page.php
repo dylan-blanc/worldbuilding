@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * Reads public/owned pages and updates page metadata for PageController and OwnedPageController.
+ * Public cards join users for owner identity/profile data and replace every owner field with NULL for anonymous pages.
  * POST /pages creates the private page row and its first page_revision draft in one SQL transaction.
  * CMS content edits no longer update pages.pagecontent directly; PageRevision copies content there on publication.
  */
@@ -88,6 +89,7 @@ final class Page
         $sql = "SELECT pages.id,
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE pages.owner_user_id END AS owner_user_id,
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.username END AS owner_username,
+                CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.profil_picture END AS owner_picture,
                 pages.page_title, pages.page_status, pages.is_anonymous, pages.number_of_likes,
                 pages.number_of_view, pages.number_of_followers, pages.page_description,
                 pages.page_picture, pages.created_at, pages.updated_at

@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Dispatches page, CMS revision and media HTTP endpoints from public/index.php.
  * State-changing routes call authenticated controllers, then models execute prepared SQL or MinIO SDK requests.
- * Specific draft/publish/media patterns are resolved before the generic page field PATCH route.
+ * Specific draft/publish/media/profile-picture patterns are resolved before the generic page field PATCH route.
  */
 function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
 {
@@ -80,6 +80,15 @@ function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
         }
 
         pageMethodNotAllowed();
+    }
+
+    if (preg_match("#^/pages/(\\d+)/owner-picture$#", $route, $matches) === 1) {
+        if ($method !== "GET") {
+            pageMethodNotAllowed();
+        }
+
+        $controller = new PageMediaController($pdo);
+        $controller->ownerPicture((int) $matches[1]);
     }
 
     if (preg_match("#^/pages/(\\d+)/(title|description|picture|status|content)$#", $route, $matches) !== 1) {
