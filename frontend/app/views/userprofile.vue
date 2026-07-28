@@ -1,7 +1,7 @@
 <!--
   This view manages the authenticated profile displayed by app/pages/profil.vue.
   Loading follows frontend -> GET /api/me -> UserProfileController::show()
-  -> User/UserProfil prepared SQL and MinIO listing -> profile response.
+  -> User/UserProfil prepared SQL and MinIO listing -> profile response -> UserAvatar/useProfilePicture.
   Saving follows multipart POST /api/me -> current-password verification -> optional MinIO upload
   -> User::updateProfile() prepared SQL -> refreshed profile response.
 -->
@@ -102,18 +102,10 @@ const errorText = (error: unknown, fallback: string): string => {
   return (error as { data?: { error?: string } }).data?.error || fallback
 }
 
-const pictureUrl = (picture: string | null): string => {
-  if (!picture) return ""
-  if (picture.startsWith("/")) return picture
-
-  return `${config.public.apiBase}/me/picture?key=${encodeURIComponent(picture)}`
-}
-
-const currentPictureUrl = computed(() => (
-  localPreview.value || pictureUrl(selectedPicture.value || profile.value?.user.profil_picture || null)
+const { resolveUrl: pictureUrl } = useProfilePicture()
+const displayedPicture = computed(() => (
+  localPreview.value || selectedPicture.value || profile.value?.user.profil_picture || null
 ))
-
-const initials = computed(() => username.value.trim().slice(0, 2).toUpperCase() || "?")
 
 const applyProfile = (response: ProfileResponse) => {
   profile.value = response
@@ -314,10 +306,15 @@ onBeforeUnmount(clearLocalPreview)
           <aside class="secondary-background primary-border rounded-2xl border p-6">
             <h2 class="text-xl font-semibold">Image de profil</h2>
 
-            <div class="primary-background primary-border mx-auto mt-5 flex size-40 items-center justify-center overflow-hidden rounded-full border">
-              <img v-if="currentPictureUrl" :src="currentPictureUrl" alt="Aperçu de l'image de profil" class="size-full object-cover" />
-              <span v-else class="text-4xl font-semibold">{{ initials }}</span>
-            </div>
+            <UserAvatar
+              :picture="displayedPicture"
+              :username="username"
+              source="current-user"
+              size="xl"
+              :initial-length="2"
+              label="Aperçu de l'image de profil"
+              class="mx-auto mt-5"
+            />
 
             <label for="profile-picture" class="button-primary mt-5 block cursor-pointer rounded-md px-4 py-2 text-center text-sm font-medium">
               Choisir une nouvelle image

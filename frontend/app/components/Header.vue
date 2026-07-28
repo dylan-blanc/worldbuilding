@@ -1,6 +1,6 @@
 <!--
   This shared header provides navigation, theme controls and access to the authenticated profile.
-  After client mounting, GET /api/me provides the current profile picture and GET /api/me/picture streams MinIO images.
+  After client mounting, GET /api/me provides the current profile picture to UserAvatar/useProfilePicture.
   Its profile link opens /profil, while anonymous users and unavailable images keep the default profile icon.
 -->
 <script setup lang="ts">
@@ -11,7 +11,6 @@ import {
   HomeIcon,
   MoonIcon,
   SunIcon,
-  UserCircleIcon,
   XMarkIcon,
 } from "@heroicons/vue/24/solid"
 
@@ -33,14 +32,6 @@ const personalPagePath = "/personnalpage"
 const isPersonalPage = computed(() => route.path === personalPagePath)
 const pagesLinkPath = computed(() => isPersonalPage.value ? "/" : personalPagePath)
 const pagesLinkLabel = computed(() => isPersonalPage.value ? "Retour vers l'accueil" : "Mes pages")
-const profilePictureUrl = computed(() => {
-  if (!profilePicture.value) return ""
-
-  return profilePicture.value.startsWith("/")
-    ? profilePicture.value
-    : `${config.public.apiBase}/me/picture?key=${encodeURIComponent(profilePicture.value)}`
-})
-
 const applyTheme = (dark: boolean) => {
   isDark.value = dark
   document.documentElement.classList.toggle("theme-dark", dark)
@@ -124,14 +115,13 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
       </nav>
 
       <NuxtLink to="/profil" class="shrink-0" aria-label="Profil">
-        <img
-          v-if="profilePictureUrl"
-          :src="profilePictureUrl"
-          alt=""
-          class="primary-border size-14 rounded-full border object-cover md:size-16"
-          @error="profilePicture = null"
+        <UserAvatar
+          :picture="profilePicture"
+          source="current-user"
+          size="sm"
+          fallback="icon"
+          label="Profil"
         />
-        <UserCircleIcon v-else class="size-14 md:size-16" />
       </NuxtLink>
     </div>
 

@@ -1,8 +1,8 @@
 <!--
   This component loads and displays the public page cards used by app/views/accueil.vue.
   Data follows frontend -> GET /api/pages -> PageController::index() -> Page::findPublicCards()
-  -> users/pages SQL join -> card response. Non-anonymous MinIO profile pictures follow
-  GET /api/pages/{id}/owner-picture -> PageMediaController::ownerPicture() -> MinioStorage::read().
+  -> users/pages SQL join -> card response. UserAvatar/useProfilePicture sends non-anonymous
+  pictures through GET /api/pages/{id}/owner-picture -> PageMediaController::ownerPicture() -> MinioStorage::read().
 -->
 <script setup lang="ts">
 import { EyeIcon, HeartIcon } from "@heroicons/vue/24/outline"
@@ -15,7 +15,7 @@ type PublicPage = {
   owner_picture: string | null
   page_title: string
   page_status: "public" | "private" | "banned"
-  is_anonymous: boolean
+  is_anonymous: boolean | number
   number_of_likes: number
   number_of_view: number
   number_of_followers: number
@@ -32,23 +32,11 @@ type PagesResponse = {
 const config = useRuntimeConfig()
 const route = useRoute()
 const pages = ref<PublicPage[]>([])
-const failedOwnerPictures = ref<Set<number>>(new Set())
 const pending = ref(true)
 const errorMessage = ref("")
 
 function pagePicture(page: PublicPage): string | null {
   return page.page_picture || null
-}
-
-function ownerPicture(page: PublicPage): string | null {
-  if (page.is_anonymous || !page.owner_picture || failedOwnerPictures.value.has(page.id)) return null
-  if (page.owner_picture.startsWith("/")) return page.owner_picture
-
-  return `${config.public.apiBase}/pages/${page.id}/owner-picture`
-}
-
-function useOwnerPictureFallback(pageId: number): void {
-  failedOwnerPictures.value = new Set([...failedOwnerPictures.value, pageId])
 }
 
 const apiQuery = computed(() => {
@@ -87,7 +75,6 @@ async function fetchPages(): Promise<void> {
     if (requestId !== latestRequest) return
 
     pages.value = response.pages || []
-    failedOwnerPictures.value = new Set()
   } catch {
     if (requestId !== latestRequest) return
 
@@ -166,19 +153,14 @@ onMounted(() => {
           </div>
 
           <div class="absolute bottom-4 left-4 flex flex-col gap-2">
-            <div :title="page.owner_username || 'Anonyme'" class="flex items-center">
-              <img
-                v-if="ownerPicture(page)"
-                :src="ownerPicture(page) || undefined"
-                alt=""
-                class="h-10 w-10 rounded-full object-cover"
-                @error="useOwnerPictureFallback(page.id)"
-              >
-              <span v-else class="flex h-10 w-10 items-center justify-center rounded-full bg-(--primary-color) text-base font-bold text-(--primary-background)">
-                {{ page.owner_username?.slice(0, 1).toUpperCase() || "A" }}
-              </span>
-              <span class="sr-only">{{ page.owner_username || "Anonyme" }}</span>
-            </div>
+            <UserAvatar
+              :picture="page.owner_picture"
+              :username="page.owner_username"
+              :page-id="page.id"
+              source="page-owner"
+              :anonymous="Boolean(page.is_anonymous)"
+              size="md"
+            />
 
             <h2 class="inline-block max-w-60 bg-(--primary-background) px-2 py-0.5 text-sm font-semibold leading-tight text-(--primary-color) [overflow-wrap:anywhere]">
               {{ page.page_title }}
