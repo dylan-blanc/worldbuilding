@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 /**
- * Validates multipart CMS media before PageMediaController streams it to MinIO.
- * POST /pages/{id}/media passes PHP's temporary upload through size, extension, Fileinfo, signature and image decoding checks.
+ * Validates multipart CMS and profile media before controllers stream it to MinIO.
+ * Media POST endpoints pass PHP's temporary upload through size, extension, Fileinfo, signature and image decoding checks.
  * Images are re-encoded with GD to remove appended payloads; videos remain temporary files and are never executed locally.
  */
 final class MediaUploadValidator
@@ -90,6 +90,14 @@ final class MediaUploadValidator
     {
         return preg_match(
             "#^" . preg_quote((string) $ownerUserId, "#") . "/pages/" . preg_quote((string) $pageId, "#") . "/(images|videos)/[a-f0-9]{32}\\.(jpg|png|webp|avif|gif|mp4|webm)$#",
+            $key
+        ) === 1;
+    }
+
+    public static function isOwnedProfilePictureKey(string $key, int $userId): bool
+    {
+        return preg_match(
+            "#^User/" . preg_quote((string) $userId, "#") . "/profilepicture/[a-f0-9]{32}\\.(jpg|png|webp|avif|gif)$#",
             $key
         ) === 1;
     }
