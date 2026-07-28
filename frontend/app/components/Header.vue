@@ -1,3 +1,8 @@
+<!--
+  This shared header provides navigation, theme controls and access to the authenticated profile.
+  After client mounting, GET /api/me provides the current profile picture and GET /api/me/picture streams MinIO images.
+  Its profile link opens /profil, while anonymous users and unavailable images keep the default profile icon.
+-->
 <script setup lang="ts">
 import {
   Bars3Icon,
@@ -12,8 +17,10 @@ import {
 
 type ThemePreference = "dark" | "light" | null
 
+const config = useRuntimeConfig()
 const isMenuOpen = ref(false)
 const isDark = ref(false)
+const profilePicture = useState<string | null>("profile-picture", () => null)
 let removeSystemThemeListener: (() => void) | undefined
 const themePreference = useCookie<ThemePreference>("theme-preference", {
   default: () => null,
@@ -26,6 +33,13 @@ const personalPagePath = "/personnalpage"
 const isPersonalPage = computed(() => route.path === personalPagePath)
 const pagesLinkPath = computed(() => isPersonalPage.value ? "/" : personalPagePath)
 const pagesLinkLabel = computed(() => isPersonalPage.value ? "Retour vers l'accueil" : "Mes pages")
+const profilePictureUrl = computed(() => {
+  if (!profilePicture.value) return ""
+
+  return profilePicture.value.startsWith("/")
+    ? profilePicture.value
+    : `${config.public.apiBase}/me/picture?key=${encodeURIComponent(profilePicture.value)}`
+})
 
 const applyTheme = (dark: boolean) => {
   isDark.value = dark
@@ -41,7 +55,22 @@ const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
 
-onMounted(() => {
+const loadProfilePicture = async () => {
+  try {
+    const response = await $fetch<{
+      user: {
+        profil_picture: string | null
+      }
+    }>(`${config.public.apiBase}/me`, {
+      credentials: "include",
+    })
+    profilePicture.value = response.user.profil_picture
+  } catch {
+    profilePicture.value = null
+  }
+}
+
+onMounted(async () => {
   const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
   const updateSystemTheme = (event: MediaQueryListEvent) => {
     !themePreference.value && applyTheme(event.matches)
@@ -50,6 +79,7 @@ onMounted(() => {
   applyTheme(themePreference.value ? themePreference.value === "dark" : systemTheme.matches)
   systemTheme.addEventListener("change", updateSystemTheme)
   removeSystemThemeListener = () => systemTheme.removeEventListener("change", updateSystemTheme)
+  await loadProfilePicture()
 })
 
 onBeforeUnmount(() => removeSystemThemeListener?.())
@@ -93,8 +123,15 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
         </button>
       </nav>
 
-      <NuxtLink to="/login" class="shrink-0" aria-label="Profil">
-        <UserCircleIcon class="size-14 md:size-16" />
+      <NuxtLink to="/profil" class="shrink-0" aria-label="Profil">
+        <img
+          v-if="profilePictureUrl"
+          :src="profilePictureUrl"
+          alt=""
+          class="primary-border size-14 rounded-full border object-cover md:size-16"
+          @error="profilePicture = null"
+        />
+        <UserCircleIcon v-else class="size-14 md:size-16" />
       </NuxtLink>
     </div>
 
