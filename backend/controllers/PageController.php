@@ -2,15 +2,25 @@
 
 declare(strict_types=1);
 
+/**
+ * Handles page metadata, CMS drafts and publication for routes declared in routes/pages.php.
+ * GET /pages/{id} reads pages.pagecontent and applies PageReadAccess using the SQL user role.
+ * PUT /pages/{id}/draft validates frontend JSON then calls PageRevision, which writes page_revision through PDO.
+ * POST /pages/{id}/publish promotes that draft and copies its JSON to pages.pagecontent while keeping the page private.
+ */
 final class PageController
 {
     private const TITLE_MAX_LENGTH = 255;
 
     private Page $pages;
+    private PageRevision $revisions;
+    private User $users;
 
     public function __construct(PDO $pdo)
     {
         $this->pages = new Page($pdo);
+        $this->revisions = new PageRevision($pdo);
+        $this->users = new User($pdo);
     }
 
     public function index(): void
@@ -51,13 +61,14 @@ final class PageController
     {
         $page = $this->pages->findContentById($id);
 
-        if ($page === null || $page["page_status"] === "banned") {
+        if ($page === null) {
             Response::error("Page introuvable", 404);
         }
 
         $userId = Session::userId();
+        $isAdmin = $userId !== null && $this->users->isAdmin($userId);
 
-        if ($page["page_status"] === "private" && $userId !== (int) $page["owner_user_id"]) {
+        if (!PageReadAccess::allows($page, $userId, $isAdmin)) {
             Response::error("Page introuvable", 404);
         }
 
@@ -72,15 +83,79 @@ final class PageController
 
     public function create(): void
     {
+        Request::requireSameOrigin();
         $userId = $this->authenticatedUserId();
         $body = Request::body();
         $title = Request::field($body, ["page_title", "title"]);
 
         $this->validateTitle($title);
 
+        $initialContent = json_encode(
+            CmsContentValidator::emptyDocument(),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        );
+
         Response::json(201, [
             "message" => "Page creee",
-            "page" => $this->pages->create($userId, $title),
+            "page" => $this->pages->create($userId, $title, $initialContent),
+        ]);
+    }
+
+    public function showDraft(int $id): void
+    {
+        $userId = $this->authenticatedUserId();
+
+        try {
+            $revision = $this->revisions->getOrCreateDraft($id, $userId);
+        } catch (DomainException $exception) {
+            $this->revisionError($exception);
+        }
+
+        Response::json(200, [
+            "revision" => $revision,
+        ]);
+    }
+
+    public function saveDraft(int $id): void
+    {
+        Request::requireSameOrigin();
+        $userId = $this->authenticatedUserId();
+        $this->requireOwnedPage($id, $userId);
+        $body = Request::body();
+
+        if (!array_key_exists("pagecontent", $body) || !is_array($body["pagecontent"])) {
+            Response::error("Contenu JSON de la page requis", 422, "invalid_cms_document");
+        }
+
+        try {
+            $document = CmsContentValidator::validate($body["pagecontent"], $userId, $id);
+            $content = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $revision = $this->revisions->saveDraft($id, $userId, $content);
+        } catch (DomainException $exception) {
+            $this->revisionError($exception, "invalid_cms_document");
+        }
+
+        Response::json(200, [
+            "message" => "Brouillon enregistre",
+            "revision" => $revision,
+        ]);
+    }
+
+    public function publish(int $id): void
+    {
+        Request::requireSameOrigin();
+        $userId = $this->authenticatedUserId();
+
+        try {
+            $revision = $this->revisions->publishDraft($id, $userId);
+        } catch (DomainException $exception) {
+            $this->revisionError($exception, "draft_publication_failed");
+        }
+
+        Response::json(200, [
+            "message" => "Page publiee en mode prive",
+            "page_status" => "private",
+            "revision" => $revision,
         ]);
     }
 
@@ -162,22 +237,7 @@ final class PageController
 
     public function updateContent(int $id): void
     {
-        $userId = $this->authenticatedUserId();
-        $this->requireOwnedPage($id, $userId);
-        $body = Request::body();
-
-        if (!array_key_exists("pagecontent", $body) || !is_array($body["pagecontent"])) {
-            Response::error("Contenu JSON de la page requis", 422);
-        }
-
-        $contentValue = $body["pagecontent"] === [] ? new stdClass() : $body["pagecontent"];
-        $content = json_encode($contentValue, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-        $page = $this->pages->updateContent($id, $userId, $content);
-
-        Response::json(200, [
-            "message" => "Contenu mis a jour",
-            "page" => $page,
-        ]);
+        $this->saveDraft($id);
     }
 
     private function authenticatedUserId(): int
@@ -185,7 +245,7 @@ final class PageController
         $userId = Session::userId();
 
         if ($userId === null) {
-            Response::error("Non authentifie", 401);
+            Response::error("Non authentifie", 401, "authentication_required");
         }
 
         return $userId;
@@ -196,6 +256,14 @@ final class PageController
         if ($this->pages->findOwnedById($id, $userId) === null) {
             Response::error("Page introuvable", 404);
         }
+    }
+
+    private function revisionError(DomainException $exception, string $code = "draft_error"): void
+    {
+        $message = $exception->getMessage();
+        $status = $message === "Page introuvable" ? 404 : ($message === "Une page bannie ne peut pas etre modifiee" ? 403 : 422);
+
+        Response::error($message, $status, $code);
     }
 
     private function validateTitle(string $title): void

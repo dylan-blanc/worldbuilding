@@ -1,0 +1,1 @@
+worldbuilding-minio-init-integration-fixture

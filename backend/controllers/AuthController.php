@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+/**
+ * Handles the authentication endpoints registered by backend/routes/auth.php.
+ * Registration follows POST /api/register -> register() -> validateRegister()
+ * -> User::existsByUsernameOrEmail()/create() -> SQL users table -> session JSON response.
+ * Login follows POST /api/login -> login() -> User::findByEmail() -> password verification
+ * -> session JSON response. Validation errors stop this flow through Response::error().
+ */
 final class AuthController
 {
     private const USERNAME_KEYS = ["username"];
@@ -66,26 +73,6 @@ final class AuthController
         $this->respondWithSession("Connexion reussie", $user, 200);
     }
 
-    public function me(): void
-    {
-        $userId = Session::userId();
-
-        if ($userId === null) {
-            Response::error("Non authentifie", 401);
-        }
-
-        $user = $this->users->findById($userId);
-
-        if ($user === null) {
-            Session::logout();
-            Response::error("Non authentifie", 401);
-        }
-
-        Response::json(200, [
-            "user" => $this->publicUser($user),
-        ]);
-    }
-
     public function logout(): void
     {
         Session::logout();
@@ -109,8 +96,13 @@ final class AuthController
             Response::error("Email invalide", 422);
         }
 
-        if (strlen($password) < self::MIN_PASSWORD_LENGTH) {
-            Response::error("Le mot de passe doit contenir au moins 8 caracteres", 422);
+        if (
+            strlen($password) < self::MIN_PASSWORD_LENGTH
+            || preg_match("/[A-Z]/", $password) !== 1
+            || preg_match("/[0-9]/", $password) !== 1
+            || preg_match("/[^A-Za-z0-9\s]/", $password) !== 1
+        ) {
+            Response::error("Le mot de passe doit contenir au moins 8 caracteres, une majuscule, un chiffre et un caractere special", 422);
         }
     }
 

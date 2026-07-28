@@ -1,3 +1,8 @@
+<!--
+  This component lists pages owned by the authenticated user and edits their visibility settings.
+  Its save event flows through the owning page view to the authenticated PHP page update endpoint and MySQL.
+  Per-page reactive settings mirror the pages prop so each card can be submitted independently.
+-->
 <script setup lang="ts">
 import {
   CalendarDaysIcon,
@@ -61,12 +66,14 @@ function formatDate(value: string): string {
 }
 
 function saveSettings(page: OwnedPage): void {
-  if (page.page_status === "banned" || !settings[page.id]) return
+  const pageSettings = settings[page.id]
+
+  if (page.page_status === "banned" || !pageSettings) return
 
   emit("save", {
     id: page.id,
-    pageStatus: settings[page.id].page_status,
-    isAnonymous: settings[page.id].is_anonymous,
+    pageStatus: pageSettings.page_status,
+    isAnonymous: pageSettings.is_anonymous,
   })
 }
 </script>
@@ -78,7 +85,11 @@ function saveSettings(page: OwnedPage): void {
       :key="page.id"
       class="primary-border overflow-hidden rounded-lg border"
     >
-      <div class="relative aspect-[16/9] w-full overflow-hidden third-background">
+      <NuxtLink
+        :to="`/pageresult/${page.id}`"
+        class="relative block aspect-[16/9] w-full overflow-hidden third-background focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--focus-color)"
+        :aria-label="`Lire ${page.page_title}`"
+      >
         <img
           v-if="page.page_picture"
           :src="page.page_picture"
@@ -95,7 +106,7 @@ function saveSettings(page: OwnedPage): void {
         >
           {{ statusLabel(page.page_status) }}
         </span>
-      </div>
+      </NuxtLink>
 
       <div class="flex flex-col gap-5 p-5">
         <div>
@@ -144,7 +155,7 @@ function saveSettings(page: OwnedPage): void {
           >
             <label class="flex cursor-pointer items-center gap-3 text-sm">
               <input
-                v-model="settings[page.id].page_status"
+                v-model="settings[page.id]!.page_status"
                 type="checkbox"
                 true-value="public"
                 false-value="private"
@@ -155,7 +166,7 @@ function saveSettings(page: OwnedPage): void {
 
             <label class="flex cursor-pointer items-center gap-3 text-sm">
               <input
-                v-model="settings[page.id].is_anonymous"
+                v-model="settings[page.id]!.is_anonymous"
                 type="checkbox"
                 class="h-5 w-5 accent-(--accent-color)"
               >
@@ -170,9 +181,9 @@ function saveSettings(page: OwnedPage): void {
           <p
             v-else-if="pageMessages[page.id]"
             class="text-sm"
-            :class="pageMessages[page.id].type === 'success' ? 'success-color' : 'error-color'"
+            :class="pageMessages[page.id]!.type === 'success' ? 'success-color' : 'error-color'"
           >
-            {{ pageMessages[page.id].text }}
+            {{ pageMessages[page.id]!.text }}
           </p>
 
           <button
@@ -182,6 +193,13 @@ function saveSettings(page: OwnedPage): void {
           >
             {{ savingPageId === page.id ? "Enregistrement..." : "Enregistrer" }}
           </button>
+
+          <NuxtLink
+            :to="{ path: '/pagecms', query: { page: page.id } }"
+            class="form-control self-start rounded-md border px-4 py-2 text-sm font-medium"
+          >
+            Éditer le contenu
+          </NuxtLink>
         </form>
       </div>
     </article>

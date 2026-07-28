@@ -1,3 +1,9 @@
+<!--
+  This component loads and displays the public page cards used by app/views/accueil.vue.
+  Data follows frontend -> GET /api/pages -> PageController::index() -> Page::findPublicCards()
+  -> users/pages SQL join -> card response. Non-anonymous MinIO profile pictures follow
+  GET /api/pages/{id}/owner-picture -> PageMediaController::ownerPicture() -> MinioStorage::read().
+-->
 <script setup lang="ts">
 import { EyeIcon, HeartIcon } from "@heroicons/vue/24/outline"
 import { StarIcon } from "@heroicons/vue/24/solid"
@@ -6,6 +12,7 @@ type PublicPage = {
   id: number
   owner_user_id: number | null
   owner_username: string | null
+  owner_picture: string | null
   page_title: string
   page_status: "public" | "private" | "banned"
   is_anonymous: boolean
@@ -25,11 +32,23 @@ type PagesResponse = {
 const config = useRuntimeConfig()
 const route = useRoute()
 const pages = ref<PublicPage[]>([])
+const failedOwnerPictures = ref<Set<number>>(new Set())
 const pending = ref(true)
 const errorMessage = ref("")
 
 function pagePicture(page: PublicPage): string | null {
   return page.page_picture || null
+}
+
+function ownerPicture(page: PublicPage): string | null {
+  if (page.is_anonymous || !page.owner_picture || failedOwnerPictures.value.has(page.id)) return null
+  if (page.owner_picture.startsWith("/")) return page.owner_picture
+
+  return `${config.public.apiBase}/pages/${page.id}/owner-picture`
+}
+
+function useOwnerPictureFallback(pageId: number): void {
+  failedOwnerPictures.value = new Set([...failedOwnerPictures.value, pageId])
 }
 
 const apiQuery = computed(() => {
@@ -68,6 +87,7 @@ async function fetchPages(): Promise<void> {
     if (requestId !== latestRequest) return
 
     pages.value = response.pages || []
+    failedOwnerPictures.value = new Set()
   } catch {
     if (requestId !== latestRequest) return
 
@@ -115,20 +135,26 @@ onMounted(() => {
         :key="page.id"
         class="group relative h-[410px] w-[310px] justify-self-center overflow-hidden bg-(--third-background) text-(--primary-color) transition-[height,width,box-shadow] duration-200 ease-in-out hover:h-[430px] hover:w-[330px] hover:shadow-xl focus-within:h-[430px] focus-within:w-[330px] focus-within:shadow-xl"
       >
-        <img
-          v-if="pagePicture(page)"
-          :src="pagePicture(page) || undefined"
-          :alt="page.page_title"
-          class="block h-full w-full object-cover"
+        <NuxtLink
+          :to="`/pageresult/${page.id}`"
+          class="block size-full focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--focus-color)"
+          :aria-label="`Lire ${page.page_title}`"
         >
+          <img
+            v-if="pagePicture(page)"
+            :src="pagePicture(page) || undefined"
+            :alt="page.page_title"
+            class="block size-full object-cover"
+          >
 
-        <div
-          v-else
-          class="flex h-full w-full items-center justify-center bg-(--third-background)"
-          aria-hidden="true"
-        >
-          <span class="rotate-24 text-3xl font-medium text-(--primary-color)">IMAGE</span>
-        </div>
+          <div
+            v-else
+            class="flex size-full items-center justify-center bg-(--third-background)"
+            aria-hidden="true"
+          >
+            <span class="rotate-24 text-3xl font-medium text-(--primary-color)">IMAGE</span>
+          </div>
+        </NuxtLink>
 
         <div class="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
           <div
@@ -141,7 +167,14 @@ onMounted(() => {
 
           <div class="absolute bottom-4 left-4 flex flex-col gap-2">
             <div :title="page.owner_username || 'Anonyme'" class="flex items-center">
-              <span class="flex h-10 w-10 items-center justify-center rounded-full bg-(--primary-color) text-base font-bold text-(--primary-background)">
+              <img
+                v-if="ownerPicture(page)"
+                :src="ownerPicture(page) || undefined"
+                alt=""
+                class="h-10 w-10 rounded-full object-cover"
+                @error="useOwnerPictureFallback(page.id)"
+              >
+              <span v-else class="flex h-10 w-10 items-center justify-center rounded-full bg-(--primary-color) text-base font-bold text-(--primary-background)">
                 {{ page.owner_username?.slice(0, 1).toUpperCase() || "A" }}
               </span>
               <span class="sr-only">{{ page.owner_username || "Anonyme" }}</span>

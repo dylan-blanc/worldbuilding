@@ -13,13 +13,28 @@
     "@heroicons/vue": "^2.2.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@tailwindcss/vite": "^4.3.1",
-    "@tiptap/react": "^3.27.1",
+    "@tiptap/core": "^3.28.0",
+    "@tiptap/extension-highlight": "^3.28.0",
+    "@tiptap/extension-image": "^3.28.0",
+    "@tiptap/extension-placeholder": "^3.28.0",
+    "@tiptap/extension-subscript": "^3.28.0",
+    "@tiptap/extension-superscript": "^3.28.0",
+    "@tiptap/extension-text-align": "^3.28.0",
+    "@tiptap/extension-text-style": "^3.28.0",
+    "@tiptap/extension-typography": "^3.28.0",
+    "@tiptap/pm": "^3.28.0",
+    "@tiptap/starter-kit": "^3.28.0",
+    "@tiptap/vue-3": "^3.28.0",
+    "grid-layout-plus": "^1.1.1",
     "nuxt": "^4.4.8",
-    "react-color": "^2.19.3",
-    "react-grid-layout": "^2.2.3",
     "tailwindcss": "^4.3.1",
-    "tiptap-extension-resize-image": "^1.4.3",
+    "tiptap-extension-resize-image": "^1.4.4",
     "vue": "^3.5.38",
+    "vue-color": "^3.3.3",
     "vue-router": "^5.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.1.5"
   }
 }

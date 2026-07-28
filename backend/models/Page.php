@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+/**
+ * Reads public/owned pages and updates page metadata for PageController and OwnedPageController.
+ * Public cards join users for owner identity/profile data and replace every owner field with NULL for anonymous pages.
+ * POST /pages creates the private page row and its first page_revision draft in one SQL transaction.
+ * CMS content edits no longer update pages.pagecontent directly; PageRevision copies content there on publication.
+ */
 final class Page
 {
     private const STATUSES = ["public", "private"];
@@ -83,6 +89,7 @@ final class Page
         $sql = "SELECT pages.id,
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE pages.owner_user_id END AS owner_user_id,
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.username END AS owner_username,
+                CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.profil_picture END AS owner_picture,
                 pages.page_title, pages.page_status, pages.is_anonymous, pages.number_of_likes,
                 pages.number_of_view, pages.number_of_followers, pages.page_description,
                 pages.page_picture, pages.created_at, pages.updated_at
@@ -170,20 +177,43 @@ final class Page
         return $this->fetchPageWithContent($stmt);
     }
 
-    public function create(int $ownerUserId, string $title): array
+    public function create(int $ownerUserId, string $title, string $initialContent): array
     {
-        $sql = "INSERT INTO pages (owner_user_id, page_title, pagecontent)
-            VALUES (:owner_user_id, :page_title, :pagecontent)";
+        $this->pdo->beginTransaction();
 
-        $stmt = $this->pdo->prepare($sql);
-        $this->bindValues($stmt, [
-            ":owner_user_id" => $ownerUserId,
-            ":page_title" => $title,
-            ":pagecontent" => "{}",
-        ]);
-        $stmt->execute();
+        try {
+            $sql = "INSERT INTO pages (owner_user_id, page_title, pagecontent)
+                VALUES (:owner_user_id, :page_title, :pagecontent)";
+            $stmt = $this->pdo->prepare($sql);
+            $this->bindValues($stmt, [
+                ":owner_user_id" => $ownerUserId,
+                ":page_title" => $title,
+                ":pagecontent" => $initialContent,
+            ]);
+            $stmt->execute();
+            $pageId = (int) $this->pdo->lastInsertId();
 
-        $page = $this->findOwnedById((int) $this->pdo->lastInsertId(), $ownerUserId);
+            $revision = $this->pdo->prepare("INSERT INTO page_revision (
+                    page_id, created_by_user_id, revision_number, revision_status, is_current,
+                    current_draft_page_id, current_published_page_id, pagecontent
+                ) VALUES (
+                    :page_id, :created_by_user_id, 1, :revision_status, TRUE,
+                    :current_draft_page_id, NULL, :pagecontent
+                )");
+            $revision->execute([
+                ":page_id" => $pageId,
+                ":created_by_user_id" => $ownerUserId,
+                ":revision_status" => "draft",
+                ":current_draft_page_id" => $pageId,
+                ":pagecontent" => $initialContent,
+            ]);
+            $this->pdo->commit();
+        } catch (Throwable $exception) {
+            $this->pdo->inTransaction() && $this->pdo->rollBack();
+            throw $exception;
+        }
+
+        $page = $this->findOwnedById($pageId, $ownerUserId);
 
         if ($page === null) {
             throw new RuntimeException("Page introuvable apres creation");

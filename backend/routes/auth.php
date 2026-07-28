@@ -2,22 +2,39 @@
 
 declare(strict_types=1);
 
+/**
+ * Dispatches authentication and authenticated profile routes from public/index.php.
+ * Login/register/logout use AuthController, while GET/POST /me and GET /me/picture
+ * use UserProfileController for SQL profile data and private MinIO images.
+ */
 function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
 {
     $route = preg_replace("#^/api#", "", $path) ?: "/";
-    $routes = ["/login", "/logout", "/me", "/register"];
+    $routes = ["/login", "/logout", "/me", "/me/picture", "/register"];
 
     if (!in_array($route, $routes, true)) {
         return false;
     }
 
-    if ($route === "/me" && $method !== "GET") {
+    if ($route === "/me") {
+        $controller = new UserProfileController($pdo);
+        $method === "GET" && $controller->show();
+        $method === "POST" && $controller->update();
+
         Response::json(405, [
             "error" => "Methode non autorisee",
         ]);
     }
 
-    if ($route !== "/me" && $method !== "POST") {
+    if ($route === "/me/picture") {
+        $method === "GET" && (new UserProfileController($pdo))->picture();
+
+        Response::json(405, [
+            "error" => "Methode non autorisee",
+        ]);
+    }
+
+    if ($method !== "POST") {
         Response::json(405, [
             "error" => "Methode non autorisee",
         ]);
@@ -31,10 +48,6 @@ function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
 
     if ($route === "/login") {
         $controller->login();
-    }
-
-    if ($route === "/me") {
-        $controller->me();
     }
 
     if ($route === "/logout") {

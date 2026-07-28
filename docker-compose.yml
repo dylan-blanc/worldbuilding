@@ -11,18 +11,27 @@ services:
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASSWORD: ${MYSQL_PASSWORD}
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_REGION: "us-east-1"
+      MINIO_BUCKET: "${BUCKET}"
+      MINIO_ACCESS_KEY: "${minio_access_key}"
+      MINIO_SECRET_KEY: "${minio_secret_key}"
+      MINIO_PATH_STYLE: "true"
+      MINIO_SSE_MODE: "${MINIO_SSE_MODE:-}"
+      MINIO_SSE_KMS_KEY_ID: "${MINIO_SSE_KMS_KEY_ID:-}"
     volumes:
       - ./backend:/var/www/html
     expose:
       - "80"
     healthcheck:
-      test: ["CMD", "php", "-r", "require \"/var/www/html/config/database.php\";"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents(\"http://127.0.0.1/api\") === false ? 1 : 0);"]
       interval: "10s"
       timeout: "5s"
       retries: 5
       start_period: "20s"
     depends_on:
       - db
+      - minio
 
   frontend:
     build:
@@ -36,8 +45,15 @@ services:
       - frontend_node_modules:/app/node_modules
     expose:
       - "5173"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:5173/"]
+      interval: "5s"
+      timeout: "3s"
+      retries: 10
+      start_period: "10s"
     depends_on:
-      - backend
+      backend:
+        condition: "service_healthy"
 
   db:
     image: mysql:8
@@ -60,9 +76,11 @@ services:
       - ./nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
       - ./SSL:/etc/nginx/ssl:ro
     depends_on:
-      - frontend
-      - backend
-  
+      frontend:
+        condition: "service_healthy"
+      backend:
+        condition: "service_healthy"
+
   phpmyadmin:
     container_name: phpmyadmin
     image: phpmyadmin:5.2-apache
@@ -75,6 +93,53 @@ services:
       - db
     restart: unless-stopped
 
+  minio:
+    container_name: "minio"
+    image: "pgsty/minio:RELEASE.2026-06-18T00-00-00Z"
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
+    volumes:
+      - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    restart: "unless-stopped"
+
+  # create backend user to not rely on root and copy the local user rights into the bucket
+  # run once and then stop
+  # copy the integration fixture so the backend test can verify the initialization flow
+  minio-init:
+    image: "pgsty/mc:RELEASE.2026-04-17T00-00-00Z"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" --api S3v4 --path on; do
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+        mc admin user add local "$${MINIO_ACCESS_KEY}" "$${MINIO_SECRET_KEY}" || true
+        mc admin policy create local cms-media /policies/cms-policy.json
+        mc admin policy attach local cms-media --user "$${MINIO_ACCESS_KEY}"
+        mc cp "/test-fixtures/minio-init.txt" "local/$${MINIO_BUCKET}/integration-tests/minio-init.txt"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
+      MINIO_BUCKET: "${BUCKET}"
+      MINIO_ACCESS_KEY: "${minio_access_key}"
+      MINIO_SECRET_KEY: "${minio_secret_key}"
+    volumes:
+      - ./backend/tests/fixtures:/test-fixtures:ro
+      - ./docker/minio/cms-policy.json:/policies/cms-policy.json:ro
+    depends_on:
+      - minio
+    restart: "no"
+
 volumes:
   db_data:
   frontend_node_modules:
+  minio_data:

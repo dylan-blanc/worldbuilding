@@ -16,10 +16,17 @@ final class Response
         exit;
     }
 
-    public static function error(string $message, int $status = 400): void
+    public static function error(string $message, int $status = 400, string $code = "request_error", array $details = []): void
     {
-        self::json($status, [
+        $payload = [
             "error" => $message,
-        ]);
+            "code" => $code,
+        ];
+
+        if ($details !== []) {
+            $payload["details"] = $details;
+        }
+
+        self::json($status, $payload);
     }
 }
