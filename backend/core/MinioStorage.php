@@ -6,9 +6,9 @@ use Aws\Result;
 use Aws\S3\S3Client;
 
 /**
- * Wraps the S3-compatible MinIO connection used only by PageMediaController.
+ * Wraps the S3-compatible MinIO connection used by page and user profile media controllers.
  * Credentials come from Docker environment variables or *_FILE secrets and never reach the frontend.
- * POST/GET /pages/{id}/media stream files between PHP temporary storage, MinIO and authorized visitors.
+ * Media endpoints upload, list and stream files between PHP temporary storage, MinIO and authorized visitors.
  */
 final class MinioStorage
 {
@@ -90,5 +90,43 @@ final class MinioStorage
         }
 
         return $this->client->getObject($arguments);
+    }
+
+    public function list(string $prefix): array
+    {
+        $objects = [];
+        $continuationToken = null;
+
+        do {
+            $arguments = [
+                "Bucket" => $this->bucket,
+                "Prefix" => $prefix,
+            ];
+
+            $continuationToken !== null && ($arguments["ContinuationToken"] = $continuationToken);
+            $result = $this->client->listObjectsV2($arguments);
+
+            foreach ($result["Contents"] ?? [] as $object) {
+                $key = (string) ($object["Key"] ?? "");
+
+                $key !== "" && ($objects[] = [
+                    "key" => $key,
+                    "size" => (int) ($object["Size"] ?? 0),
+                    "last_modified" => isset($object["LastModified"])
+                        ? $object["LastModified"]->format(DATE_ATOM)
+                        : null,
+                ]);
+            }
+
+            $continuationToken = ($result["IsTruncated"] ?? false)
+                ? (string) ($result["NextContinuationToken"] ?? "")
+                : null;
+        } while ($continuationToken !== null && $continuationToken !== "");
+
+        usort($objects, static fn(array $left, array $right): int => (
+            strcmp((string) ($right["last_modified"] ?? ""), (string) ($left["last_modified"] ?? ""))
+        ));
+
+        return $objects;
     }
 }
