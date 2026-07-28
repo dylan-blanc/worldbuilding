@@ -45,9 +45,12 @@ const profileFile = ref<File | null>(null)
 const profileInput = ref<HTMLInputElement | null>(null)
 const localPreview = ref("")
 const profile = ref<ProfileResponse | null>(null)
+const currentPasswordInput = ref<HTMLInputElement | null>(null)
 const loading = ref(true)
 const pending = ref(false)
 const submitted = ref(false)
+const currentPasswordSubmitted = ref(false)
+const showCurrentPassword = ref(false)
 const errorMessage = ref("")
 const successMessage = ref("")
 
@@ -76,8 +79,21 @@ const confirmPasswordError = computed(() => {
   return newPassword.value === confirmPassword.value ? "" : "Les mots de passe ne correspondent pas"
 })
 
+const hasProtectedChanges = computed(() => {
+  const currentUser = profile.value?.user
+
+  return Boolean(
+    currentUser
+    && (
+      username.value.trim() !== currentUser.username
+      || email.value.trim().toLowerCase() !== currentUser.useremail.toLowerCase()
+      || newPassword.value !== ""
+    )
+  )
+})
+
 const currentPasswordError = computed(() => (
-  submitted.value && currentPassword.value === "" ? "Le mot de passe actuel est requis" : ""
+  currentPasswordSubmitted.value && currentPassword.value === "" ? "Le mot de passe actuel est requis" : ""
 ))
 
 const errorText = (error: unknown, fallback: string): string => {
@@ -154,6 +170,17 @@ const saveProfile = async () => {
   errorMessage.value = ""
   successMessage.value = ""
 
+  if (hasProtectedChanges.value && !showCurrentPassword.value) {
+    showCurrentPassword.value = true
+    currentPasswordSubmitted.value = false
+    await nextTick()
+    currentPasswordInput.value?.focus()
+
+    return
+  }
+
+  currentPasswordSubmitted.value = hasProtectedChanges.value
+
   if (
     usernameError.value
     || emailError.value
@@ -186,6 +213,8 @@ const saveProfile = async () => {
     newPassword.value = ""
     confirmPassword.value = ""
     submitted.value = false
+    currentPasswordSubmitted.value = false
+    showCurrentPassword.value = false
     successMessage.value = response.message || "Profil mis à jour"
     localStorage.setItem("auth_user", JSON.stringify(response.user))
   } catch (error) {
@@ -194,6 +223,14 @@ const saveProfile = async () => {
     pending.value = false
   }
 }
+
+watch(hasProtectedChanges, (requiresPassword) => {
+  if (requiresPassword) return
+
+  currentPassword.value = ""
+  currentPasswordSubmitted.value = false
+  showCurrentPassword.value = false
+})
 
 onMounted(loadProfile)
 onBeforeUnmount(clearLocalPreview)
@@ -260,9 +297,9 @@ onBeforeUnmount(clearLocalPreview)
               </div>
             </div>
 
-            <div class="primary-border mt-6 border-t pt-6">
+            <div v-if="showCurrentPassword && hasProtectedChanges" class="primary-border mt-6 border-t pt-6">
               <label for="current-password" class="secondary-color block text-sm font-medium">Mot de passe actuel requis pour enregistrer</label>
-              <input id="current-password" v-model="currentPassword" type="password" autocomplete="current-password" :aria-invalid="Boolean(currentPasswordError)" aria-describedby="current-password-error" class="form-control mt-1 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2" />
+              <input id="current-password" ref="currentPasswordInput" v-model="currentPassword" type="password" autocomplete="current-password" :aria-invalid="Boolean(currentPasswordError)" aria-describedby="current-password-error" class="form-control mt-1 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2" />
               <p id="current-password-error" class="error-color mt-1 text-sm" aria-live="polite">{{ currentPasswordError }}</p>
             </div>
 

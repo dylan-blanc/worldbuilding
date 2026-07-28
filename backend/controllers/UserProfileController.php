@@ -50,8 +50,13 @@ final class UserProfileController
         $email = strtolower(Request::field($_POST, ["useremail", "email"]));
         $newPassword = Request::field($_POST, ["new_password"], false);
         $selectedPicture = Request::field($_POST, ["selected_picture"]);
+        $requiresPassword = (
+            $username !== (string) $user["username"]
+            || $email !== strtolower((string) $user["useremail"])
+            || $newPassword !== ""
+        );
 
-        if ($currentPassword === "" || !password_verify($currentPassword, (string) $user["userpassword"])) {
+        if ($requiresPassword && ($currentPassword === "" || !password_verify($currentPassword, (string) $user["userpassword"]))) {
             Response::error("Mot de passe actuel incorrect", 401, "invalid_current_password");
         }
 
