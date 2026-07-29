@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+/**
+ * Sends terminal JSON or empty HTTP responses for every backend controller.
+ * Controllers pass validated response data here after session, model, SQL and storage operations.
+ * error() normalizes public API failures, while noContent() supports authorization subrequests.
+ */
 final class Response
 {
     public static function json(int $status, array $payload): void
@@ -13,6 +18,12 @@ final class Response
         }
 
         echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    public static function noContent(): void
+    {
+        http_response_code(204);
         exit;
     }
 
