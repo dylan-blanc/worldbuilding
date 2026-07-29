@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 /**
- * Dispatches authentication and authenticated profile routes from public/index.php.
- * Login/register/logout use AuthController, while GET/POST /me and GET /me/picture
- * use UserProfileController for SQL profile data and private MinIO images.
+ * Dispatches authentication, authorization and authenticated profile routes from public/index.php.
+ * Login/register/logout and GET /admin/access use AuthController, while GET/POST /me
+ * and GET /me/picture use UserProfileController for SQL profile data and private MinIO images.
  */
 function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
 {
     $route = preg_replace("#^/api#", "", $path) ?: "/";
-    $routes = ["/login", "/logout", "/me", "/me/picture", "/register"];
+    $routes = ["/admin/access", "/login", "/logout", "/me", "/me/picture", "/register"];
 
     if (!in_array($route, $routes, true)) {
         return false;
@@ -28,6 +28,14 @@ function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
 
     if ($route === "/me/picture") {
         $method === "GET" && (new UserProfileController($pdo))->picture();
+
+        Response::json(405, [
+            "error" => "Methode non autorisee",
+        ]);
+    }
+
+    if ($route === "/admin/access") {
+        $method === "GET" && (new AuthController($pdo))->adminAccess();
 
         Response::json(405, [
             "error" => "Methode non autorisee",

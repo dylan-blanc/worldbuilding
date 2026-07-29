@@ -14,6 +14,7 @@ interface ProfileUser {
   username: string
   useremail: string
   profil_picture: string | null
+  roles: "user" | "admin"
   created_at: string
 }
 
@@ -35,6 +36,7 @@ interface ProfileResponse {
 
 const config = useRuntimeConfig()
 const sharedProfilePicture = useState<string | null>("profile-picture", () => null)
+const sharedUserRole = useState<"user" | "admin" | null>("auth-role", () => null)
 const username = ref("")
 const email = ref("")
 const newPassword = ref("")
@@ -113,6 +115,7 @@ const applyProfile = (response: ProfileResponse) => {
   email.value = response.user.useremail
   selectedPicture.value = response.user.profil_picture || ""
   sharedProfilePicture.value = response.user.profil_picture
+  sharedUserRole.value = response.user.roles
 }
 
 const loadProfile = async () => {

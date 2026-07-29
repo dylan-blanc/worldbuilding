@@ -1,7 +1,7 @@
 <!--
   This shared header provides navigation, theme controls and access to the authenticated profile.
-  After client mounting, GET /api/me provides the current profile picture to UserAvatar/useProfilePicture.
-  Its profile link opens /profil, while anonymous users and unavailable images keep the default profile icon.
+  After client mounting, GET /api/me provides the role and current picture to the admin navigation and UserAvatar.
+  Desktop admins see /adminpanel at the top left; mobile admins receive the same link in the burger menu.
 -->
 <script setup lang="ts">
 import {
@@ -10,6 +10,7 @@ import {
   Cog6ToothIcon,
   HomeIcon,
   MoonIcon,
+  ShieldCheckIcon,
   SunIcon,
   XMarkIcon,
 } from "@heroicons/vue/24/solid"
@@ -20,6 +21,7 @@ const config = useRuntimeConfig()
 const isMenuOpen = ref(false)
 const isDark = ref(false)
 const profilePicture = useState<string | null>("profile-picture", () => null)
+const userRole = useState<"user" | "admin" | null>("auth-role", () => null)
 let removeSystemThemeListener: (() => void) | undefined
 const themePreference = useCookie<ThemePreference>("theme-preference", {
   default: () => null,
@@ -32,6 +34,7 @@ const personalPagePath = "/personnalpage"
 const isPersonalPage = computed(() => route.path === personalPagePath)
 const pagesLinkPath = computed(() => isPersonalPage.value ? "/" : personalPagePath)
 const pagesLinkLabel = computed(() => isPersonalPage.value ? "Retour vers l'accueil" : "Mes pages")
+const isAdmin = computed(() => userRole.value === "admin")
 const applyTheme = (dark: boolean) => {
   isDark.value = dark
   document.documentElement.classList.toggle("theme-dark", dark)
@@ -46,18 +49,21 @@ const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
 
-const loadProfilePicture = async () => {
+const loadProfile = async () => {
   try {
     const response = await $fetch<{
       user: {
         profil_picture: string | null
+        roles: "user" | "admin"
       }
     }>(`${config.public.apiBase}/me`, {
       credentials: "include",
     })
     profilePicture.value = response.user.profil_picture
+    userRole.value = response.user.roles
   } catch {
     profilePicture.value = null
+    userRole.value = null
   }
 }
 
@@ -70,7 +76,7 @@ onMounted(async () => {
   applyTheme(themePreference.value ? themePreference.value === "dark" : systemTheme.matches)
   systemTheme.addEventListener("change", updateSystemTheme)
   removeSystemThemeListener = () => systemTheme.removeEventListener("change", updateSystemTheme)
-  await loadProfilePicture()
+  await loadProfile()
 })
 
 onBeforeUnmount(() => removeSystemThemeListener?.())
@@ -79,6 +85,16 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
 <template>
   <header class="header-shell border-b">
     <div class="mx-auto flex h-24 max-w-7xl items-center gap-6 px-4 md:h-28 md:px-8">
+      <NuxtLink
+        v-if="isAdmin"
+        to="/adminpanel"
+        class="hidden shrink-0 items-center justify-center md:inline-flex"
+        aria-label="Administration"
+        title="Administration"
+      >
+        <ShieldCheckIcon class="size-9" />
+      </NuxtLink>
+
       <button
         type="button"
         class="inline-flex shrink-0 items-center justify-center md:hidden"
@@ -140,6 +156,15 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
         </div>
 
         <nav class="flex flex-col gap-4" aria-label="Menu mobile">
+          <NuxtLink
+            v-if="isAdmin"
+            to="/adminpanel"
+            class="menu-action flex h-16 items-center justify-between border-2 px-3 text-left text-2xl"
+            @click="toggleMenu"
+          >
+            <span>Administration</span>
+            <ShieldCheckIcon class="size-10" />
+          </NuxtLink>
           <button type="button" class="menu-action flex h-16 items-center justify-between border-2 px-3 text-left text-2xl">
             <span>Paramètres</span>
             <Cog6ToothIcon class="size-10" />
