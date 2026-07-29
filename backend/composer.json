@@ -12,6 +12,7 @@
         "files": [
             "config/env.php",
             "config/database.php",
+            "routes/admin.php",
             "routes/auth.php",
             "routes/filters.php",
             "routes/owned-pages.php",

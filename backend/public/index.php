@@ -18,6 +18,10 @@ if (dispatchAuthRoutes($path, $method, $pdo)) {
     exit;
 }
 
+if (dispatchAdminRoutes($path, $method, $pdo)) {
+    exit;
+}
+
 if (dispatchFilterRoutes($path, $method, $pdo)) {
     exit;
 }
