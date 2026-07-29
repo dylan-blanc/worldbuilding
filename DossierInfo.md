@@ -1,5 +1,8 @@
 # SECURITE 
 
+
+## BackEnd
+
 Configuration du compte root (administrateur) et du compte  utilisateur (backend) 
 lors de la configuration de Minio via le service Minio-init des docker compose dev et prod
 
@@ -76,6 +79,56 @@ worldbuilding\backend\core\MediaUploadValidator.php
 ---
 
 
+## FrontEnd
+
+ajout de Regex pour l'email et mot de passe
+
+---
+
+^ : début de la chaîne.
+[^\s@]+ : un ou plusieurs caractères qui ne sont ni un espace (\s) ni un arobase (@).
+@ : exige exactement un arobase.
+[^\s@]+ : exige un domaine non vide (ex: gmail mais pas de contraite forte)
+\. : exige un point littéral. Le point est échappé, car . seul signifie « n’importe quel caractère » en regex.
+[^\s@]+ : exige une extension non vide après le point.
+$ : fin de la chaîne.
+---
+
+```
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}$/
+```
+---
+Accepte: 
+
+test@example.com
+prenom.nom@example.fr
+contact+site@sub.example.org
+a@b.c
+---
+---
+Refuse:
+
+testexample.com       // aucun @
+test@example          // aucun point après le @
+@example.com          // partie locale vide
+test@.com             // domaine vide
+test example@test.com // espace interdit
+test@@example.com     // plusieurs @
+---
 
 
+
+
+
+
+
+# probleme rencontrer 
+
+autorisation des fichiers servi par Nuxt dans le Nginx config 
+
+
+generation du contenu nuxt via SSG avec la commande docker compose exec frontend npm run generate 
+créer parfois des erreurs dans la console du navigateur du au anciennes données dans le cache 
+obliger de restart le service docker front via : docker compose restart frontend
 
