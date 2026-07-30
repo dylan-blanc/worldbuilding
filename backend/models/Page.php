@@ -123,6 +123,24 @@ final class Page
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function findPublicReportTarget(int $id): ?array
+    {
+        $sql = "SELECT id, owner_user_id, page_title, page_status, page_picture
+            FROM pages
+            WHERE id = :id AND page_status = :page_status
+            LIMIT 1";
+
+        $stmt = $this->pdo->prepare($sql);
+        $this->bindValues($stmt, [
+            ":id" => $id,
+            ":page_status" => "public",
+        ]);
+        $stmt->execute();
+        $page = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($page) ? $page : null;
+    }
+
     public function findContentById(int $id): ?array
     {
         $sql = "SELECT id, owner_user_id, page_title, page_status, is_anonymous, pagecontent
