@@ -84,14 +84,15 @@ worldbuilding\backend\core\MediaUploadValidator.php
 ajout de Regex pour l'email et mot de passe
 
 ---
-
+```
 ^ : début de la chaîne.
 [^\s@]+ : un ou plusieurs caractères qui ne sont ni un espace (\s) ni un arobase (@).
 @ : exige exactement un arobase.
 [^\s@]+ : exige un domaine non vide (ex: gmail mais pas de contraite forte)
-\. : exige un point littéral. Le point est échappé, car . seul signifie « n’importe quel caractère » en regex.
+\. : exige un point littéral. Le point est échappé, car . seul signifie «n’importe quel caractère » en regex.
 [^\s@]+ : exige une extension non vide après le point.
 $ : fin de la chaîne.
+```
 ---
 
 ```
