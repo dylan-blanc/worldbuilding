@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 /**
- * Dispatches protected filter administration endpoints from public/index.php.
- * AdminController verifies User::isAdmin() before every Filter model SQL operation.
+ * Dispatches protected filter and moderation administration endpoints from public/index.php.
+ * Controllers verify User::isAdmin() before every Filter or Moderation model SQL operation.
  */
 function dispatchAdminRoutes(string $path, string $method, PDO $pdo): bool
 {
@@ -18,18 +18,43 @@ function dispatchAdminRoutes(string $path, string $method, PDO $pdo): bool
         adminMethodNotAllowed();
     }
 
-    if (preg_match("#^/admin/filters/(\\d+)$#", $route, $matches) !== 1) {
-        return false;
+    if ($route === "/admin/moderation") {
+        if ($method !== "GET") {
+            adminMethodNotAllowed();
+        }
+
+        $controller = new AdminModerationController($pdo);
+        $controller->index();
     }
 
-    if ($method !== "PATCH") {
-        adminMethodNotAllowed();
+    if (preg_match("#^/admin/moderation/pages/(\\d+)$#", $route, $matches) === 1) {
+        if ($method !== "GET") {
+            adminMethodNotAllowed();
+        }
+
+        $controller = new AdminModerationController($pdo);
+        $controller->history((int) $matches[1]);
     }
 
-    $controller = new AdminController($pdo);
-    $controller->moveFilter((int) $matches[1]);
+    if (preg_match("#^/admin/moderation/(\\d+)$#", $route, $matches) === 1) {
+        if ($method !== "PATCH") {
+            adminMethodNotAllowed();
+        }
 
-    return true;
+        $controller = new AdminModerationController($pdo);
+        $controller->updateStatus((int) $matches[1]);
+    }
+
+    if (preg_match("#^/admin/filters/(\\d+)$#", $route, $matches) === 1) {
+        if ($method !== "PATCH") {
+            adminMethodNotAllowed();
+        }
+
+        $controller = new AdminController($pdo);
+        $controller->moveFilter((int) $matches[1]);
+    }
+
+    return false;
 }
 
 function adminMethodNotAllowed(): void
