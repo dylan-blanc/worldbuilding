@@ -10,7 +10,7 @@ declare(strict_types=1);
  */
 final class AdminController
 {
-    private const FILTER_TYPES = ["theme", "category", "subcategory"];
+    private const FILTER_TYPES = ["theme", "category", "subcategory", "moderation"];
     private const MAX_FILTER_NAME_LENGTH = 255;
 
     private Filter $filters;
@@ -138,7 +138,7 @@ final class AdminController
         bool $parentRequired,
         ?int $filterId = null
     ): ?int {
-        if ($type === "theme") {
+        if (in_array($type, ["theme", "moderation"], true)) {
             return null;
         }
 

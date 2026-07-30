@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class Filter
 {
-    private const TYPES = ["theme", "category", "subcategory"];
+    private const TYPES = ["theme", "category", "subcategory", "moderation"];
 
     public function __construct(private PDO $pdo) {}
 

@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS filters (
     id INT AUTO_INCREMENT PRIMARY KEY,
     filter_name VARCHAR(255) NOT NULL UNIQUE,
-    filter_type ENUM('theme', 'category', 'subcategory') NOT NULL,
+    filter_type ENUM('theme', 'category', 'subcategory', 'moderation') NOT NULL,
     belong_to VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -41,6 +41,28 @@ CREATE TABLE IF NOT EXISTS pages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS moderation (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    reporter_user_id INT NOT NULL,
+    reported_page_id INT NOT NULL,
+    reported_filter_content INT NOT NULL,
+    reported_user_message TEXT NULL,
+    reported_media_url VARCHAR(2048) NULL,
+    reported_content_type ENUM('page_display', 'page_content') NOT NULL DEFAULT 'page_display',
+    moderation_status ENUM('pending', 'reviewed', 'dismissed') NOT NULL DEFAULT 'pending',
+    reviewed_by_user_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL DEFAULT NULL,
+    UNIQUE KEY unique_reporter_page_content (reporter_user_id, reported_page_id, reported_content_type),
+    INDEX moderation_status_created (moderation_status, created_at),
+    INDEX moderation_page_content (reported_page_id, reported_content_type),
+    FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reported_page_id) REFERENCES pages(id) ON DELETE CASCADE,
+    FOREIGN KEY (reported_filter_content) REFERENCES filters(id) ON DELETE RESTRICT,
+    FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS page_revision (
@@ -127,7 +149,11 @@ INSERT INTO filters (id, filter_name, filter_type, belong_to) VALUES
     (5, 'Colonies spatiales', 'category', 2),
     (6, 'Cites marchandes', 'subcategory', 3),
     (7, 'Ecoles arcaniques', 'subcategory', 3),
-    (8, 'Stations orbitales', 'subcategory', 5);
+    (8, 'Stations orbitales', 'subcategory', 5),
+    (9, 'Mature content', 'moderation', NULL),
+    (10, 'Spam', 'moderation', NULL),
+    (11, 'Violent or shocking content', 'moderation', NULL),
+    (12, 'Other', 'moderation', NULL);
 
 INSERT INTO pages (
     id,
