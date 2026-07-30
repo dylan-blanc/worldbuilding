@@ -5,8 +5,8 @@
   Each theme owns one dashed tree frame; connectors are horizontal on desktop and vertical on mobile.
 -->
 <script setup lang="ts">
-import AdminFilterCard from "~/components/Adminn/AdminFilterCard.vue"
-import AdminInlineFilter from "~/components/Adminn/AdminInlineFilter.vue"
+import AdminFilterCard from "~/components/Admin/AdminFilterCard.vue"
+import AdminInlineFilter from "~/components/Admin/AdminInlineFilter.vue"
 import type { AdminFilter, AdminFilterType } from "~/types/admin-filter"
 
 interface FilterResponse {

@@ -4,7 +4,7 @@
   AdminDashboard updates the section query, then this shell renders AdminFilter or AdminModeration.
 -->
 <script setup lang="ts">
-import AdminDashboard from "~/components/Adminn/AdminDashboard.vue"
+import AdminDashboard from "~/components/Admin/AdminDashboard.vue"
 import AdminFilter from "~/views/adminfilter.vue"
 import AdminModeration from "~/views/adminmoderation.vue"
 
