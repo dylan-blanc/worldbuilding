@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Public cards join users for owner identity/profile data and replace every owner field with NULL for anonymous pages.
  * POST /pages creates the private page row and its first page_revision draft in one SQL transaction.
  * CMS content edits no longer update pages.pagecontent directly; PageRevision copies content there on publication.
+ * Report targets include pagecontent for ModerationController -> Moderation case snapshot creation.
  */
 final class Page
 {
@@ -125,7 +126,7 @@ final class Page
 
     public function findPublicReportTarget(int $id): ?array
     {
-        $sql = "SELECT id, owner_user_id, page_title, page_status, page_picture
+        $sql = "SELECT id, owner_user_id, page_title, page_status, page_picture, pagecontent
             FROM pages
             WHERE id = :id AND page_status = :page_status
             LIMIT 1";
@@ -136,9 +137,7 @@ final class Page
             ":page_status" => "public",
         ]);
         $stmt->execute();
-        $page = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        return is_array($page) ? $page : null;
+        return $this->fetchPageWithContent($stmt);
     }
 
     public function findContentById(int $id): ?array

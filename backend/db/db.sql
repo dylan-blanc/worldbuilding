@@ -43,23 +43,60 @@ CREATE TABLE IF NOT EXISTS pages (
     FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS moderation_cases (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    reported_page_id INT NOT NULL UNIQUE,
+    reported_page_snapshot JSON NOT NULL,
+    moderation_status ENUM('pending', 'reviewed', 'dismissed') NOT NULL DEFAULT 'pending',
+    reviewed_by_user_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX moderation_case_status_created (moderation_status, created_at),
+    FOREIGN KEY (reported_page_id) REFERENCES pages(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS moderation (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    moderation_case_id BIGINT UNSIGNED NOT NULL,
     reporter_user_id INT NOT NULL,
     reported_page_id INT NOT NULL,
     reported_filter_content INT NOT NULL,
     reported_user_message TEXT NULL,
     reported_media_url VARCHAR(2048) NULL,
     reported_content_type ENUM('page_display', 'page_content') NOT NULL DEFAULT 'page_display',
+    reported_block_id VARCHAR(255) NOT NULL DEFAULT '',
+    reported_block_type VARCHAR(50) NULL,
+    reported_content_snapshot JSON NULL,
     moderation_status ENUM('pending', 'reviewed', 'dismissed') NOT NULL DEFAULT 'pending',
     reviewed_by_user_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     reviewed_at TIMESTAMP NULL DEFAULT NULL,
-    UNIQUE KEY unique_reporter_page_content (reporter_user_id, reported_page_id, reported_content_type),
+    UNIQUE KEY unique_reporter_page_content_block (
+        reporter_user_id,
+        reported_page_id,
+        reported_content_type,
+        reported_block_id
+    ),
     INDEX moderation_status_created (moderation_status, created_at),
-    INDEX moderation_page_content (reported_page_id, reported_content_type),
+    INDEX moderation_case_status (moderation_case_id, moderation_status),
+    INDEX moderation_page_content_block (reported_page_id, reported_content_type, reported_block_id),
+    CONSTRAINT valid_reported_block CHECK (
+        (
+            reported_content_type = 'page_display'
+            AND reported_block_id = ''
+            AND reported_block_type IS NULL
+        )
+        OR (
+            reported_content_type = 'page_content'
+            AND reported_block_id <> ''
+            AND reported_block_type IN ('text', 'image', 'banner', 'gallery', 'video')
+        )
+    ),
     FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (moderation_case_id) REFERENCES moderation_cases(id) ON DELETE CASCADE,
     FOREIGN KEY (reported_page_id) REFERENCES pages(id) ON DELETE CASCADE,
     FOREIGN KEY (reported_filter_content) REFERENCES filters(id) ON DELETE RESTRICT,
     FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
