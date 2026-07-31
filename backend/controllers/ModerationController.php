@@ -3,38 +3,38 @@
 declare(strict_types=1);
 
 /**
- * Receives authenticated PageDisplay reports through POST /api/pages/{id}/reports.
- * The request follows session -> page/filter validation -> Moderation::create() -> SQL response.
- * The media URL is read from the public page row so clients cannot forge the reported snapshot.
+ * Receives authenticated PageDisplay and CmsResultBlock reports through POST /api/pages/{id}/reports.
+ * Requests follow session -> page access -> filter/block validation -> Moderation::create() -> SQL.
+ * Page JSON and media keys are read server-side so clients cannot forge the reported snapshot.
  */
 final class ModerationController
 {
     private const MAX_MESSAGE_LENGTH = 2000;
+    private const REPORTABLE_BLOCK_TYPES = ["text", "image", "banner", "gallery", "video"];
 
     private Moderation $moderation;
     private Page $pages;
     private Filter $filters;
+    private User $users;
 
     public function __construct(PDO $pdo)
     {
         $this->moderation = new Moderation($pdo);
         $this->pages = new Page($pdo);
         $this->filters = new Filter($pdo);
+        $this->users = new User($pdo);
     }
 
-    public function createPageDisplayReport(int $pageId): void
+    public function createReport(int $pageId): void
     {
         Request::requireSameOrigin();
         $reporterUserId = $this->authenticatedUserId();
         $body = Request::body();
         $filterId = $this->positiveIntField($body, "reported_filter_content");
         $message = Request::field($body, ["reported_user_message"]);
-        $page = $this->pages->findPublicReportTarget($pageId);
+        $contentType = Request::field($body, ["reported_content_type"]) ?: "page_display";
+        $blockId = Request::field($body, ["reported_block_id"]);
         $filter = $this->filters->findById($filterId);
-
-        if ($page === null) {
-            Response::error("Page introuvable", 404, "reported_page_not_found");
-        }
 
         if ($filter === null || (string) $filter["filter_type"] !== "moderation") {
             Response::error("Motif de signalement invalide", 422, "invalid_report_filter");
@@ -44,22 +44,39 @@ final class ModerationController
             Response::error("Commentaire de signalement trop long", 422, "report_message_too_long");
         }
 
+        [$page, $reportedBlock, $reportedMediaUrl] = $contentType === "page_content"
+            ? $this->pageContentTarget($pageId, $blockId, $reporterUserId)
+            : $this->pageDisplayTarget($pageId, $contentType);
+        $reportedBlockType = is_array($reportedBlock) ? (string) $reportedBlock["type"] : null;
+        $reportedContentSnapshot = is_array($reportedBlock)
+            ? json_encode($reportedBlock, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)
+            : null;
+        $reportedPageContent = json_encode(
+            $page["pagecontent"],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        );
+
         try {
             $report = $this->moderation->create(
                 $reporterUserId,
                 $pageId,
                 $filterId,
                 $message === "" ? null : $message,
-                isset($page["page_picture"]) && $page["page_picture"] !== ""
-                    ? (string) $page["page_picture"]
-                    : null
+                $reportedMediaUrl,
+                $contentType,
+                $contentType === "page_content" ? $blockId : "",
+                $reportedBlockType,
+                $reportedContentSnapshot,
+                $reportedPageContent
             );
         } catch (PDOException $exception) {
             if ((int) ($exception->errorInfo[1] ?? 0) === 1062) {
                 Response::error(
-                    "Vous avez deja signale cette page",
+                    $contentType === "page_content"
+                        ? "Vous avez deja signale ce bloc"
+                        : "Vous avez deja signale cette page",
                     409,
-                    "page_already_reported"
+                    $contentType === "page_content" ? "block_already_reported" : "page_already_reported"
                 );
             }
 
@@ -70,6 +87,103 @@ final class ModerationController
             "message" => "Signalement envoye",
             "report" => $report,
         ]);
+    }
+
+    private function pageDisplayTarget(int $pageId, string $contentType): array
+    {
+        if ($contentType !== "page_display") {
+            Response::error("Type de contenu signale invalide", 422, "invalid_report_content_type");
+        }
+
+        $page = $this->pages->findPublicReportTarget($pageId);
+
+        if ($page === null) {
+            Response::error("Page introuvable", 404, "reported_page_not_found");
+        }
+
+        $mediaUrl = isset($page["page_picture"]) && $page["page_picture"] !== ""
+            ? (string) $page["page_picture"]
+            : null;
+
+        return [$page, null, $mediaUrl];
+    }
+
+    private function pageContentTarget(int $pageId, string $blockId, int $reporterUserId): array
+    {
+        if ($blockId === "" || strlen($blockId) > 255) {
+            Response::error("Bloc signale requis", 422, "reported_block_required");
+        }
+
+        $page = $this->pages->findContentById($pageId);
+        $isAdmin = $this->users->isAdmin($reporterUserId);
+
+        if ($page === null || !PageReadAccess::allows($page, $reporterUserId, $isAdmin)) {
+            Response::error("Page introuvable", 404, "reported_page_not_found");
+        }
+
+        $block = $this->findReportedBlock($page["pagecontent"], $blockId);
+
+        if ($block === null || !in_array((string) ($block["type"] ?? ""), self::REPORTABLE_BLOCK_TYPES, true)) {
+            Response::error("Bloc signale invalide", 422, "invalid_reported_block");
+        }
+
+        $objectKey = isset($block["props"]["objectKey"]) && is_scalar($block["props"]["objectKey"])
+            ? trim((string) $block["props"]["objectKey"])
+            : "";
+        $mediaUrl = $objectKey === ""
+            ? null
+            : "/api/pages/" . $pageId . "/media?key=" . rawurlencode($objectKey);
+
+        return [$page, $block, $mediaUrl];
+    }
+
+    private function findReportedBlock(mixed $pageContent, string $blockId): ?array
+    {
+        $document = json_decode(
+            json_encode($pageContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $blocks = is_array($document["blocks"] ?? null) ? $document["blocks"] : [];
+
+        if (($document["schemaVersion"] ?? null) === 1) {
+            $block = $blocks[$blockId] ?? null;
+
+            return is_array($block) ? $block : null;
+        }
+
+        if (preg_match("/^legacy-(\\d+)$/", $blockId, $matches) !== 1) {
+            return null;
+        }
+
+        $legacyBlock = $blocks[(int) $matches[1]] ?? null;
+
+        if (!is_array($legacyBlock)) {
+            return null;
+        }
+
+        $legacyType = (string) ($legacyBlock["type"] ?? "paragraph");
+        $text = is_scalar($legacyBlock["content"] ?? null) ? (string) $legacyBlock["content"] : "";
+
+        return [
+            "id" => $blockId,
+            "type" => "text",
+            "props" => [
+                "label" => $legacyType === "heading" ? "Titre" : "Texte",
+                "content" => [
+                    "type" => "doc",
+                    "content" => [[
+                        "type" => $legacyType === "heading" ? "heading" : "paragraph",
+                        "attrs" => $legacyType === "heading" ? ["level" => 1] : [],
+                        "content" => $text === "" ? [] : [[
+                            "type" => "text",
+                            "text" => $text,
+                        ]],
+                    ]],
+                ],
+            ],
+        ];
     }
 
     private function authenticatedUserId(): int

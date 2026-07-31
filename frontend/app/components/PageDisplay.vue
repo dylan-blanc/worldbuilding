@@ -1,8 +1,8 @@
 <!--
   This component loads and displays the public page cards used by app/views/accueil.vue.
   Data follows frontend -> GET /api/pages -> PageController::index() -> Page::findPublicCards()
-  -> users/pages SQL join -> card response. UserAvatar/useProfilePicture sends non-anonymous
-  pictures through GET /api/pages/{id}/owner-picture -> PageMediaController::ownerPicture() -> MinioStorage::read().
+  -> users/pages SQL join -> card response. UserAvatar resolves non-anonymous owner pictures.
+  ModerationReportAction delegates reports to the shared composable and POST /api/pages/{id}/reports.
 -->
 <script setup lang="ts">
 import { EyeIcon, HeartIcon } from "@heroicons/vue/24/outline"
@@ -110,7 +110,7 @@ onMounted(() => {
       v-else-if="pages.length === 0"
       class="secondary-color flex min-h-48 items-center justify-center text-center"
     >
-      Aucune page ne correspond aux filtres selectionnes.
+      Aucune page ne correspond aux filtres sélectionnés.
     </p>
 
     <div
@@ -143,9 +143,17 @@ onMounted(() => {
           </div>
         </NuxtLink>
 
+        <ModerationReportAction
+          class="absolute right-3 top-3 z-20"
+          :page-id="page.id"
+          content-type="page_display"
+          :target-label="page.page_title"
+          menu-label="Report this image"
+        />
+
         <div class="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
           <div
-            class="absolute right-3 top-2 flex flex-col items-center text-sm leading-none text-(--primary-color)"
+            class="absolute left-3 top-2 flex flex-col items-center text-sm leading-none text-(--primary-color)"
             aria-label="Vote en attente"
           >
             <StarIcon class="h-7 w-7" aria-hidden="true" />
