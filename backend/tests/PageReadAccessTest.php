@@ -25,10 +25,11 @@ $expect(PageReadAccess::allows($page, 99, false), "Public pages must allow authe
 $page["page_status"] = "private";
 $expect(PageReadAccess::allows($page, 12, false), "Private pages must allow their owner");
 $expect(!PageReadAccess::allows($page, null, false), "Private pages must reject visitors");
-$expect(!PageReadAccess::allows($page, 99, true), "Private pages must reject non-owner admins");
+$expect(PageReadAccess::allows($page, 99, true), "Private pages must allow admins for moderation");
 
 $page["page_status"] = "banned";
 $expect(!PageReadAccess::allows($page, 12, false), "Banned pages must reject their owner");
 $expect(PageReadAccess::allows($page, 99, true), "Banned pages must allow admins");
 
 echo "Page read access tests passed\n";
+
