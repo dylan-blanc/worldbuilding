@@ -27,6 +27,15 @@ function dispatchAdminRoutes(string $path, string $method, PDO $pdo): bool
         $controller->index();
     }
 
+    if ($route === "/admin/moderation/users") {
+        if ($method !== "GET") {
+            adminMethodNotAllowed();
+        }
+
+        $controller = new AdminModerationController($pdo);
+        $controller->users();
+    }
+
     if (preg_match("#^/admin/moderation/cases/(\\d+)/context$#", $route, $matches) === 1) {
         if ($method !== "GET") {
             adminMethodNotAllowed();

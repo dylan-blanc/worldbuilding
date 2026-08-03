@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Serves grouped page moderation cases to frontend/app/views/adminmoderation.vue.
- * GET /api/admin/moderation returns cases with child reports; the context endpoint compares snapshots.
+ * GET /api/admin/moderation returns cases with child reports; /users returns owner groups without JSON.
  * PATCH case or report endpoints records the global or individual administrator decision through Moderation.
  */
 final class AdminModerationController
@@ -35,6 +35,55 @@ final class AdminModerationController
 
         Response::json(200, [
             "cases" => $cases,
+        ]);
+    }
+
+    public function users(): void
+    {
+        $this->requireAdmin();
+        $owners = [];
+
+        foreach ($this->moderation->findReportsByPageOwner() as $row) {
+            $ownerId = (int) $row["owner_user_id"];
+            $caseId = (int) $row["moderation_case_id"];
+            $owners[$ownerId] ??= [
+                "owner_user_id" => $ownerId,
+                "owner_username" => (string) $row["owner_username"],
+                "owner_picture" => $row["owner_picture"],
+                "cases" => [],
+            ];
+            $owners[$ownerId]["cases"][$caseId] ??= [
+                "id" => $caseId,
+                "moderation_status" => (string) $row["case_status"],
+                "created_at" => (string) $row["case_created_at"],
+                "updated_at" => (string) $row["case_updated_at"],
+                "reported_page_id" => (int) $row["page_id"],
+                "page_title" => (string) $row["page_title"],
+                "page_status" => (string) $row["page_status"],
+                "reports" => [],
+            ];
+            $owners[$ownerId]["cases"][$caseId]["reports"][] = [
+                "id" => (int) $row["report_id"],
+                "moderation_status" => (string) $row["report_status"],
+                "reported_content_type" => (string) $row["reported_content_type"],
+                "reported_block_id" => (string) $row["reported_block_id"],
+                "reported_block_type" => $row["reported_block_type"],
+                "reported_user_message" => $row["reported_user_message"],
+                "reported_filter_name" => (string) $row["reported_filter_name"],
+                "reporter_user_id" => (int) $row["reporter_user_id"],
+                "reporter_username" => (string) $row["reporter_username"],
+                "created_at" => (string) $row["report_created_at"],
+            ];
+        }
+
+        $normalizedOwners = array_map(static function (array $owner): array {
+            $owner["cases"] = array_values($owner["cases"]);
+
+            return $owner;
+        }, array_values($owners));
+
+        Response::json(200, [
+            "owners" => $normalizedOwners,
         ]);
     }
 

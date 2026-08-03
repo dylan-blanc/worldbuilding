@@ -27,6 +27,7 @@ interface ModerationResponse {
 type ComparedVersion = "reported" | "current"
 
 const config = useRuntimeConfig()
+const route = useRoute()
 const statuses: Array<{ value: ModerationStatus, label: string }> = [
   { value: "pending", label: "En attente" },
   { value: "reviewed", label: "Traités" },
@@ -49,6 +50,7 @@ const zoomedCaseId = ref<number | null>(null)
 const loading = ref(true)
 const errorMessage = ref("")
 const successMessage = ref("")
+const deepLinkHandled = ref(false)
 
 const activeCases = computed(() => casesByStatus.value[activeStatus.value])
 const zoomedCase = computed(() => (
@@ -142,11 +144,38 @@ async function loadCases(): Promise<void> {
     ])
 
     casesByStatus.value = { pending, reviewed, dismissed }
+    await openDeepLinkedCase()
   } catch (error) {
     errorMessage.value = errorText(error, "Chargement des dossiers de modération impossible")
   } finally {
     loading.value = false
   }
+}
+
+async function openDeepLinkedCase(): Promise<void> {
+  if (deepLinkHandled.value) return
+
+  deepLinkHandled.value = true
+  const caseId = Number(typeof route.query.case === "string" ? route.query.case : 0)
+  if (!Number.isInteger(caseId) || caseId < 1) return
+
+  const moderationCase = Object.values(casesByStatus.value)
+    .flat()
+    .find(item => item.id === caseId)
+  if (!moderationCase) return
+
+  activeStatus.value = moderationCase.moderation_status
+  const blockId = typeof route.query.block === "string" ? route.query.block : ""
+  blockId && (selectedBlockIds.value[caseId] = blockId)
+  route.query.target === "page_display" && (pageDisplayDetails.value[caseId] = true)
+
+  await nextTick()
+  await toggleContext(moderationCase)
+  await nextTick()
+  document.getElementById(`moderation-case-${caseId}`)?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  })
 }
 
 async function updateCaseStatus(
@@ -295,6 +324,7 @@ onMounted(loadCases)
     <div v-else class="grid gap-5">
       <article
         v-for="moderationCase in activeCases"
+        :id="`moderation-case-${moderationCase.id}`"
         :key="moderationCase.id"
         class="secondary-background primary-border overflow-hidden rounded-xl border"
       >

@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Persists one moderation case per page and the individual reports attached to it.
  * POST /api/pages/{id}/reports follows controller -> create() -> moderation_cases/moderation SQL.
- * Admin list, context and PATCH endpoints read cases, child decisions, page data and revisions here.
+ * Admin list, owner grouping, context and PATCH endpoints read cases, child decisions and page data here.
  */
 final class Moderation
 {
@@ -146,6 +146,43 @@ final class Moderation
         $this->bindValues($statement, [
             ":moderation_status" => $status,
         ]);
+        $statement->execute();
+
+        return $statement->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findReportsByPageOwner(): array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT owner.id AS owner_user_id,
+                owner.username AS owner_username,
+                owner.profil_picture AS owner_picture,
+                moderation_cases.id AS moderation_case_id,
+                moderation_cases.moderation_status AS case_status,
+                moderation_cases.created_at AS case_created_at,
+                moderation_cases.updated_at AS case_updated_at,
+                pages.id AS page_id,
+                pages.page_title,
+                pages.page_status,
+                moderation.id AS report_id,
+                moderation.moderation_status AS report_status,
+                moderation.reported_content_type,
+                moderation.reported_block_id,
+                moderation.reported_block_type,
+                moderation.reported_user_message,
+                moderation.created_at AS report_created_at,
+                filters.filter_name AS reported_filter_name,
+                reporter.id AS reporter_user_id,
+                reporter.username AS reporter_username
+            FROM moderation_cases
+            INNER JOIN pages ON pages.id = moderation_cases.reported_page_id
+            INNER JOIN users owner ON owner.id = pages.owner_user_id
+            INNER JOIN moderation ON moderation.moderation_case_id = moderation_cases.id
+            INNER JOIN users reporter ON reporter.id = moderation.reporter_user_id
+            INNER JOIN filters ON filters.id = moderation.reported_filter_content
+            ORDER BY owner.username, owner.id, moderation_cases.updated_at DESC,
+                moderation.created_at DESC, moderation.id DESC"
+        );
         $statement->execute();
 
         return $statement->fetchAll(PDO::FETCH_ASSOC);
