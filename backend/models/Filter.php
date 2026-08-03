@@ -169,6 +169,24 @@ final class Filter
         return $stmt->rowCount() > 0;
     }
 
+    public function hasPendingModerationUsage(int $id): bool
+    {
+        $sql = "SELECT 1
+            FROM moderation
+            INNER JOIN moderation_cases ON moderation_cases.id = moderation.moderation_case_id
+            WHERE moderation.reported_filter_content = :filter_id
+                AND moderation_cases.moderation_status = 'pending'
+            LIMIT 1";
+
+        $stmt = $this->pdo->prepare($sql);
+        $this->bindValues($stmt, [
+            ":filter_id" => $id,
+        ]);
+        $stmt->execute();
+
+        return $stmt->fetchColumn() !== false;
+    }
+
     private function validateType(string $type): void
     {
         if (!in_array($type, self::TYPES, true)) {

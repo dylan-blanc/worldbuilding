@@ -1,11 +1,12 @@
 <!--
   This view renders the protected filter hierarchy as a drawn tree.
   Reads follow frontend -> GET /api/admin/filters -> AdminController role check -> Filter::findAll() SQL.
-  Inline creates and drag/drop moves follow POST/PATCH -> Filter::create()/update() -> refreshed hierarchy.
+  Creates, drag/drop and confirmed deletion follow POST/PATCH/DELETE -> Filter SQL -> refreshed hierarchy.
   Each theme owns one dashed tree frame; connectors are horizontal on desktop and vertical on mobile.
 -->
 <script setup lang="ts">
 import AdminFilterCard from "~/components/Admin/AdminFilterCard.vue"
+import AdminDeleteFilterModal from "~/components/Admin/AdminDeleteFilterModal.vue"
 import AdminInlineFilter from "~/components/Admin/AdminInlineFilter.vue"
 import type { AdminFilter, AdminFilterType } from "~/types/admin-filter"
 
@@ -23,6 +24,8 @@ const filters = ref<AdminFilter[]>([])
 const loading = ref(true)
 const creating = ref(false)
 const movingFilterId = ref<number | null>(null)
+const deletingFilterId = ref<number | null>(null)
+const filterToDelete = ref<AdminFilter | null>(null)
 const draggedFilterId = ref<number | null>(null)
 const activeDropTarget = ref("")
 const errorMessage = ref("")
@@ -154,6 +157,40 @@ const moveFilter = async (
   }
 }
 
+const requestDelete = (filter: AdminFilter): void => {
+  if (hasChildren(filter.id)) return
+
+  filterToDelete.value = filter
+  errorMessage.value = ""
+  successMessage.value = ""
+}
+
+const closeDeleteModal = (): void => {
+  deletingFilterId.value === null && (filterToDelete.value = null)
+}
+
+const deleteFilter = async (): Promise<void> => {
+  if (!filterToDelete.value || deletingFilterId.value !== null) return
+
+  deletingFilterId.value = filterToDelete.value.id
+  errorMessage.value = ""
+  successMessage.value = ""
+
+  try {
+    await $fetch(`${config.public.apiBase}/admin/filters/${filterToDelete.value.id}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+    successMessage.value = "Filtre supprimé"
+    filterToDelete.value = null
+    await fetchFilters()
+  } catch (error) {
+    errorMessage.value = errorText(error, "Suppression du filtre impossible")
+  } finally {
+    deletingFilterId.value = null
+  }
+}
+
 const startDrag = (event: DragEvent, filter: AdminFilter): void => {
   if (hasChildren(filter.id)) {
     event.preventDefault()
@@ -255,7 +292,9 @@ onMounted(loadFilters)
                   <AdminFilterCard
                     :filter="category"
                     :has-children="hasChildren(category.id)"
+                    :deleting="deletingFilterId === category.id"
                     @drag-start="startDrag"
+                    @delete-filter="requestDelete"
                     @dragend="endDrag"
                   />
                 </div>
@@ -271,7 +310,9 @@ onMounted(loadFilters)
                     :key="subcategory.id"
                     :filter="subcategory"
                     :has-children="hasChildren(subcategory.id)"
+                    :deleting="deletingFilterId === subcategory.id"
                     @drag-start="startDrag"
+                    @delete-filter="requestDelete"
                     @dragend="endDrag"
                   />
                 </div>
@@ -298,7 +339,9 @@ onMounted(loadFilters)
                 :key="subcategory.id"
                 :filter="subcategory"
                 :has-children="hasChildren(subcategory.id)"
+                :deleting="deletingFilterId === subcategory.id"
                 @drag-start="startDrag"
+                @delete-filter="requestDelete"
                 @dragend="endDrag"
               />
             </div>
@@ -323,7 +366,9 @@ onMounted(loadFilters)
               <AdminFilterCard
                 :filter="theme"
                 :has-children="hasChildren(theme.id)"
+                :deleting="deletingFilterId === theme.id"
                 @drag-start="startDrag"
+                @delete-filter="requestDelete"
                 @dragend="endDrag"
               />
             </div>
@@ -345,7 +390,9 @@ onMounted(loadFilters)
                     <AdminFilterCard
                       :filter="category"
                       :has-children="hasChildren(category.id)"
+                      :deleting="deletingFilterId === category.id"
                       @drag-start="startDrag"
+                      @delete-filter="requestDelete"
                       @dragend="endDrag"
                     />
                   </div>
@@ -359,7 +406,9 @@ onMounted(loadFilters)
                       <AdminFilterCard
                         :filter="subcategory"
                         :has-children="hasChildren(subcategory.id)"
+                        :deleting="deletingFilterId === subcategory.id"
                         @drag-start="startDrag"
+                        @delete-filter="requestDelete"
                         @dragend="endDrag"
                       />
                     </div>
@@ -389,6 +438,14 @@ onMounted(loadFilters)
         <p v-if="themes.length === 0" class="secondary-color text-center">Aucun thème enregistré.</p>
       </section>
     </template>
+
+    <AdminDeleteFilterModal
+      :filter="filterToDelete"
+      :pending="deletingFilterId !== null"
+      :error-message="errorMessage"
+      @close="closeDeleteModal"
+      @confirm="deleteFilter"
+    />
   </section>
 </template>
 

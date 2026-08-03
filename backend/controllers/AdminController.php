@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Serves filter administration endpoints used by frontend/app/views/adminfilter.vue.
  * Every action follows session -> User::isAdmin() SQL authorization before Filter SQL reads/writes.
  * GET /api/admin/filters lists the hierarchy, POST creates through Filter::create(),
- * and PATCH /api/admin/filters/{id} moves a leaf through Filter::update().
+ * PATCH /api/admin/filters/{id} moves a leaf and DELETE removes an unused leaf through Filter.
  */
 final class AdminController
 {
@@ -100,6 +100,42 @@ final class AdminController
         Response::json(200, [
             "message" => "Filtre deplace",
             "filter" => $updatedFilter,
+        ]);
+    }
+
+    public function deleteFilter(int $id): void
+    {
+        Request::requireSameOrigin();
+        $this->requireAdmin();
+        $filter = $this->filters->findById($id);
+
+        if ($filter === null) {
+            Response::error("Filtre introuvable", 404, "filter_not_found");
+        }
+
+        if ($this->filters->findChildrenById($id) !== []) {
+            Response::error(
+                "Un filtre parent ayant des enfants ne peut pas etre supprime",
+                409,
+                "filter_has_children"
+            );
+        }
+
+        if ((string) $filter["filter_type"] === "moderation"
+            && $this->filters->hasPendingModerationUsage($id)) {
+            Response::error(
+                "Un contenu utilisant ce filtre est en cours de modération, veuillez le modérer ou le clore avant de supprimer ce filtre",
+                409,
+                "filter_used_by_pending_moderation"
+            );
+        }
+
+        if (!$this->filters->delete($id)) {
+            Response::error("Filtre introuvable", 404, "filter_not_found");
+        }
+
+        Response::json(200, [
+            "message" => "Filtre supprime",
         ]);
     }
 

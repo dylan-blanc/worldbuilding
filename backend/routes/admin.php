@@ -64,12 +64,14 @@ function dispatchAdminRoutes(string $path, string $method, PDO $pdo): bool
     }
 
     if (preg_match("#^/admin/filters/(\\d+)$#", $route, $matches) === 1) {
-        if ($method !== "PATCH") {
+        if (!in_array($method, ["PATCH", "DELETE"], true)) {
             adminMethodNotAllowed();
         }
 
         $controller = new AdminController($pdo);
-        $controller->moveFilter((int) $matches[1]);
+        $method === "PATCH"
+            ? $controller->moveFilter((int) $matches[1])
+            : $controller->deleteFilter((int) $matches[1]);
     }
 
     return false;

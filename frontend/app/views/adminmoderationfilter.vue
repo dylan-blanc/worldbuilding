@@ -1,10 +1,11 @@
 <!--
   This view manages a two-level moderation reason tree from the administration sidebar.
-  GET/POST/PATCH requests follow AdminController -> Filter -> filters SQL with moderation-only payloads.
-  Root and child creation plus drag/drop update filters.belong_to before the hierarchy is refreshed.
+  GET/POST/PATCH/DELETE requests follow AdminController -> Filter -> filters SQL with moderation-only payloads.
+  Root and child creation, drag/drop and confirmed deletion refresh the two-level hierarchy.
 -->
 <script setup lang="ts">
 import AdminFilterCard from "~/components/Admin/AdminFilterCard.vue"
+import AdminDeleteFilterModal from "~/components/Admin/AdminDeleteFilterModal.vue"
 import AdminInlineFilter from "~/components/Admin/AdminInlineFilter.vue"
 import type { AdminFilter } from "~/types/admin-filter"
 
@@ -17,6 +18,8 @@ const filters = ref<AdminFilter[]>([])
 const loading = ref(true)
 const creating = ref(false)
 const movingFilterId = ref<number | null>(null)
+const deletingFilterId = ref<number | null>(null)
+const filterToDelete = ref<AdminFilter | null>(null)
 const draggedFilterId = ref<number | null>(null)
 const activeDropTarget = ref("")
 const errorMessage = ref("")
@@ -134,6 +137,40 @@ async function moveFilter(filter: AdminFilter, belongTo: number | null): Promise
   }
 }
 
+function requestDelete(filter: AdminFilter): void {
+  if (hasChildren(filter.id)) return
+
+  filterToDelete.value = filter
+  errorMessage.value = ""
+  successMessage.value = ""
+}
+
+function closeDeleteModal(): void {
+  deletingFilterId.value === null && (filterToDelete.value = null)
+}
+
+async function deleteFilter(): Promise<void> {
+  if (!filterToDelete.value || deletingFilterId.value !== null) return
+
+  deletingFilterId.value = filterToDelete.value.id
+  errorMessage.value = ""
+  successMessage.value = ""
+
+  try {
+    await $fetch(`${config.public.apiBase}/admin/filters/${filterToDelete.value.id}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+    successMessage.value = "Motif de modération supprimé"
+    filterToDelete.value = null
+    await fetchFilters()
+  } catch (error) {
+    errorMessage.value = errorText(error, "Suppression du motif de modération impossible")
+  } finally {
+    deletingFilterId.value = null
+  }
+}
+
 function startDrag(event: DragEvent, filter: AdminFilter): void {
   if (hasChildren(filter.id)) {
     event.preventDefault()
@@ -220,7 +257,9 @@ onMounted(loadFilters)
               <AdminFilterCard
                 :filter="rootFilter"
                 :has-children="hasChildren(rootFilter.id)"
+                :deleting="deletingFilterId === rootFilter.id"
                 @drag-start="startDrag"
+                @delete-filter="requestDelete"
                 @dragend="endDrag"
               />
             </div>
@@ -234,7 +273,9 @@ onMounted(loadFilters)
                 <AdminFilterCard
                   :filter="childFilter"
                   :has-children="false"
+                  :deleting="deletingFilterId === childFilter.id"
                   @drag-start="startDrag"
+                  @delete-filter="requestDelete"
                   @dragend="endDrag"
                 />
               </div>
@@ -255,6 +296,14 @@ onMounted(loadFilters)
         </p>
       </section>
     </template>
+
+    <AdminDeleteFilterModal
+      :filter="filterToDelete"
+      :pending="deletingFilterId !== null"
+      :error-message="errorMessage"
+      @close="closeDeleteModal"
+      @confirm="deleteFilter"
+    />
   </section>
 </template>
 
