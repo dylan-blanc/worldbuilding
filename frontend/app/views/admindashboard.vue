@@ -1,28 +1,40 @@
 <!--
-  This view provides the administration dashboard shell used by app/pages/adminpanel.vue.
-  Access follows /adminpanel -> Nginx/PHP role authorization -> admin-auth middleware.
-  AdminDashboard updates the section query, then this shell renders AdminFilter or AdminModeration.
+  This view provides the administration shell used by app/pages/adminpanel.vue.
+  The route section selects a filter or moderation view while AdminDashboard stays in the left margin.
+  All child views load protected API data after mounting so the Nuxt page remains compatible with SSG.
 -->
 <script setup lang="ts">
 import AdminDashboard from "~/components/Admin/AdminDashboard.vue"
 import AdminFilter from "~/views/adminfilter.vue"
 import AdminModeration from "~/views/adminmoderation.vue"
+import AdminModerationFilter from "~/views/adminmoderationfilter.vue"
+import AdminModerationUsers from "~/views/adminmoderationusers.vue"
+
+type AdminSection = "filters" | "moderationfilters" | "moderation" | "moderationusers"
 
 const route = useRoute()
-const currentSection = computed<"filters" | "moderation">(() => (
-  route.query.section === "moderation" ? "moderation" : "filters"
-))
+const sections: AdminSection[] = ["filters", "moderationfilters", "moderation", "moderationusers"]
+const currentSection = computed<AdminSection>(() => {
+  const section = typeof route.query.section === "string" ? route.query.section : ""
+
+  return sections.includes(section as AdminSection) ? section as AdminSection : "filters"
+})
 </script>
 
 <template>
   <div class="primary-background primary-color flex min-h-screen flex-col">
     <Header />
 
-    <main class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-12">
-      <h1 class="text-3xl font-semibold">Page Admin</h1>
+    <main class="mx-auto grid w-full max-w-[96rem] flex-1 gap-6 px-4 py-8 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start lg:py-12">
       <AdminDashboard :current-section="currentSection" />
-      <AdminFilter v-if="currentSection === 'filters'" />
-      <AdminModeration v-else />
+
+      <div class="min-w-0">
+        <h1 class="mb-6 text-3xl font-semibold">Page Admin</h1>
+        <AdminFilter v-if="currentSection === 'filters'" />
+        <AdminModerationFilter v-else-if="currentSection === 'moderationfilters'" />
+        <AdminModeration v-else-if="currentSection === 'moderation'" />
+        <AdminModerationUsers v-else />
+      </div>
     </main>
 
     <Footer />
