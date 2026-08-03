@@ -69,6 +69,7 @@ final class ModerationController
                 $reporterUserId,
                 $pageId,
                 $filterId,
+                (string) $filter["filter_name"],
                 $message === "" ? null : $message,
                 $reportedMediaUrl,
                 $contentType,

@@ -13,7 +13,7 @@ export interface ModerationReport {
   reporter_user_id: number
   reporter_username: string
   reported_page_id: number
-  reported_filter_content: number
+  reported_filter_content: number | null
   reported_filter_name: string
   reported_user_message: string | null
   reported_media_url: string | null

@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS moderation (
     moderation_case_id BIGINT UNSIGNED NOT NULL,
     reporter_user_id INT NOT NULL,
     reported_page_id INT NOT NULL,
-    reported_filter_content INT NOT NULL,
+    reported_filter_content INT NULL,
+    reported_filter_name VARCHAR(255) NOT NULL,
     reported_user_message TEXT NULL,
     reported_media_url VARCHAR(2048) NULL,
     reported_content_type ENUM('page_display', 'page_content') NOT NULL DEFAULT 'page_display',
@@ -98,7 +99,7 @@ CREATE TABLE IF NOT EXISTS moderation (
     FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (moderation_case_id) REFERENCES moderation_cases(id) ON DELETE CASCADE,
     FOREIGN KEY (reported_page_id) REFERENCES pages(id) ON DELETE CASCADE,
-    FOREIGN KEY (reported_filter_content) REFERENCES filters(id) ON DELETE RESTRICT,
+    FOREIGN KEY (reported_filter_content) REFERENCES filters(id) ON DELETE SET NULL,
     FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 

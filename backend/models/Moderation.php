@@ -17,6 +17,7 @@ final class Moderation
         int $reporterUserId,
         int $reportedPageId,
         int $reportedFilterContent,
+        string $reportedFilterName,
         ?string $reportedUserMessage,
         ?string $reportedMediaUrl,
         string $reportedContentType,
@@ -35,6 +36,7 @@ final class Moderation
                     reporter_user_id,
                     reported_page_id,
                     reported_filter_content,
+                    reported_filter_name,
                     reported_user_message,
                     reported_media_url,
                     reported_content_type,
@@ -46,6 +48,7 @@ final class Moderation
                     :reporter_user_id,
                     :reported_page_id,
                     :reported_filter_content,
+                    :reported_filter_name,
                     :reported_user_message,
                     :reported_media_url,
                     :reported_content_type,
@@ -59,6 +62,7 @@ final class Moderation
                 ":reporter_user_id" => $reporterUserId,
                 ":reported_page_id" => $reportedPageId,
                 ":reported_filter_content" => $reportedFilterContent,
+                ":reported_filter_name" => $reportedFilterName,
                 ":reported_user_message" => $reportedUserMessage,
                 ":reported_media_url" => $reportedMediaUrl,
                 ":reported_content_type" => $reportedContentType,
@@ -171,7 +175,7 @@ final class Moderation
                 moderation.reported_block_type,
                 moderation.reported_user_message,
                 moderation.created_at AS report_created_at,
-                filters.filter_name AS reported_filter_name,
+                moderation.reported_filter_name,
                 reporter.id AS reporter_user_id,
                 reporter.username AS reporter_username
             FROM moderation_cases
@@ -179,7 +183,6 @@ final class Moderation
             INNER JOIN users owner ON owner.id = pages.owner_user_id
             INNER JOIN moderation ON moderation.moderation_case_id = moderation_cases.id
             INNER JOIN users reporter ON reporter.id = moderation.reporter_user_id
-            INNER JOIN filters ON filters.id = moderation.reported_filter_content
             ORDER BY owner.username, owner.id, moderation_cases.updated_at DESC,
                 moderation.created_at DESC, moderation.id DESC"
         );
@@ -421,7 +424,7 @@ final class Moderation
                 reporter.username AS reporter_username,
                 moderation.reported_page_id,
                 moderation.reported_filter_content,
-                filters.filter_name AS reported_filter_name,
+                moderation.reported_filter_name,
                 moderation.reported_user_message,
                 moderation.reported_media_url,
                 moderation.reported_content_type,
@@ -436,7 +439,6 @@ final class Moderation
                 moderation.reviewed_at
             FROM moderation
             INNER JOIN users reporter ON reporter.id = moderation.reporter_user_id
-            INNER JOIN filters ON filters.id = moderation.reported_filter_content
             LEFT JOIN users reviewer ON reviewer.id = moderation.reviewed_by_user_id";
     }
 
