@@ -27,13 +27,22 @@ function dispatchAdminRoutes(string $path, string $method, PDO $pdo): bool
         $controller->index();
     }
 
-    if (preg_match("#^/admin/moderation/pages/(\\d+)$#", $route, $matches) === 1) {
+    if (preg_match("#^/admin/moderation/cases/(\\d+)/context$#", $route, $matches) === 1) {
         if ($method !== "GET") {
             adminMethodNotAllowed();
         }
 
         $controller = new AdminModerationController($pdo);
-        $controller->history((int) $matches[1]);
+        $controller->context((int) $matches[1]);
+    }
+
+    if (preg_match("#^/admin/moderation/cases/(\\d+)$#", $route, $matches) === 1) {
+        if ($method !== "PATCH") {
+            adminMethodNotAllowed();
+        }
+
+        $controller = new AdminModerationController($pdo);
+        $controller->updateCaseStatus((int) $matches[1]);
     }
 
     if (preg_match("#^/admin/moderation/(\\d+)$#", $route, $matches) === 1) {
@@ -42,7 +51,7 @@ function dispatchAdminRoutes(string $path, string $method, PDO $pdo): bool
         }
 
         $controller = new AdminModerationController($pdo);
-        $controller->updateStatus((int) $matches[1]);
+        $controller->updateReportStatus((int) $matches[1]);
     }
 
     if (preg_match("#^/admin/filters/(\\d+)$#", $route, $matches) === 1) {
