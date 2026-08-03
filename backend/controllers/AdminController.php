@@ -138,7 +138,7 @@ final class AdminController
         bool $parentRequired,
         ?int $filterId = null
     ): ?int {
-        if (in_array($type, ["theme", "moderation"], true)) {
+        if ($type === "theme") {
             return null;
         }
 
@@ -153,6 +153,21 @@ final class AdminController
         }
 
         $parent = $this->filters->findById($belongTo);
+
+        if ($type === "moderation") {
+            if ($parent === null
+                || (string) $parent["filter_type"] !== "moderation"
+                || $parent["belong_to"] !== null) {
+                Response::error(
+                    "Un sous-motif doit appartenir a un motif de moderation racine",
+                    422,
+                    "invalid_moderation_filter_parent"
+                );
+            }
+
+            return $belongTo;
+        }
+
         $expectedParentType = $type === "category" ? "theme" : "category";
 
         if ($parent === null || (string) $parent["filter_type"] !== $expectedParentType) {

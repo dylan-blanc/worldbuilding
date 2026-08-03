@@ -1,5 +1,5 @@
 /**
- * Shares moderation filter loading and authenticated report submission between PageDisplay and CmsResultBlock.
+ * Shares two-level moderation filter loading and authenticated submission between report actions.
  * UI components open a target, then POST page/block identifiers to ModerationController for server-side snapshots.
  */
 import type { ReportedContentType } from "~/types/moderation"
@@ -8,6 +8,8 @@ export interface ModerationFilter {
   id: number
   filter_name: string
   filter_type: "moderation"
+  belong_to: number | null
+  parent_name: string | null
 }
 
 export interface ModerationReportTarget {
@@ -48,18 +50,32 @@ export function useModerationReport() {
   const sharedFilters = useState<ModerationFilter[]>("moderation-report-filters", () => [])
   const sharedFiltersPending = useState<boolean>("moderation-report-filters-pending", () => false)
   const target = ref<ModerationReportTarget | null>(null)
+  const selectedParentId = ref<number | null>(null)
   const selectedFilterId = ref<number | null>(null)
   const message = ref("")
   const pending = ref(false)
   const error = ref("")
   const success = ref("")
 
-  const orderedFilters = computed(() => [...sharedFilters.value].sort((left, right) => (
-    filterOrder.indexOf(left.filter_name) - filterOrder.indexOf(right.filter_name)
-  )))
+  const orderedFilters = computed(() => [...sharedFilters.value].sort((left, right) => {
+    const leftIndex = filterOrder.indexOf(left.filter_name)
+    const rightIndex = filterOrder.indexOf(right.filter_name)
+    const leftRank = leftIndex === -1 ? filterOrder.length : leftIndex
+    const rightRank = rightIndex === -1 ? filterOrder.length : rightIndex
+
+    return leftRank - rightRank || left.filter_name.localeCompare(right.filter_name, "fr")
+  }))
+  const rootFilters = computed(() => (
+    orderedFilters.value.filter(filter => filter.belong_to === null)
+  ))
+  const selectedParentChildren = computed(() => (
+    selectedParentId.value === null
+      ? []
+      : orderedFilters.value.filter(filter => Number(filter.belong_to) === selectedParentId.value)
+  ))
 
   async function fetchFilters(): Promise<void> {
-    if (sharedFilters.value.length > 0 || sharedFiltersPending.value) return
+    if (sharedFiltersPending.value) return
 
     sharedFiltersPending.value = true
     error.value = ""
@@ -80,6 +96,7 @@ export function useModerationReport() {
 
   async function open(reportTarget: ModerationReportTarget): Promise<void> {
     target.value = reportTarget
+    selectedParentId.value = null
     selectedFilterId.value = null
     message.value = ""
     error.value = ""
@@ -91,6 +108,7 @@ export function useModerationReport() {
     if (pending.value) return
 
     target.value = null
+    selectedParentId.value = null
     selectedFilterId.value = null
     message.value = ""
     error.value = ""
@@ -100,10 +118,17 @@ export function useModerationReport() {
   async function submit(): Promise<void> {
     if (!target.value || pending.value || success.value !== "") return
 
-    if (selectedFilterId.value === null) {
+    if (selectedParentId.value === null) {
       error.value = "Veuillez choisir un motif de signalement"
       return
     }
+
+    if (selectedParentChildren.value.length > 0 && selectedFilterId.value === null) {
+      error.value = "Veuillez choisir un sous-motif de signalement"
+      return
+    }
+
+    selectedFilterId.value ??= selectedParentId.value
 
     pending.value = true
     error.value = ""
@@ -136,12 +161,14 @@ export function useModerationReport() {
 
   return {
     target,
+    selectedParentId,
     selectedFilterId,
     message,
     pending,
     filtersPending: sharedFiltersPending,
     filters: sharedFilters,
-    orderedFilters,
+    rootFilters,
+    selectedParentChildren,
     error,
     success,
     open,

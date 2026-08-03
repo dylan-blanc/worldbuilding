@@ -40,6 +40,14 @@ final class ModerationController
             Response::error("Motif de signalement invalide", 422, "invalid_report_filter");
         }
 
+        if ($this->filters->findChildrenById($filterId) !== []) {
+            Response::error(
+                "Veuillez choisir un sous-motif de signalement",
+                422,
+                "report_child_filter_required"
+            );
+        }
+
         if (strlen($message) > self::MAX_MESSAGE_LENGTH) {
             Response::error("Commentaire de signalement trop long", 422, "report_message_too_long");
         }

@@ -1,5 +1,5 @@
 <!--
-  This shared action renders the Heroicons report menu and modal used by PageDisplay and CmsResultBlock.
+  This shared action renders the report menu and two-level reason modal used by PageDisplay and CmsResultBlock.
   Submission follows useModerationReport -> POST /api/pages/{id}/reports -> ModerationController -> SQL.
 -->
 <script setup lang="ts">
@@ -20,18 +20,28 @@ const props = withDefaults(defineProps<{
 const menuOpen = ref(false)
 const {
   target,
+  selectedParentId,
   selectedFilterId,
   message,
   pending,
   filtersPending,
   filters,
-  orderedFilters,
+  rootFilters,
+  selectedParentChildren,
   error,
   success,
   open,
   close,
   submit,
 } = useModerationReport()
+
+function selectParent(filterId: number): void {
+  selectedParentId.value = filterId
+  selectedFilterId.value = filters.value.some(filter => Number(filter.belong_to) === filterId)
+    ? null
+    : filterId
+  error.value = ""
+}
 
 function toggleMenu(): void {
   menuOpen.value = !menuOpen.value
@@ -139,20 +149,44 @@ onBeforeUnmount(() => {
             <fieldset :disabled="pending || success !== ''" class="space-y-3">
               <legend class="sr-only">Motif du signalement</legend>
 
-              <label
-                v-for="filter in orderedFilters"
+              <div
+                v-for="filter in rootFilters"
                 :key="filter.id"
-                class="primary-border flex cursor-pointer items-center gap-4 rounded-lg border p-3 transition hover:bg-(--secondary-background)"
+                class="grid gap-2"
               >
-                <input
-                  v-model="selectedFilterId"
-                  type="radio"
-                  name="report-filter"
-                  :value="filter.id"
-                  class="size-5 accent-(--accent-color)"
+                <label class="primary-border flex cursor-pointer items-center gap-4 rounded-lg border p-3 transition hover:bg-(--secondary-background)">
+                  <input
+                    v-model="selectedParentId"
+                    type="radio"
+                    name="report-filter-parent"
+                    :value="filter.id"
+                    class="size-5 accent-(--accent-color)"
+                    @change="selectParent(filter.id)"
+                  >
+                  <span>{{ filter.filter_name }}</span>
+                </label>
+
+                <label
+                  v-if="selectedParentId === filter.id && selectedParentChildren.length > 0"
+                  class="ml-9 block"
                 >
-                <span>{{ filter.filter_name }}</span>
-              </label>
+                  <span class="text-sm font-medium">Précisez le motif</span>
+                  <select
+                    v-model="selectedFilterId"
+                    required
+                    class="form-control mt-2 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2"
+                  >
+                    <option :value="null" disabled>Sélectionnez un sous-motif</option>
+                    <option
+                      v-for="childFilter in selectedParentChildren"
+                      :key="childFilter.id"
+                      :value="childFilter.id"
+                    >
+                      {{ childFilter.filter_name }}
+                    </option>
+                  </select>
+                </label>
+              </div>
 
               <label class="block pt-2">
                 <span class="text-sm font-medium">Commentaire optionnel</span>
@@ -193,7 +227,7 @@ onBeforeUnmount(() => {
               <button
                 v-if="!success"
                 type="submit"
-                :disabled="pending || filtersPending || filters.length === 0"
+                :disabled="pending || filtersPending || rootFilters.length === 0"
                 class="button-primary rounded-md px-4 py-2 font-medium focus:outline-none focus:ring-2 disabled:cursor-not-allowed"
               >
                 {{ pending ? "Envoi…" : "Envoyer le signalement" }}
