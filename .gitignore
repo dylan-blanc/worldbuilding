@@ -36,11 +36,16 @@ AGENTS.md
 .agents
 
 # Doc perso
+!Docs/DossierProjet/*
+Docs/*
 TODO.md
-tutoPreCommit.md
+
+# Test
+backend/tests/*.php
 
 # bdd
 backend/db/dbseed.sql
+backend/db/migration/*
 
 # police d'ecriture
 frontend/app/assets/fonts
