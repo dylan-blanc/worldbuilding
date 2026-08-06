@@ -139,6 +139,28 @@ test@@example.com // plusieurs @
 
 ---
 
+---
+
+# Brevo
+
+Configuration du domaine côté Brevo (verification via le provider : OVH)
+permettant d'enviyer 
+![Verification provider domaine](image-4.png))
+
+![Connexion OVH verifer](image-5.png)
+
+anonymisation du suivi email (Brevo collecte des data sur les envoi/ouverture d'email) par default c'est "non"
+Cette option empêche d’associer les ouvertures et clics à une adresse précise. Brevo conserve néanmoins des statistiques anonymisé
+![alt text](image-6.png)
+
+il faut Desactiver le tracking Brevo sans consentement, par defauil il traque tous même sans conentement explicite
+![alt text](image-7.png)
+
+Ne conserva pas le contenu HTML du Mail par default, supprime les logs apres 1mois
+![alt text](image-8.png)
+
+---
+
 # probleme rencontrer
 
 ## autorisation des fichiers servi par Nuxt dans le Nginx config
@@ -171,4 +193,5 @@ deuxième constat, les versions ont downgrade et n'était donc pas a leur versio
 
 appris : toujours passer par docker compose exec backend composer require/install
 afin d'utiliser la même version PhP (local vs docker)
+
 ---
