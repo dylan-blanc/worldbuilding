@@ -36,7 +36,8 @@ AGENTS.md
 .agents
 
 # Doc perso
-!Docs/DossierProjet/*
+!Docs/DossierProjet/DossierProjet.md
+!Docs/DossierProjet/image-*
 Docs/*
 TODO.md
 
