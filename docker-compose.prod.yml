@@ -21,6 +21,11 @@ services:
       MINIO_PATH_STYLE: "true"
       MINIO_SSE_MODE: "${MINIO_SSE_MODE:-}"
       MINIO_SSE_KMS_KEY_ID: "${MINIO_SSE_KMS_KEY_ID:-}"
+      BREVO_API_KEY_FILE: /run/secrets/brevo_api_key
+      BREVO_SENDER_EMAIL: "no-reply-worldbuilding@molternate.com"
+      BREVO_SENDER_NAME: "WorldBuilding"
+      BREVO_TIMEOUT: "10"
+      BREVO_MAX_RETRIES: "2"
     depends_on:
       db:
         condition: service_started
@@ -31,6 +36,7 @@ services:
       - mysql_password
       - minio_access_key
       - minio_secret_key
+      - brevo_api_key
     expose:
       - "80"
     healthcheck:
@@ -180,3 +186,5 @@ secrets:
     file: ./secrets/minio_access_key
   minio_secret_key:
     file: ./secrets/minio_secret_key
+  brevo_api_key:
+    file: ./secrets/brevo_api_key
