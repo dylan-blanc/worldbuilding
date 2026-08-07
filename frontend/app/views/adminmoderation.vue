@@ -613,17 +613,10 @@ onMounted(loadCases)
               </div>
             </section>
 
-            <div class="mt-5 grid gap-5 xl:grid-cols-[1fr_20rem]">
-              <details class="secondary-background primary-border rounded-lg border p-4">
-                <summary class="cursor-pointer font-semibold">
-                  JSON brut {{ comparedVersions[moderationCase.id] === "current" ? "actuel" : "signalé" }}
-                </summary>
-                <pre class="primary-background mt-3 max-h-96 overflow-auto rounded-md p-3 text-xs">{{ JSON.stringify(comparedContent(moderationCase), null, 2) }}</pre>
-              </details>
-
+            <div class="mt-5 grid gap-5 x:grid-cols-[1fr_20rem]">
               <section class="secondary-background primary-border rounded-xl border p-4">
                 <h4 class="font-semibold">Historique des révisions</h4>
-                <ol class="mt-3 grid gap-3 text-sm">
+                <ol class="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-7 min-[1920px]:grid-cols-9">
                   <li
                     v-for="revision in contexts[moderationCase.id]!.revisions"
                     :key="revision.id"
