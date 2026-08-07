@@ -2,7 +2,7 @@
   This component renders one published CMS block in pageresult and moderation previews.
   Pageresult supplies pages.pagecontent; text goes to read-only Tiptap and media uses GET /pages/{id}/media.
   User-authored text/image/banner/gallery/video blocks expose ModerationReportAction on hover.
-  Administration previews disable reporting while preserving the exact published block rendering.
+  Under /adminpanel, moderation previews disable media navigation and video controls while preserving rendering.
 -->
 <script setup lang="ts">
 import { PhotoIcon, PlayCircleIcon } from "@heroicons/vue/24/outline"
@@ -17,9 +17,11 @@ const props = withDefaults(defineProps<{
 })
 
 const config = useRuntimeConfig()
+const route = useRoute()
 const reportableTypes = ["text", "image", "banner", "gallery", "video"]
 const label = computed(() => String(props.block.props.label || "Contenu"))
 const canReport = computed(() => props.reportable && reportableTypes.includes(props.block.type))
+const isAdminPanel = computed(() => route.path === "/adminpanel" || route.path.startsWith("/adminpanel/"))
 const objectKey = computed(() => String(props.block.props.objectKey || ""))
 const mediaUrl = computed(() => objectKey.value
   ? `${config.public.apiBase}/pages/${props.pageId}/media?key=${encodeURIComponent(objectKey.value)}`
@@ -45,28 +47,33 @@ const naturalHeight = computed(() => numericProperty(props.block.props.height))
       :content="block.props.content ?? ''"
     />
 
-    <a
+    <component
       v-else-if="mediaUrl && block.type !== 'video'"
-      :href="mediaUrl"
-      target="_blank"
-      rel="noopener noreferrer"
+      :is="isAdminPanel ? 'div' : 'a'"
+      :href="isAdminPanel ? undefined : mediaUrl"
+      :target="isAdminPanel ? undefined : '_blank'"
+      :rel="isAdminPanel ? undefined : 'noopener noreferrer'"
+      :role="isAdminPanel ? 'img' : undefined"
       class="flex size-full min-h-0 items-center justify-center overflow-hidden rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color)"
-      :aria-label="`Ouvrir l’image ${label} dans un nouvel onglet`"
+      :aria-label="isAdminPanel ? 'Voir le report' : `Ouvrir l’image ${label} dans un nouvel onglet`"
     >
       <img
         :src="mediaUrl"
-        :alt="label"
+        :alt="isAdminPanel ? '' : label"
         :width="naturalWidth"
         :height="naturalHeight"
         class="size-full object-fill"
       >
-    </a>
+    </component>
 
     <video
       v-else-if="mediaUrl && block.type === 'video'"
       :src="mediaUrl"
       class="size-full min-h-0 object-contain"
-      controls
+      :aria-label="isAdminPanel ? 'Voir le report' : label"
+      :controls="!isAdminPanel"
+      :disablepictureinpicture="isAdminPanel"
+      :controlslist="isAdminPanel ? 'nodownload nofullscreen noremoteplayback' : undefined"
       preload="metadata"
     />
 
