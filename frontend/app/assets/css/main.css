@@ -14,6 +14,7 @@
   --focus-color: #2563eb;
   --error-color: #b42318;
   --success-color: #067647;
+  --warning-color: #ff0000;
 }
 
 html.theme-dark {
@@ -43,6 +44,7 @@ body {
 .third-color { color: var(--third-color); }
 .error-color { color: var(--error-color); }
 .success-color { color: var(--success-color); }
+.warning-color { color: var(--warning-color); }
 .primary-background { background-color: var(--primary-background); }
 .secondary-background { background-color: var(--secondary-background); }
 .third-background { background-color: var(--third-background); }
