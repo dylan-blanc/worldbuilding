@@ -3,12 +3,21 @@
 declare(strict_types=1);
 
 /**
- * Exercises the CMS document allow-list used by draft save and publication endpoints.
+ * Exercises the CMS allow-list and administrator-removal replacement guard used by draft endpoints.
  * Run this smoke test inside the backend container after changing CmsContentValidator or the frontend JSON schema.
  * The tested flow mirrors frontend JSON -> PageController -> CmsContentValidator before any SQL write occurs.
  */
 
 require_once __DIR__ . "/../core/CmsContentValidator.php";
+require_once __DIR__ . "/../core/CmsModerationGuard.php";
+require_once __DIR__ . "/../models/ModerationDecision.php";
+
+function expectCmsTest(bool $condition, string $label): void
+{
+    if (!$condition) {
+        throw new RuntimeException("Failed CMS assertion: " . $label);
+    }
+}
 
 function expectDomainException(callable $callback, string $label): void
 {
@@ -103,5 +112,42 @@ expectDomainException(static function () use ($document): void {
     $rawHtml["blocks"]["text-1"]["props"]["html"] = "<script>alert(1)</script>";
     CmsContentValidator::validate($rawHtml, 7, 12);
 }, "raw HTML properties are rejected");
+
+$moderatedText = $document;
+$moderatedText["blocks"]["text-1"]["props"]["moderationRemoved"] = true;
+$restoredWithoutChange = $moderatedText;
+unset($restoredWithoutChange["blocks"]["text-1"]["props"]["moderationRemoved"]);
+$encode = static fn (array $value): string => json_encode(
+    $value,
+    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+);
+
+expectDomainException(static function () use ($moderatedText, $restoredWithoutChange, $encode): void {
+    CmsModerationGuard::validateReplacement($encode($moderatedText), $encode($restoredWithoutChange));
+}, "moderated text cannot be restored unchanged");
+
+$replacedText = $restoredWithoutChange;
+$replacedText["blocks"]["text-1"]["props"]["content"]["content"][0]["content"][0]["text"] = "Texte remplacÃ©";
+CmsModerationGuard::validateReplacement($encode($moderatedText), $encode($replacedText));
+
+$decision = (new ReflectionClass(ModerationDecision::class))->newInstanceWithoutConstructor();
+$moderatedDocument = new ReflectionMethod(ModerationDecision::class, "moderatedDocument");
+$legacyMutation = $moderatedDocument->invoke($decision, $encode([
+    "blocks" => [
+        ["type" => "heading", "content" => "Titre historique"],
+        ["type" => "paragraph", "content" => "Texte signale"],
+    ],
+]), "legacy-1");
+$normalizedLegacy = json_decode($legacyMutation["json"], true, 512, JSON_THROW_ON_ERROR);
+expectCmsTest($legacyMutation["found"] === true, "legacy moderation target is found");
+expectCmsTest(($normalizedLegacy["schemaVersion"] ?? null) === 1, "legacy document is normalized");
+expectCmsTest(
+    ($normalizedLegacy["blocks"]["legacy-1"]["props"]["moderationRemoved"] ?? false) === true,
+    "legacy target receives the moderation marker",
+);
+$missingLegacyMutation = $moderatedDocument->invoke($decision, $encode([
+    "blocks" => [["type" => "paragraph", "content" => "Contenu restant"]],
+]), "legacy-8");
+expectCmsTest($missingLegacyMutation["found"] === false, "missing legacy target stays absent");
 
 echo "CmsContentValidator smoke tests: OK\n";

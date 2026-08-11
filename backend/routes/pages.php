@@ -82,6 +82,21 @@ function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
         pageMethodNotAllowed();
     }
 
+    if (preg_match("#^/pages/(\\d+)/picture$#", $route, $matches) === 1) {
+        $controller = new PageMediaController($pdo);
+        $id = (int) $matches[1];
+
+        if ($method === "GET") {
+            $controller->pagePicture($id);
+        }
+
+        if ($method === "POST") {
+            $controller->uploadPagePicture($id);
+        }
+
+        pageMethodNotAllowed();
+    }
+
     if (preg_match("#^/pages/(\\d+)/owner-picture$#", $route, $matches) === 1) {
         if ($method !== "GET") {
             pageMethodNotAllowed();

@@ -94,6 +94,14 @@ final class MediaUploadValidator
         ) === 1;
     }
 
+    public static function isOwnedPagePictureKey(string $key, int $ownerUserId, int $pageId): bool
+    {
+        return preg_match(
+            "#^" . preg_quote((string) $ownerUserId, "#") . "/pages/" . preg_quote((string) $pageId, "#") . "/images/[a-f0-9]{32}\\.(jpg|png|webp|avif|gif)$#",
+            $key
+        ) === 1;
+    }
+
     public static function isOwnedProfilePictureKey(string $key, int $userId): bool
     {
         return preg_match(
