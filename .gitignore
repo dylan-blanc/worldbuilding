@@ -53,3 +53,6 @@ backend/db/migration/*
 # police d'ecriture
 frontend/app/assets/fonts
 
+
+
+backend/tests/
