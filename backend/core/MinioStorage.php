@@ -8,7 +8,8 @@ use Aws\S3\S3Client;
 /**
  * Wraps the S3-compatible MinIO connection used by page and user profile media controllers.
  * Credentials come from Docker environment variables or *_FILE secrets and never reach the frontend.
- * Media endpoints upload, list and stream files between PHP temporary storage, MinIO and authorized visitors.
+ * Media endpoints upload, list and stream files; moderation attempts short synchronous deletes before
+ * StorageDeletionProcessor retries queued object keys with the standard client timeout.
  */
 final class MinioStorage
 {
@@ -90,6 +91,20 @@ final class MinioStorage
         }
 
         return $this->client->getObject($arguments);
+    }
+
+    public function delete(string $objectKey, ?float $timeoutSeconds = null): void
+    {
+        $arguments = [
+            "Bucket" => $this->bucket,
+            "Key" => $objectKey,
+        ];
+
+        $timeoutSeconds !== null && ($arguments["@http"] = [
+            "connect_timeout" => min(2.0, $timeoutSeconds),
+            "timeout" => $timeoutSeconds,
+        ]);
+        $this->client->deleteObject($arguments);
     }
 
     public function list(string $prefix): array

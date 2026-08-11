@@ -5,18 +5,21 @@ declare(strict_types=1);
 /**
  * Serves grouped page moderation cases to frontend/app/views/adminmoderation.vue.
  * GET /api/admin/moderation returns cases with child reports; /users returns owner groups without JSON.
- * PATCH case or report endpoints records the global or individual administrator decision through Moderation.
+ * POST action endpoints call ModerationDecision to dismiss reports or remove current page content, create the
+ * owner's private SQL notification, and enqueue deferred MinIO deletion in one transaction.
  */
 final class AdminModerationController
 {
     private const STATUSES = ["pending", "reviewed", "dismissed"];
 
     private Moderation $moderation;
+    private ModerationDecision $decisions;
     private User $users;
 
     public function __construct(PDO $pdo)
     {
         $this->moderation = new Moderation($pdo);
+        $this->decisions = new ModerationDecision($pdo);
         $this->users = new User($pdo);
     }
 
@@ -119,39 +122,56 @@ final class AdminModerationController
         ]);
     }
 
-    public function updateReportStatus(int $id): void
+    public function dismissReport(int $id): void
     {
         Request::requireSameOrigin();
         $adminUserId = $this->requireAdmin();
-        $status = Request::field(Request::body(), ["moderation_status", "status"]);
-        $this->validateStatus($status);
 
-        if ($this->moderation->findById($id) === null) {
-            Response::error("Signalement introuvable", 404, "moderation_report_not_found");
+        try {
+            $decision = $this->decisions->dismissReport($id, $adminUserId);
+        } catch (DomainException $exception) {
+            $this->decisionError($exception);
         }
 
         Response::json(200, [
-            "message" => "Statut du signalement mis a jour",
-            "report" => $this->normalizedReport(
-                $this->moderation->updateReportStatus($id, $status, $adminUserId)
-            ),
+            "message" => "Signalement ignore",
+            "decision" => $decision,
         ]);
     }
 
-    public function updateCaseStatus(int $id): void
+    public function dismissCase(int $id): void
     {
         Request::requireSameOrigin();
         $adminUserId = $this->requireAdmin();
-        $status = Request::field(Request::body(), ["moderation_status", "status"]);
-        $this->validateStatus($status);
 
-        if ($this->moderation->findCaseById($id) === null) {
-            Response::error("Dossier de moderation introuvable", 404, "moderation_case_not_found");
+        try {
+            $decision = $this->decisions->dismissCase($id, $adminUserId);
+        } catch (DomainException $exception) {
+            $this->decisionError($exception);
         }
 
         Response::json(200, [
-            "message" => "Statut global de la page mis a jour",
-            "case" => $this->moderation->updateCaseStatus($id, $status, $adminUserId),
+            "message" => "Signalements en attente ignores et dossier clos",
+            "decision" => $decision,
+        ]);
+    }
+
+    public function removeReportedContent(int $id): void
+    {
+        Request::requireSameOrigin();
+        $adminUserId = $this->requireAdmin();
+
+        try {
+            $decision = $this->decisions->removeReportedContent($id, $adminUserId);
+        } catch (DomainException $exception) {
+            $this->decisionError($exception);
+        }
+
+        Response::json(200, [
+            "message" => ($decision["already_absent"] ?? false)
+                ? "Signalement traite car le contenu est deja absent"
+                : "Contenu retire et proprietaire notifie",
+            "decision" => $decision,
         ]);
     }
 
@@ -171,6 +191,20 @@ final class AdminModerationController
         if (!in_array($status, self::STATUSES, true)) {
             Response::error("Statut de moderation invalide", 422, "invalid_moderation_status");
         }
+    }
+
+    private function decisionError(DomainException $exception): never
+    {
+        $notFound = in_array($exception->getMessage(), [
+            "Signalement introuvable",
+            "Dossier de moderation introuvable",
+        ], true);
+
+        Response::error(
+            $exception->getMessage(),
+            $notFound ? 404 : 409,
+            $notFound ? "moderation_target_not_found" : "moderation_decision_conflict",
+        );
     }
 
     private function normalizedReports(array $reports): array
