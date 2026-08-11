@@ -34,9 +34,10 @@ const route = useRoute()
 const pages = ref<PublicPage[]>([])
 const pending = ref(true)
 const errorMessage = ref("")
+const { resolveUrl: resolvePagePicture } = usePagePicture()
 
 function pagePicture(page: PublicPage): string | null {
-  return page.page_picture || null
+  return resolvePagePicture(page.id, page.page_picture) || null
 }
 
 const apiQuery = computed(() => {

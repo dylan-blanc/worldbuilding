@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Handles secure CMS media uploads and authorized inline reads through MinIO.
  * POST /pages/{id}/media follows frontend multipart -> PHP validation/re-encoding -> MinIO putObject -> JSON objectKey.
+ * POST/GET /pages/{id}/picture stores and streams MinIO-only page presentation images while preserving legacy URLs.
  * GET /pages/{id}/media applies PageReadAccess and the SQL user role before streaming MinIO bytes with nosniff headers.
  * GET /pages/{id}/owner-picture resolves the current non-anonymous owner picture through Page/User SQL, then MinIO.
  */
@@ -15,12 +16,14 @@ final class PageMediaController
 
     private Page $pages;
     private MinioStorage $storage;
+    private StorageDeletionQueue $deletions;
     private User $users;
 
     public function __construct(PDO $pdo)
     {
         $this->pages = new Page($pdo);
         $this->users = new User($pdo);
+        $this->deletions = new StorageDeletionQueue($pdo);
 
         try {
             $this->storage = new MinioStorage();
@@ -118,6 +121,95 @@ final class PageMediaController
 
         isset($result["ContentLength"]) && header("Content-Length: " . (int) $result["ContentLength"]);
         isset($result["ContentRange"]) && header("Content-Range: " . $result["ContentRange"]);
+        $body = $result["Body"];
+
+        while (!$body->eof()) {
+            echo $body->read(1024 * 1024);
+            flush();
+        }
+
+        exit;
+    }
+
+    public function uploadPagePicture(int $pageId): void
+    {
+        Request::requireSameOrigin();
+        $userId = $this->authenticatedUserId();
+        $page = $this->pages->findOwnedById($pageId, $userId);
+
+        if ($page === null) {
+            Response::error("Page introuvable", 404, "page_not_found");
+        }
+
+        if ($page["page_status"] === "banned") {
+            Response::error("Une page bannie ne peut pas recevoir d'image", 403, "page_banned");
+        }
+
+        try {
+            $media = MediaUploadValidator::validate($_FILES["file"] ?? [], "image");
+            $objectKey = $userId . "/pages/" . $pageId . "/images/" . bin2hex(random_bytes(16)) . "." . $media["extension"];
+            $this->storage->upload($objectKey, $media);
+            $updatedPage = $this->pages->updatePicture($pageId, $userId, $objectKey);
+            $previous = (string) ($page["page_picture"] ?? "");
+
+            MediaUploadValidator::isOwnedPagePictureKey($previous, $userId, $pageId)
+                && $this->deletions->enqueue($pageId, $previous);
+        } catch (DomainException $exception) {
+            Response::error($exception->getMessage(), 422, "invalid_page_picture");
+        } catch (Throwable) {
+            error_log("Page picture upload failed");
+            Response::error("Enregistrement de l'image impossible", 503, "page_picture_upload_failed");
+        } finally {
+            isset($media) && ($media["cleanup"] ?? false) && @unlink((string) $media["path"]);
+        }
+
+        Response::json(201, [
+            "message" => "Image de presentation enregistree",
+            "page" => $updatedPage,
+        ]);
+    }
+
+    public function pagePicture(int $pageId): void
+    {
+        $page = $this->pages->findContentById($pageId);
+
+        if ($page === null) {
+            Response::error("Image de presentation introuvable", 404, "page_picture_not_found");
+        }
+
+        $viewerUserId = Session::userId();
+        $viewerIsAdmin = $viewerUserId !== null && $this->users->isAdmin($viewerUserId);
+
+        if (!PageReadAccess::allows($page, $viewerUserId, $viewerIsAdmin)) {
+            Response::error("Image de presentation introuvable", 404, "page_picture_not_found");
+        }
+
+        $key = (string) ($page["page_picture"] ?? "");
+
+        if (!MediaUploadValidator::isOwnedPagePictureKey($key, (int) $page["owner_user_id"], $pageId)) {
+            Response::error("Image de presentation introuvable", 404, "page_picture_not_found");
+        }
+
+        try {
+            $result = $this->storage->read($key);
+        } catch (Throwable) {
+            error_log("Page picture read failed");
+            Response::error("Image de presentation introuvable", 404, "page_picture_not_found");
+        }
+
+        $mime = (string) ($result["ContentType"] ?? "");
+
+        if (!in_array($mime, self::PROFILE_OUTPUT_MIMES, true)) {
+            Response::error("Format d'image de presentation invalide", 415, "invalid_page_picture");
+        }
+
+        http_response_code(200);
+        header("Content-Type: " . $mime);
+        header("Content-Disposition: inline");
+        header("X-Content-Type-Options: nosniff");
+        header("Content-Security-Policy: default-src 'none'; sandbox");
+        header("Cache-Control: private, no-store");
+        isset($result["ContentLength"]) && header("Content-Length: " . (int) $result["ContentLength"]);
         $body = $result["Body"];
 
         while (!$body->eof()) {

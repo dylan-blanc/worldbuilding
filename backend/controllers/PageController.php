@@ -195,6 +195,11 @@ final class PageController
         $this->requireOwnedPage($id, $userId);
         $body = Request::body();
         $picture = $this->nullableStringField($body, "page_picture");
+
+        if ($picture !== null && !MediaUploadValidator::isOwnedPagePictureKey($picture, $userId, $id)) {
+            Response::error("Cle d'image de presentation invalide", 422, "invalid_page_picture_key");
+        }
+
         $page = $this->pages->updatePicture($id, $userId, $picture);
 
         Response::json(200, [

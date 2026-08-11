@@ -4,6 +4,7 @@
   Image controls overlay the media so the image occupies the same complete block area as the published CmsResultBlock output.
   Text changes flow through CmsTextBlockEditor into the draft JSON.
   Section blocks expose a slot where Freepage mounts their nested Grid Layout Plus container.
+  Blocks marked moderationRemoved render CmsBannedResult so owners can replace content without losing layout.
 -->
 <script setup lang="ts">
 import {
@@ -30,6 +31,7 @@ const emit = defineEmits<{
 
 const label = computed(() => String(props.block.props.label || "Bloc"))
 const objectKey = computed(() => String(props.block.props.objectKey || ""))
+const moderationRemoved = computed(() => props.block.props.moderationRemoved === true)
 const isImageMedia = computed(() => ["image", "banner", "gallery"].includes(props.block.type))
 const numericProperty = (value: CmsJsonValue | undefined) => (
   typeof value === "number" || typeof value === "string"
@@ -70,6 +72,31 @@ const naturalHeight = computed(() => numericProperty(props.block.props.height))
     <div v-if="block.type === 'section'" class="min-h-0 flex-1">
       <slot name="section" />
     </div>
+
+    <CmsBannedResult v-else-if="moderationRemoved" :block="block">
+      <CmsTextBlockEditor
+        v-if="block.type === 'text'"
+        :model-value="block.props.content ?? ''"
+        @history-boundary="emit('historyBoundary')"
+        @update:model-value="emit('updateContent', block.id, $event)"
+      />
+
+      <label
+        v-else
+        class="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 p-3 text-center"
+      >
+        <PlayCircleIcon v-if="block.type === 'video'" class="size-12" aria-hidden="true" />
+        <PhotoIcon v-else class="size-12" aria-hidden="true" />
+        <span class="text-sm">{{ uploading ? "Validation…" : "Importer un média de remplacement" }}</span>
+        <input
+          type="file"
+          class="sr-only"
+          :accept="block.type === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp,image/avif,image/gif'"
+          :disabled="uploading"
+          @change="emit('uploadMedia', block.id, $event)"
+        >
+      </label>
+    </CmsBannedResult>
 
     <CmsTextBlockEditor
       v-else-if="block.type === 'text'"

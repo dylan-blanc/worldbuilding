@@ -42,6 +42,12 @@ const naturalHeight = computed(() => numericProperty(props.block.props.height))
       <slot name="section" />
     </section>
 
+    <div
+      v-else-if="block.props.moderationRemoved === true"
+      class="hidden"
+      aria-hidden="true"
+    />
+
     <CmsResultText
       v-else-if="block.type === 'text'"
       :content="block.props.content ?? ''"
