@@ -142,7 +142,7 @@ final class Page
 
     public function findContentById(int $id): ?array
     {
-        $sql = "SELECT id, owner_user_id, page_title, page_status, is_anonymous, pagecontent
+        $sql = "SELECT id, owner_user_id, page_title, page_status, is_anonymous, page_picture, pagecontent
             FROM pages
             WHERE id = :id
             LIMIT 1";
