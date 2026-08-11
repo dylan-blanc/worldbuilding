@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Dispatches protected filter and moderation administration endpoints from public/index.php.
- * Controllers verify User::isAdmin() before every Filter or Moderation model SQL operation.
+ * Controllers verify User::isAdmin(); POST moderation actions persist decisions, notifications and outbox work.
  */
 function dispatchAdminRoutes(string $path, string $method, PDO $pdo): bool
 {
@@ -45,22 +45,24 @@ function dispatchAdminRoutes(string $path, string $method, PDO $pdo): bool
         $controller->context((int) $matches[1]);
     }
 
-    if (preg_match("#^/admin/moderation/cases/(\\d+)$#", $route, $matches) === 1) {
-        if ($method !== "PATCH") {
+    if (preg_match("#^/admin/moderation/cases/(\\d+)/dismiss$#", $route, $matches) === 1) {
+        if ($method !== "POST") {
             adminMethodNotAllowed();
         }
 
         $controller = new AdminModerationController($pdo);
-        $controller->updateCaseStatus((int) $matches[1]);
+        $controller->dismissCase((int) $matches[1]);
     }
 
-    if (preg_match("#^/admin/moderation/(\\d+)$#", $route, $matches) === 1) {
-        if ($method !== "PATCH") {
+    if (preg_match("#^/admin/moderation/(\\d+)/(dismiss|remove)$#", $route, $matches) === 1) {
+        if ($method !== "POST") {
             adminMethodNotAllowed();
         }
 
         $controller = new AdminModerationController($pdo);
-        $controller->updateReportStatus((int) $matches[1]);
+        $matches[2] === "dismiss"
+            ? $controller->dismissReport((int) $matches[1])
+            : $controller->removeReportedContent((int) $matches[1]);
     }
 
     if (preg_match("#^/admin/filters/(\\d+)$#", $route, $matches) === 1) {

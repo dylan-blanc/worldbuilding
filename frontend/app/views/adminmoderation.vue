@@ -6,10 +6,8 @@
 <script setup lang="ts">
 import {
   ArchiveBoxXMarkIcon,
-  CheckCircleIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  ClockIcon,
   DocumentMagnifyingGlassIcon,
   MagnifyingGlassPlusIcon,
 } from "@heroicons/vue/24/outline"
@@ -24,10 +22,22 @@ interface ModerationResponse {
   cases: ModerationCase[]
 }
 
+interface ModerationActionResponse {
+  message: string
+  decision: {
+    already_absent?: boolean
+    case: {
+      id: number
+      moderation_status: ModerationStatus
+    }
+  }
+}
+
 type ComparedVersion = "reported" | "current"
 
 const config = useRuntimeConfig()
 const route = useRoute()
+const { resolveUrl: resolvePagePicture } = usePagePicture()
 const statuses: Array<{ value: ModerationStatus, label: string }> = [
   { value: "pending", label: "En attente" },
   { value: "reviewed", label: "Traités" },
@@ -85,10 +95,17 @@ function pageDisplayReports(moderationCase: ModerationCase): ModerationReport[] 
   return moderationCase.reports.filter(report => report.reported_content_type === "page_display")
 }
 
+function hasPendingPageDisplayReport(moderationCase: ModerationCase): boolean {
+  return pageDisplayReports(moderationCase).some(report => report.moderation_status === "pending")
+}
+
 function reportedBlockIds(moderationCase: ModerationCase): string[] {
   return [...new Set(
     moderationCase.reports
-      .filter(report => report.reported_content_type === "page_content")
+      .filter(report => (
+        report.reported_content_type === "page_content"
+        && report.moderation_status === "pending"
+      ))
       .map(report => report.reported_block_id),
   )]
 }
@@ -100,6 +117,11 @@ function selectedBlockReports(moderationCase: ModerationCase): ModerationReport[
     report.reported_content_type === "page_content"
     && report.reported_block_id === blockId
   ))
+}
+
+function selectedBlockHasPendingReport(moderationCase: ModerationCase): boolean {
+  return selectedBlockReports(moderationCase)
+    .some(report => report.moderation_status === "pending")
 }
 
 function comparedContent(moderationCase: ModerationCase): unknown {
@@ -178,64 +200,56 @@ async function openDeepLinkedCase(): Promise<void> {
   })
 }
 
-async function updateCaseStatus(
+async function executeModerationAction(
   moderationCase: ModerationCase,
-  status: ModerationStatus,
+  action: "dismiss-case" | "dismiss-report" | "remove-content",
+  report: ModerationReport | null = null,
 ): Promise<void> {
-  const key = `case-${moderationCase.id}`
-  if (updatingKey.value || moderationCase.moderation_status === status) return
+  if (updatingKey.value || (action !== "dismiss-case" && !report)) return
 
-  updatingKey.value = key
+  const confirmation = action === "dismiss-case"
+    ? "Ignorer tous les signalements de cette page et clore le dossier ?"
+    : action === "dismiss-report"
+      ? "Ignorer définitivement ce signalement ?"
+      : "Retirer ce contenu des versions courantes et programmer la suppression de ses médias ?"
+
+  if (!globalThis.confirm(confirmation)) return
+
+  updatingKey.value = action === "dismiss-case" ? `case-${moderationCase.id}` : `report-${report!.id}`
   errorMessage.value = ""
   successMessage.value = ""
 
   try {
-    await $fetch(`${config.public.apiBase}/admin/moderation/cases/${moderationCase.id}`, {
-      method: "PATCH",
+    const endpoint = action === "dismiss-case"
+      ? `/admin/moderation/cases/${moderationCase.id}/dismiss`
+      : `/admin/moderation/${report!.id}/${action === "dismiss-report" ? "dismiss" : "remove"}`
+
+    const response = await $fetch<ModerationActionResponse>(`${config.public.apiBase}${endpoint}`, {
+      method: "POST",
       credentials: "include",
-      body: { moderation_status: status },
     })
-    successMessage.value = status === "dismissed"
-      ? "Dossier rejeté : les contenus sans décision sont rejetés de fait"
-      : "Statut global de la page mis à jour"
+    successMessage.value = action === "dismiss-case"
+      ? "Signalements en attente ignorés et dossier clos"
+      : action === "dismiss-report"
+        ? "Signalement ignoré"
+        : response.decision.already_absent
+          ? "Signalement traité : le contenu était déjà absent"
+          : "Contenu retiré et notification créée"
+    comparedVersions.value[moderationCase.id] = "current"
+    report?.reported_block_id && delete selectedBlockIds.value[moderationCase.id]
+    delete contexts.value[moderationCase.id]
     openedCaseId.value = null
     await loadCases()
+    const updatedStatus = response.decision.case.moderation_status
+    const updatedCase = casesByStatus.value[updatedStatus]
+      .find(item => item.id === moderationCase.id)
+
+    if (updatedCase) {
+      activeStatus.value = updatedStatus
+      await toggleContext(updatedCase)
+    }
   } catch (error) {
-    errorMessage.value = errorText(error, "Mise à jour du dossier impossible")
-  } finally {
-    updatingKey.value = ""
-  }
-}
-
-async function updateReportStatus(
-  moderationCase: ModerationCase,
-  report: ModerationReport,
-  status: ModerationStatus,
-): Promise<void> {
-  const key = `report-${report.id}`
-  if (updatingKey.value || report.moderation_status === status) return
-
-  updatingKey.value = key
-  errorMessage.value = ""
-  successMessage.value = ""
-
-  try {
-    await $fetch(`${config.public.apiBase}/admin/moderation/${report.id}`, {
-      method: "PATCH",
-      credentials: "include",
-      body: { moderation_status: status },
-    })
-    successMessage.value = "Statut individuel du contenu mis à jour"
-    const context = contexts.value[moderationCase.id]
-    context && (contexts.value[moderationCase.id] = {
-      ...context,
-      reports: context.reports.map(item => item.id === report.id
-        ? { ...item, moderation_status: status }
-        : item),
-    })
-    await loadCases()
-  } catch (error) {
-    errorMessage.value = errorText(error, "Mise à jour du contenu impossible")
+    errorMessage.value = errorText(error, "Décision de modération impossible")
   } finally {
     updatingKey.value = ""
   }
@@ -332,7 +346,7 @@ onMounted(loadCases)
           <section>
             <div
               class="primary-background relative mx-auto h-[430px] w-full max-w-[330px] overflow-hidden rounded-lg border-4 lg:mx-0"
-              :class="pageDisplayReports(moderationCase).length
+              :class="hasPendingPageDisplayReport(moderationCase)
                 ? 'border-(--warning-color)'
                 : 'primary-border'"
             >
@@ -345,7 +359,7 @@ onMounted(loadCases)
               >
                 <img
                   v-if="moderationCase.page_picture"
-                  :src="moderationCase.page_picture"
+                  :src="resolvePagePicture(moderationCase.reported_page_id, moderationCase.page_picture)"
                   :alt="`Image de présentation de ${moderationCase.page_title}`"
                   class="size-full object-contain"
                 >
@@ -355,7 +369,7 @@ onMounted(loadCases)
               </button>
               <img
                 v-else-if="moderationCase.page_picture"
-                :src="moderationCase.page_picture"
+                :src="resolvePagePicture(moderationCase.reported_page_id, moderationCase.page_picture)"
                 :alt="`Image de présentation de ${moderationCase.page_title}`"
                 class="size-full object-contain"
               >
@@ -466,10 +480,9 @@ onMounted(loadCases)
                   </div>
                   <p class="secondary-color mt-1 text-sm">{{ effectiveReportStatus(moderationCase, report) }}</p>
                   <p v-if="report.reported_user_message" class="mt-2 text-sm">{{ report.reported_user_message }}</p>
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    <button type="button" class="form-control rounded-md border px-2 py-1 text-xs" :disabled="Boolean(updatingKey)" @click="updateReportStatus(moderationCase, report, 'pending')">En attente</button>
-                    <button type="button" class="rounded-md border border-(--success-color) px-2 py-1 text-xs text-(--success-color)" :disabled="Boolean(updatingKey)" @click="updateReportStatus(moderationCase, report, 'reviewed')">Traiter</button>
-                    <button type="button" class="rounded-md border border-(--error-color) px-2 py-1 text-xs text-(--error-color)" :disabled="Boolean(updatingKey)" @click="updateReportStatus(moderationCase, report, 'dismissed')">Rejeter</button>
+                  <div v-if="report.moderation_status === 'pending'" class="mt-3 flex flex-wrap gap-2">
+                    <button type="button" class="form-control rounded-md border px-2 py-1 text-xs" :disabled="Boolean(updatingKey)" @click="executeModerationAction(moderationCase, 'dismiss-report', report)">Ignorer ce signalement</button>
+                    <button v-if="moderationCase.page_picture" type="button" class="rounded-md border border-(--error-color) px-2 py-1 text-xs text-(--error-color)" :disabled="Boolean(updatingKey)" @click="executeModerationAction(moderationCase, 'remove-content', report)">Supprimer l’image</button>
                   </div>
                 </article>
               </div>
@@ -477,37 +490,15 @@ onMounted(loadCases)
 
             <div class="mt-6 flex flex-wrap gap-2">
               <button
-                v-if="moderationCase.moderation_status !== 'pending'"
-                type="button"
-                class="form-control inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                :disabled="Boolean(updatingKey)"
-                @click="updateCaseStatus(moderationCase, 'pending')"
-              >
-                <ClockIcon class="size-5" aria-hidden="true" />
-                Remettre en attente
-              </button>
-              <button
-                v-if="moderationCase.moderation_status !== 'reviewed'"
-                type="button"
-                class="rounded-md border border-(--success-color) px-3 py-2 text-sm text-(--success-color) focus:outline-none focus:ring-2"
-                :disabled="Boolean(updatingKey)"
-                @click="updateCaseStatus(moderationCase, 'reviewed')"
-              >
-                <span class="inline-flex items-center gap-2">
-                  <CheckCircleIcon class="size-5" aria-hidden="true" />
-                  Marquer la page traitée
-                </span>
-              </button>
-              <button
-                v-if="moderationCase.moderation_status !== 'dismissed'"
+                v-if="moderationCase.moderation_status === 'pending'"
                 type="button"
                 class="rounded-md border border-(--error-color) px-3 py-2 text-sm text-(--error-color) focus:outline-none focus:ring-2"
                 :disabled="Boolean(updatingKey)"
-                @click="updateCaseStatus(moderationCase, 'dismissed')"
+                @click="executeModerationAction(moderationCase, 'dismiss-case')"
               >
                 <span class="inline-flex items-center gap-2">
                   <ArchiveBoxXMarkIcon class="size-5" aria-hidden="true" />
-                  Rejeter le dossier
+                  Ignorer tous les signalements
                 </span>
               </button>
               <button
@@ -540,7 +531,7 @@ onMounted(loadCases)
               <div>
                 <h4 class="text-lg font-semibold">Contenu JSON de la page</h4>
                 <p class="secondary-color mt-1 text-sm">
-                  Tous les blocs signalés sont jaunes. Cliquez sur un bloc pour consulter ses signalements.
+                  Les blocs ayant un signalement en attente sont jaunes. Cliquez sur un bloc pour consulter ses signalements.
                 </p>
               </div>
               <div class="primary-border grid grid-cols-2 overflow-hidden rounded-lg border">
@@ -574,7 +565,10 @@ onMounted(loadCases)
 
             <section
               v-if="selectedBlockIds[moderationCase.id]"
-              class="mt-5 rounded-xl border-2 border-(--warning-color) p-5"
+              class="mt-5 rounded-xl border-2 p-5"
+              :class="selectedBlockHasPendingReport(moderationCase)
+                ? 'border-(--warning-color)'
+                : 'primary-border'"
             >
               <h4 class="text-lg font-semibold">
                 Signalements du bloc {{ selectedBlockIds[moderationCase.id] }}
@@ -604,10 +598,9 @@ onMounted(loadCases)
                       :reportable="false"
                     />
                   </div>
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    <button type="button" class="form-control rounded-md border px-2 py-1 text-xs" :disabled="Boolean(updatingKey)" @click="updateReportStatus(moderationCase, report, 'pending')">En attente</button>
-                    <button type="button" class="rounded-md border border-(--success-color) px-2 py-1 text-xs text-(--success-color)" :disabled="Boolean(updatingKey)" @click="updateReportStatus(moderationCase, report, 'reviewed')">Traiter</button>
-                    <button type="button" class="rounded-md border border-(--error-color) px-2 py-1 text-xs text-(--error-color)" :disabled="Boolean(updatingKey)" @click="updateReportStatus(moderationCase, report, 'dismissed')">Rejeter</button>
+                  <div v-if="report.moderation_status === 'pending'" class="mt-3 flex flex-wrap gap-2">
+                    <button type="button" class="form-control rounded-md border px-2 py-1 text-xs" :disabled="Boolean(updatingKey)" @click="executeModerationAction(moderationCase, 'dismiss-report', report)">Ignorer ce signalement</button>
+                    <button type="button" class="rounded-md border border-(--error-color) px-2 py-1 text-xs text-(--error-color)" :disabled="Boolean(updatingKey)" @click="executeModerationAction(moderationCase, 'remove-content', report)">Retirer ce contenu</button>
                   </div>
                 </article>
               </div>
@@ -647,7 +640,7 @@ onMounted(loadCases)
         @click="toggleImageZoom(zoomedCase.id)"
       >
         <img
-          :src="zoomedCase.page_picture"
+          :src="resolvePagePicture(zoomedCase.reported_page_id, zoomedCase.page_picture)"
           :alt="`Image de présentation de ${zoomedCase.page_title}`"
           class="size-full object-contain"
         >
