@@ -17,6 +17,7 @@ type ResultPage = {
   page_title: string
   page_status: "public" | "private" | "banned"
   is_anonymous: boolean
+  status_badge: "public" | "private" | "anonymous" | "banned" | null
   pagecontent: unknown
 }
 
@@ -33,6 +34,15 @@ const page = ref<ResultPage | null>(null)
 const document = ref<CmsPageDocument | null>(null)
 const pending = ref(true)
 const errorMessage = ref("")
+const statusBadgeLabels = {
+  public: "Page publique",
+  private: "Page privée",
+  anonymous: "Page anonyme",
+  banned: "Page bannie",
+} as const
+const statusBadgeLabel = computed(() => page.value?.status_badge
+  ? statusBadgeLabels[page.value.status_badge]
+  : "")
 
 const emptyDocument = (): CmsPageDocument => ({
   schemaVersion: 1,
@@ -165,9 +175,12 @@ onMounted(() => {
     </div>
 
     <template v-else-if="page && document">
-      <header class="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <header
+        v-if="statusBadgeLabel"
+        class="mb-6 flex flex-wrap items-center justify-between gap-3"
+      >
         <span class="secondary-background primary-border rounded-full border px-3 py-1 text-sm">
-          {{ page.page_status === "public" ? "Page publique" : page.page_status === "private" ? "Page privée" : "Page bannie" }}
+          {{ statusBadgeLabel }}
         </span>
       </header>
 

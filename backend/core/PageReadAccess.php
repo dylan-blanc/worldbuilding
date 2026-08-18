@@ -18,4 +18,20 @@ final class PageReadAccess
             || $viewerIsAdmin
             || ($status === "private" && $viewerUserId === $ownerUserId);
     }
+
+    public static function statusBadge(array $page, ?int $viewerUserId, bool $viewerIsAdmin): ?string
+    {
+        $status = (string) ($page["page_status"] ?? "");
+        $isOwner = $viewerUserId !== null && $viewerUserId === (int) ($page["owner_user_id"] ?? 0);
+
+        if (!$isOwner && !$viewerIsAdmin) {
+            return null;
+        }
+
+        return $status === "banned"
+            ? "banned"
+            : ((bool) ($page["is_anonymous"] ?? false)
+                ? "anonymous"
+                : ($status === "private" ? "private" : ($isOwner ? "public" : null)));
+    }
 }

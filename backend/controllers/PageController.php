@@ -72,6 +72,9 @@ final class PageController
             Response::error("Page introuvable", 404);
         }
 
+        // Select the badge before anonymous responses remove the public owner identifier.
+        $page["status_badge"] = PageReadAccess::statusBadge($page, $userId, $isAdmin);
+
         if ((bool) $page["is_anonymous"] && $userId !== (int) $page["owner_user_id"]) {
             $page["owner_user_id"] = null;
         }
