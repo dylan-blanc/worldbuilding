@@ -12,8 +12,10 @@
         "files": [
             "config/env.php",
             "config/database.php",
+            "routes/admin.php",
             "routes/auth.php",
             "routes/filters.php",
+            "routes/moderation.php",
             "routes/owned-pages.php",
             "routes/pages.php"
         ]
@@ -26,6 +28,13 @@
     ],
     "minimum-stability": "stable",
     "require": {
-        "aws/aws-sdk-php": "^3.0"
+        "aws/aws-sdk-php": "^3.0",
+        "getbrevo/brevo-php": "^5.0",
+        "guzzlehttp/guzzle": "^7.15"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
     }
 }

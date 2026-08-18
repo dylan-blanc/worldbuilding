@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 /**
  * Centralizes read access to published page JSON and its MinIO media.
- * PageController::show() and PageMediaController::show() provide the page status,
- * viewer identity and database-backed admin flag before returning content.
+ * PageController::show(), PageMediaController and moderation previews provide page status,
+ * viewer identity and the database-backed admin flag before returning JSON or media.
  */
 final class PageReadAccess
 {
@@ -15,7 +15,7 @@ final class PageReadAccess
         $ownerUserId = (int) ($page["owner_user_id"] ?? 0);
 
         return ($status === "public")
-            || ($status === "private" && $viewerUserId === $ownerUserId)
-            || ($status === "banned" && $viewerIsAdmin);
+            || $viewerIsAdmin
+            || ($status === "private" && $viewerUserId === $ownerUserId);
     }
 }

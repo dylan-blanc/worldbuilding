@@ -3,14 +3,32 @@
 declare(strict_types=1);
 
 /**
- * Dispatches authentication and authenticated profile routes from public/index.php.
- * Login/register/logout use AuthController, while GET/POST /me and GET /me/picture
- * use UserProfileController for SQL profile data and private MinIO images.
+ * Dispatches authentication, authorization and authenticated profile routes from public/index.php.
+ * Login/register/logout and GET /admin/access use AuthController, GET/POST /me and /me/picture use
+ * UserProfileController, and /me/notifications routes expose owner-scoped moderation notification SQL.
  */
 function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
 {
     $route = preg_replace("#^/api#", "", $path) ?: "/";
-    $routes = ["/login", "/logout", "/me", "/me/picture", "/register"];
+
+    if ($route === "/me/notifications" || $route === "/me/notifications/unread-count") {
+        if ($method !== "GET") {
+            Response::json(405, ["error" => "Methode non autorisee"]);
+        }
+
+        $controller = new NotificationController($pdo);
+        $route === "/me/notifications" ? $controller->index() : $controller->unreadCount();
+    }
+
+    if (preg_match("#^/me/notifications/(\\d+)/read$#", $route, $matches) === 1) {
+        if ($method !== "PATCH") {
+            Response::json(405, ["error" => "Methode non autorisee"]);
+        }
+
+        (new NotificationController($pdo))->markRead((int) $matches[1]);
+    }
+
+    $routes = ["/admin/access", "/login", "/logout", "/me", "/me/picture", "/register"];
 
     if (!in_array($route, $routes, true)) {
         return false;
@@ -28,6 +46,14 @@ function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
 
     if ($route === "/me/picture") {
         $method === "GET" && (new UserProfileController($pdo))->picture();
+
+        Response::json(405, [
+            "error" => "Methode non autorisee",
+        ]);
+    }
+
+    if ($route === "/admin/access") {
+        $method === "GET" && (new AuthController($pdo))->adminAccess();
 
         Response::json(405, [
             "error" => "Methode non autorisee",

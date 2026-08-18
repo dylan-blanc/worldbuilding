@@ -17,6 +17,7 @@ const emit = defineEmits<{
     pageStatus: Exclude<OwnedPageStatus, "banned">,
     isAnonymous: boolean,
   ];
+  uploadPicture: [payload: { pageId: number; event: Event }];
 }>();
 </script>
 
@@ -44,6 +45,7 @@ const emit = defineEmits<{
           :saving-page-id="savingPageId"
           :page-messages="pageMessages"
           @save="emit('save', $event.id, $event.pageStatus, $event.isAnonymous)"
+          @upload-picture="emit('uploadPicture', $event)"
         />
       </section>
     </main>

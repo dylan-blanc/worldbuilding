@@ -5,7 +5,8 @@ declare(strict_types=1);
 /**
  * Stores and publishes CMS revisions for the authenticated page owner.
  * PageController calls this model from GET/PUT /pages/{id}/draft and POST /pages/{id}/publish.
- * Draft JSON stays in page_revision; publication promotes it transactionally and copies it to pages.pagecontent.
+ * Draft JSON stays in page_revision; CmsModerationGuard requires actual replacement of marked blocks before
+ * their marker is removed, then publication promotes the draft and copies it to pages.pagecontent.
  */
 final class PageRevision
 {
@@ -28,8 +29,12 @@ final class PageRevision
     public function saveDraft(int $pageId, int $ownerUserId, string $pagecontent): array
     {
         return $this->transaction(function () use ($pageId, $ownerUserId, $pagecontent): array {
-            $this->lockOwnedPage($pageId, $ownerUserId);
+            $page = $this->lockOwnedPage($pageId, $ownerUserId);
             $draft = $this->findCurrentDraftForUpdate($pageId);
+            CmsModerationGuard::validateReplacement(
+                (string) ($draft["pagecontent"] ?? $page["pagecontent"]),
+                $pagecontent,
+            );
 
             if ($draft === null) {
                 return $this->normalizeRevision($this->insertDraft($pageId, $ownerUserId, $pagecontent));

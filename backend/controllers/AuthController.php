@@ -5,9 +5,12 @@ declare(strict_types=1);
 /**
  * Handles the authentication endpoints registered by backend/routes/auth.php.
  * Registration follows POST /api/register -> register() -> validateRegister()
- * -> User::existsByUsernameOrEmail()/create() -> SQL users table -> session JSON response.
+ * -> User::existsByUsernameOrEmail()/create() -> SQL users table -> WelcomeEmailService
+ * -> static backend HTML -> BrevoMailer -> POST /v3/smtp/email -> session JSON response.
+ * A template or Brevo failure is logged generically and never rolls back the created user.
  * Login follows POST /api/login -> login() -> User::findByEmail() -> password verification
- * -> session JSON response. Validation errors stop this flow through Response::error().
+ * -> session JSON response. GET /api/admin/access follows Nginx auth_request -> session
+ * -> User::isAdmin() SQL check -> uniform denial or empty authorization response.
  */
 final class AuthController
 {
@@ -47,6 +50,8 @@ final class AuthController
             throw $exception;
         }
 
+        $this->sendWelcomeEmail($email);
+
         $this->respondWithSession("Inscription reussie", $user, 201);
     }
 
@@ -80,6 +85,17 @@ final class AuthController
         Response::json(200, [
             "message" => "Deconnexion reussie",
         ]);
+    }
+
+    public function adminAccess(): void
+    {
+        $userId = Session::userId();
+
+        if ($userId === null || !$this->users->isAdmin($userId)) {
+            Response::error("Acces refuse", 403, "access_denied");
+        }
+
+        Response::noContent();
     }
 
     private function validateRegister(string $username, string $email, string $password): void
@@ -116,6 +132,16 @@ final class AuthController
         ]);
     }
 
+    private function sendWelcomeEmail(string $email): void
+    {
+        try {
+            WelcomeEmailService::fromEnvironment()->send($email);
+        } catch (Throwable) {
+            // Registration remains successful when the external email path is unavailable.
+            error_log("Welcome email dispatch failed");
+        }
+    }
+
     private function publicUser(array $user): array
     {
         return [
@@ -123,6 +149,7 @@ final class AuthController
             "username" => (string) $user["username"],
             "useremail" => (string) $user["useremail"],
             "profil_picture" => $user["profil_picture"],
+            "roles" => (string) $user["roles"],
             "created_at" => (string) $user["created_at"],
         ];
     }

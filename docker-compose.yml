@@ -19,6 +19,11 @@ services:
       MINIO_PATH_STYLE: "true"
       MINIO_SSE_MODE: "${MINIO_SSE_MODE:-}"
       MINIO_SSE_KMS_KEY_ID: "${MINIO_SSE_KMS_KEY_ID:-}"
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME}
+      BREVO_TIMEOUT: "10"
+      BREVO_MAX_RETRIES: "2"
     volumes:
       - ./backend:/var/www/html
     expose:

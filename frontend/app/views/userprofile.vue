@@ -14,6 +14,7 @@ interface ProfileUser {
   username: string
   useremail: string
   profil_picture: string | null
+  roles: "user" | "admin"
   created_at: string
 }
 
@@ -33,8 +34,13 @@ interface ProfileResponse {
   profile_pictures: ProfilePicture[]
 }
 
+interface NotificationCountResponse {
+  unread_count: number
+}
+
 const config = useRuntimeConfig()
 const sharedProfilePicture = useState<string | null>("profile-picture", () => null)
+const sharedUserRole = useState<"user" | "admin" | null>("auth-role", () => null)
 const username = ref("")
 const email = ref("")
 const newPassword = ref("")
@@ -53,6 +59,7 @@ const currentPasswordSubmitted = ref(false)
 const showCurrentPassword = ref(false)
 const errorMessage = ref("")
 const successMessage = ref("")
+const unreadNotificationCount = ref(0)
 
 const usernameError = computed(() => (
   submitted.value && username.value.trim() === "" ? "Le nom d'utilisateur est requis" : ""
@@ -113,6 +120,7 @@ const applyProfile = (response: ProfileResponse) => {
   email.value = response.user.useremail
   selectedPicture.value = response.user.profil_picture || ""
   sharedProfilePicture.value = response.user.profil_picture
+  sharedUserRole.value = response.user.roles
 }
 
 const loadProfile = async () => {
@@ -120,11 +128,17 @@ const loadProfile = async () => {
   errorMessage.value = ""
 
   try {
-    const response = await $fetch<ProfileResponse>(`${config.public.apiBase}/me`, {
-      credentials: "include",
-    })
+    const [response, notificationCount] = await Promise.all([
+      $fetch<ProfileResponse>(`${config.public.apiBase}/me`, {
+        credentials: "include",
+      }),
+      $fetch<NotificationCountResponse>(`${config.public.apiBase}/me/notifications/unread-count`, {
+        credentials: "include",
+      }).catch(() => ({ unread_count: 0 })),
+    ])
 
     applyProfile(response)
+    unreadNotificationCount.value = Number(notificationCount.unread_count) || 0
   } catch (error) {
     errorMessage.value = errorText(error, "Chargement du profil impossible")
   } finally {
@@ -243,9 +257,20 @@ onBeforeUnmount(clearLocalPreview)
       </section>
 
       <section v-else class="w-full">
-        <div class="mb-8">
-          <h1 class="text-3xl font-semibold">Mon profil</h1>
-          <p class="secondary-color mt-1">Gérez votre identité et retrouvez l’activité de vos univers.</p>
+        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-semibold">Mon profil</h1>
+            <p class="secondary-color mt-1">Gérez votre identité et retrouvez l’activité de vos univers.</p>
+          </div>
+          <NuxtLink
+            to="/profil/notification"
+            class="notification-background notification-contrast-color inline-flex items-center gap-3 rounded-md px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color)"
+          >
+            Mes notifications
+            <span class="rounded-full border border-current px-2 py-0.5 text-sm" aria-label="Notifications non lues">
+              {{ unreadNotificationCount }}
+            </span>
+          </NuxtLink>
         </div>
 
         <div class="mb-8 grid gap-4 sm:grid-cols-2">

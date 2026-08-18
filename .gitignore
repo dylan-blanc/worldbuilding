@@ -36,12 +36,23 @@ AGENTS.md
 .agents
 
 # Doc perso
+!Docs/DossierProjet/DossierProjet.md
+!Docs/DossierProjet/image-*
+Docs/*
 TODO.md
-tutoPreCommit.md
+
+# Test
+backend/tests/*.php
 
 # bdd
 backend/db/dbseed.sql
+backend/db/migration/*
+!backend/db/migration/20260807_moderation_actions.sql
+!backend/db/migration/20260807_remove_moderation_email_outbox.sql
 
 # police d'ecriture
 frontend/app/assets/fonts
 
+
+
+backend/tests/

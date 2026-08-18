@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 /**
  * Reads and creates SQL users for authentication and authorization.
- * AuthController uses the public identity queries, while page read controllers
- * call isAdmin() before PageReadAccess authorizes banned published content.
+ * AuthController and UserProfileController expose roles from these prepared queries,
+ * while page/admin controllers call isAdmin() before allowing privileged operations.
  */
 final class User
 {
@@ -16,7 +16,7 @@ final class User
     public function findById(int $id): ?array
     {
         $statement = $this->pdo->prepare(
-            "SELECT id, username, useremail, userpassword, profil_picture, created_at
+            "SELECT id, username, useremail, userpassword, profil_picture, roles, created_at
             FROM users
             WHERE id = :id
             LIMIT 1"
@@ -32,7 +32,7 @@ final class User
     public function findByEmail(string $email): ?array
     {
         $statement = $this->pdo->prepare(
-            "SELECT id, username, useremail, userpassword, profil_picture, created_at
+            "SELECT id, username, useremail, userpassword, profil_picture, roles, created_at
             FROM users
             WHERE useremail = :useremail
             LIMIT 1"

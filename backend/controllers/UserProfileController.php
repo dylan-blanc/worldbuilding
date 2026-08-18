@@ -211,6 +211,7 @@ final class UserProfileController
                 "username" => (string) $user["username"],
                 "useremail" => (string) $user["useremail"],
                 "profil_picture" => $user["profil_picture"],
+                "roles" => (string) $user["roles"],
                 "created_at" => (string) $user["created_at"],
             ],
             "stats" => $this->profiles->findContentTotals((int) $user["id"]),

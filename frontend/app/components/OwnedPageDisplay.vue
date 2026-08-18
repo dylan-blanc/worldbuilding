@@ -29,9 +29,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   save: [{ id: number, pageStatus: Exclude<OwnedPageStatus, "banned">, isAnonymous: boolean }]
+  uploadPicture: [payload: { pageId: number, event: Event }]
 }>()
 
 const settings = reactive<Record<number, PageSettings>>({})
+const { resolveUrl: resolvePagePicture } = usePagePicture()
 
 watch(() => props.pages, currentPages => {
   for (const page of currentPages) {
@@ -92,7 +94,7 @@ function saveSettings(page: OwnedPage): void {
       >
         <img
           v-if="page.page_picture"
-          :src="page.page_picture"
+          :src="resolvePagePicture(page.id, page.page_picture)"
           :alt="page.page_title"
           class="h-full w-full object-cover"
         >
@@ -173,6 +175,20 @@ function saveSettings(page: OwnedPage): void {
               Publication anonyme
             </label>
           </fieldset>
+
+          <label
+            class="form-control inline-flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm font-medium"
+            :class="page.page_status === 'banned' || savingPageId === page.id ? 'cursor-not-allowed opacity-60' : ''"
+          >
+            Modifier l’image de présentation
+            <input
+              type="file"
+              class="sr-only"
+              accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+              :disabled="page.page_status === 'banned' || savingPageId === page.id"
+              @change="emit('uploadPicture', { pageId: page.id, event: $event })"
+            >
+          </label>
 
           <p v-if="page.page_status === 'banned'" class="error-color text-sm">
             Les paramètres d'une page bannie ne peuvent pas être modifiés.

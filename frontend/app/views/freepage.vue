@@ -577,7 +577,12 @@ const removeBlock = (blockId: string) => {
 
 const updateBlockContent = (blockId: string, content: CmsJsonValue) => {
   const block = pageDocument.value.blocks[blockId]
-  block && (block.props.content = content)
+
+  if (!block) return
+
+  const contentChanged = JSON.stringify(block.props.content) !== JSON.stringify(content)
+  block.props.content = content
+  contentChanged && delete block.props.moderationRemoved
 }
 
 const imageDimensions = (block: CmsBlock | undefined) => {
@@ -639,6 +644,7 @@ const uploadMedia = async (blockId: string, event: Event) => {
     block.props.width = response.media.width
     block.props.height = response.media.height
     block.props.aspectRatioLocked = mediaType === "image"
+    delete block.props.moderationRemoved
     await snapImageLayoutToRatio(blockId, initialPixelWidth)
     statusMessage.value = "Média validé et enregistré"
   } catch (error) {

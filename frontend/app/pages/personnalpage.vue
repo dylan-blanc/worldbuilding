@@ -108,6 +108,35 @@ async function saveOwnedPageSettings(
   }
 }
 
+async function uploadPagePicture(payload: { pageId: number, event: Event }): Promise<void> {
+  const { pageId, event } = payload
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  if (!file || savingPageId.value !== null) return
+
+  const formData = new FormData()
+  formData.append("file", file)
+  savingPageId.value = pageId
+  delete pageMessages[pageId]
+
+  try {
+    const response = await $fetch<OwnedPageResponse>(`${config.public.apiBase}/pages/${pageId}/picture`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    })
+    const index = pages.value.findIndex(page => page.id === pageId)
+    index !== -1 && (pages.value[index] = response.page)
+    pageMessages[pageId] = { type: "success", text: "Image de présentation enregistrée" }
+  } catch (error) {
+    pageMessages[pageId] = { type: "error", text: errorText(error) }
+  } finally {
+    savingPageId.value = null
+    input.value = ""
+  }
+}
+
 onMounted(loadOwnedPages)
 </script>
 
@@ -145,6 +174,7 @@ onMounted(loadOwnedPages)
     :saving-page-id="savingPageId"
     :page-messages="pageMessages"
     @save="saveOwnedPageSettings"
+    @upload-picture="uploadPagePicture"
   />
   <Firstcreation v-else />
 </template>
