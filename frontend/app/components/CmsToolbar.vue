@@ -8,22 +8,28 @@
 import {
   ArrowUturnLeftIcon,
   ArrowUturnRightIcon,
+  ComputerDesktopIcon,
+  DevicePhoneMobileIcon,
+  DeviceTabletIcon,
   QuestionMarkCircleIcon,
-  RectangleGroupIcon,
   Squares2X2Icon,
-  ViewColumnsIcon,
 } from "@heroicons/vue/24/outline"
+import type { Component } from "vue"
 import CmsBlockPalette from "~/components/CmsBlockPalette.vue"
+import type { CmsBlockDefinition, CmsViewportMode } from "~/types/cms"
 
 const props = defineProps<{
   isEditing: boolean
   blockPaletteEnabled: boolean
   canUndo: boolean
   canRedo: boolean
+  viewportMode: CmsViewportMode
 }>()
 
 const emit = defineEmits<{
   "update:isEditing": [value: boolean]
+  "update:viewportMode": [value: CmsViewportMode]
+  addBlock: [definition: CmsBlockDefinition]
   undo: []
   redo: []
 }>()
@@ -34,6 +40,15 @@ const isBlockPaletteOpen = ref(false)
 const helpText = "Choissez un Preset suivi d'un Layout afin de commencer a créer plus rapidement, vous pourez toujours modifier ceux-ci vous même, Sinon, Vous pouvez aussi Créer a partir d'une page blanche"
 const presetOptions = ["Article", "Encyclopédie", "Fiche de personnage"]
 const layoutOptions = ["Colonne unique", "Deux colonnes", "Grille"]
+const viewportOptions: Array<{
+  value: CmsViewportMode
+  label: string
+  icon: Component
+}> = [
+  { value: "desktop", label: "Vue bureau", icon: ComputerDesktopIcon },
+  { value: "tablet", label: "Vue tablette", icon: DeviceTabletIcon },
+  { value: "mobile", label: "Vue mobile", icon: DevicePhoneMobileIcon },
+]
 
 const setMode = (editing: boolean) => emit("update:isEditing", editing)
 const toggleBlockPalette = () => {
@@ -51,7 +66,7 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
     >
       <div class="min-h-0">
         <div class="secondary-background flex min-h-20 flex-wrap items-center justify-between gap-4 px-4 py-3 md:px-8">
-          <div class="flex items-center gap-2" aria-label="Outils de disposition à venir">
+          <div class="flex items-center gap-2" aria-label="Outils de disposition et d’historique">
             <button
               type="button"
               class="form-control rounded-md border p-2"
@@ -72,12 +87,22 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
             >
               <ArrowUturnRightIcon class="size-6" />
             </button>
-            <button type="button" class="form-control rounded-md border p-2" aria-label="Disposition latérale">
-              <ViewColumnsIcon class="size-6" />
-            </button>
-            <button type="button" class="form-control rounded-md border p-2" aria-label="Disposition centrale">
-              <RectangleGroupIcon class="size-6" />
-            </button>
+            <div class="primary-border flex items-center rounded-md border p-1" aria-label="Aperçu responsive">
+              <button
+                v-for="option in viewportOptions"
+                :key="option.value"
+                type="button"
+                class="rounded-sm p-1.5 transition disabled:opacity-40"
+                :class="props.viewportMode === option.value ? 'button-primary' : 'form-control'"
+                :disabled="!props.blockPaletteEnabled"
+                :aria-label="option.label"
+                :title="option.label"
+                :aria-pressed="props.viewportMode === option.value"
+                @click="emit('update:viewportMode', option.value)"
+              >
+                <component :is="option.icon" class="size-5" aria-hidden="true" />
+              </button>
+            </div>
             <button
               type="button"
               class="rounded-md border p-2"
@@ -155,6 +180,9 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
       Édition
     </button>
 
-    <CmsBlockPalette v-if="props.isEditing && props.blockPaletteEnabled && isBlockPaletteOpen" />
+    <CmsBlockPalette
+      v-if="props.isEditing && props.blockPaletteEnabled && isBlockPaletteOpen"
+      @add="emit('addBlock', $event)"
+    />
   </section>
 </template>

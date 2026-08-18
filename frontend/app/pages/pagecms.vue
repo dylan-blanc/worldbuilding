@@ -7,6 +7,7 @@
 import CmsToolbar from "~/components/CmsToolbar.vue"
 import Createpage from "~/views/createpage.vue"
 import Freepage from "~/views/freepage.vue"
+import type { CmsViewportMode } from "~/types/cms"
 
 type CmsView = "create" | "free"
 
@@ -32,6 +33,7 @@ const startError = ref("")
 const freepage = ref<InstanceType<typeof Freepage> | null>(null)
 const canUndo = ref(false)
 const canRedo = ref(false)
+const viewportMode = ref<CmsViewportMode>("desktop")
 
 const errorText = (error: unknown) => {
   if (typeof error !== "object" || error === null) return "Creation de la page impossible"
@@ -76,11 +78,13 @@ const startFreeEdition = async () => {
     <Header />
     <CmsToolbar
       v-model:is-editing="isEditing"
+      v-model:viewport-mode="viewportMode"
       :block-palette-enabled="currentView === 'free'"
       :can-undo="currentView === 'free' && canUndo"
       :can-redo="currentView === 'free' && canRedo"
       @undo="freepage?.undo()"
       @redo="freepage?.redo()"
+      @add-block="freepage?.addBlockFromPalette($event)"
     />
 
     <main class="flex w-full flex-1">
@@ -94,6 +98,7 @@ const startFreeEdition = async () => {
         v-else-if="pageId"
         ref="freepage"
         :page-id="pageId"
+        :viewport-mode="viewportMode"
         @history-state="updateHistoryState"
       />
     </main>

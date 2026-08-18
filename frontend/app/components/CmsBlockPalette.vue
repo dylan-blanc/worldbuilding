@@ -26,6 +26,10 @@ interface PalettePosition {
   y: number
 }
 
+const emit = defineEmits<{
+  add: [definition: CmsBlockDefinition]
+}>()
+
 const PALETTE_MARGIN = 8
 const DEFAULT_TOP = 128
 const POSITION_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
@@ -40,6 +44,7 @@ const savedPosition = useCookie<PalettePosition | null>("cms-block-palette-posit
   sameSite: "lax",
 })
 let activePointerId: number | null = null
+let suppressClickAfterDrag = false
 
 const blocks: PaletteBlock[] = [
   { type: "section", label: "Zone", defaultWidth: 12, defaultHeight: 4, icon: Squares2X2Icon },
@@ -52,17 +57,30 @@ const blocks: PaletteBlock[] = [
 ]
 
 const startDragging = (event: DragEvent, block: PaletteBlock) => {
-  const data = JSON.stringify({
+  suppressClickAfterDrag = true
+  const definition = {
     type: block.type,
     label: block.label,
     defaultWidth: block.defaultWidth,
     defaultHeight: block.defaultHeight,
-  } satisfies CmsBlockDefinition)
+  } satisfies CmsBlockDefinition
+  const data = JSON.stringify(definition)
 
   event.dataTransfer?.setData(CMS_BLOCK_MIME, data)
   event.dataTransfer?.setData("text/plain", block.type)
   event.dataTransfer && (event.dataTransfer.effectAllowed = "copy")
 }
+
+const finishDragging = () => {
+  globalThis.setTimeout(() => (suppressClickAfterDrag = false), 0)
+}
+
+const addBlock = (block: PaletteBlock) => suppressClickAfterDrag || emit("add", {
+  type: block.type,
+  label: block.label,
+  defaultWidth: block.defaultWidth,
+  defaultHeight: block.defaultHeight,
+})
 
 // Keep the complete palette reachable, including after a viewport resize.
 const constrainPosition = (x: number, y: number): PalettePosition => {
@@ -184,9 +202,11 @@ onBeforeUnmount(() => window.removeEventListener("resize", keepPaletteInViewport
         type="button"
         draggable="true"
         class="form-control flex size-13 shrink-0 cursor-grab items-center justify-center rounded-lg border transition hover:bg-(--secondary-background) active:cursor-grabbing"
-        :aria-label="`Ajouter un bloc ${block.label}`"
-        :title="block.label"
+        :aria-label="`Ajouter un bloc ${block.label}. Cliquez ou faites-le glisser.`"
+        :title="`${block.label} · cliquer ou glisser`"
+        @click="addBlock(block)"
         @dragstart="startDragging($event, block)"
+        @dragend="finishDragging"
       >
         <component :is="block.icon" class="size-8" aria-hidden="true" />
       </button>

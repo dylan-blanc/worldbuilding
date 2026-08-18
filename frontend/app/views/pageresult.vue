@@ -9,7 +9,14 @@ import type {
   CmsBlock,
   CmsLayoutItem,
   CmsPageDocument,
+  CmsViewportMode,
 } from "~/types/cms"
+import {
+  cmsViewportBreakpoints,
+  cmsViewportModeFromWidth,
+  resolveCmsLayout,
+  sortCmsLayout,
+} from "~/utils/cmsLayout"
 
 type ResultPage = {
   id: number
@@ -34,6 +41,9 @@ const page = ref<ResultPage | null>(null)
 const document = ref<CmsPageDocument | null>(null)
 const pending = ref(true)
 const errorMessage = ref("")
+const viewportMode = ref<CmsViewportMode>("desktop")
+const activeBreakpoint = computed(() => cmsViewportBreakpoints[viewportMode.value])
+let stopPageWatcher: (() => void) | undefined
 const statusBadgeLabels = {
   public: "Page publique",
   private: "Page privée",
@@ -142,9 +152,12 @@ const loadPage = async () => {
   }
 }
 
-const rootLayout = computed(() => document.value?.layouts.lg.filter(item => !item.parentId) || [])
+const activeLayout = computed(() => document.value
+  ? resolveCmsLayout(document.value, activeBreakpoint.value)
+  : [])
+const rootLayout = computed(() => sortCmsLayout(activeLayout.value.filter(item => !item.parentId)))
 const childLayout = (sectionId: string) => (
-  document.value?.layouts.lg.filter(item => item.parentId === sectionId) || []
+  sortCmsLayout(activeLayout.value.filter(item => item.parentId === sectionId))
 )
 const blockById = (blockId: string): CmsBlock | null => document.value?.blocks[blockId] || null
 const itemStyle = (item: CmsLayoutItem): CSSProperties => ({
@@ -152,8 +165,19 @@ const itemStyle = (item: CmsLayoutItem): CSSProperties => ({
   gridRow: `${item.y + 1} / span ${item.h}`,
 })
 
+const updateViewportMode = () => {
+  viewportMode.value = cmsViewportModeFromWidth(window.innerWidth)
+}
+
 onMounted(() => {
-  watch(() => props.pageId, loadPage, { immediate: true })
+  updateViewportMode()
+  window.addEventListener("resize", updateViewportMode)
+  stopPageWatcher = watch(() => props.pageId, loadPage, { immediate: true })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", updateViewportMode)
+  stopPageWatcher?.()
 })
 </script>
 
@@ -197,7 +221,7 @@ onMounted(() => {
             v-for="item in rootLayout"
             :key="item.i"
             :style="itemStyle(item)"
-            class="cms-result-item min-h-24 min-w-0 overflow-hidden"
+            class="cms-result-item min-h-0 min-w-0 overflow-hidden"
           >
             <CmsResultBlock
               v-if="blockById(item.i)"
@@ -210,7 +234,7 @@ onMounted(() => {
                     v-for="child in childLayout(item.i)"
                     :key="child.i"
                     :style="itemStyle(child)"
-                    class="cms-result-item min-h-24 min-w-0 overflow-hidden"
+                    class="cms-result-item min-h-0 min-w-0 overflow-hidden"
                   >
                     <CmsResultBlock
                       v-if="blockById(child.i)"
@@ -240,19 +264,5 @@ onMounted(() => {
 .cms-result-child-grid {
   gap: 8px;
   padding: 8px;
-}
-
-@media (max-width: 767px) {
-  .cms-result-grid {
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-  }
-
-  .cms-result-item {
-    width: 100%;
-    min-height: 8rem;
-    overflow: visible;
-  }
 }
 </style>

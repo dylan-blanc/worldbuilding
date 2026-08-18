@@ -16,12 +16,18 @@ import { GridItem, GridLayout, type Layout } from "grid-layout-plus";
 import {
   CMS_BLOCK_MIME,
   type CmsBlock,
+  type CmsBreakpoint,
   type CmsBlockDefinition,
   type CmsBlockType,
   type CmsJsonValue,
   type CmsLayoutItem,
   type CmsPageDocument,
+  type CmsViewportMode,
 } from "~/types/cms";
+import {
+  cmsViewportBreakpoints,
+  initializeCmsResponsiveLayouts,
+} from "~/utils/cmsLayout";
 
 type DraftResponse = {
   revision: {
@@ -47,6 +53,7 @@ type PublicationVisibility = "public" | "anonymous";
 
 const props = defineProps<{
   pageId: number;
+  viewportMode: CmsViewportMode;
 }>();
 
 const emit = defineEmits<{
@@ -94,6 +101,16 @@ const emptyDocument = (): CmsPageDocument => ({
 });
 
 const responsiveBreakpoints = ["lg", "md", "sm", "xs"] as const;
+const editableBreakpoints: CmsBreakpoint[] = ["lg", "md", "xs"];
+const activeBreakpoint = computed(() => cmsViewportBreakpoints[props.viewportMode]);
+const previewWidthClass = computed(() => ({
+  desktop: "w-full",
+  tablet: "w-full max-w-[768px] self-center",
+  mobile: "w-full max-w-[390px] self-center",
+})[props.viewportMode]);
+const viewportDescription = computed(() => props.viewportMode === "mobile"
+  ? "mobile · colonne unique"
+  : `${props.viewportMode === "tablet" ? "tablette" : "bureau"} · 12 colonnes`);
 
 const pageDocument = ref<CmsPageDocument>(emptyDocument());
 const allowedBlockTypes: CmsBlockType[] = [
@@ -132,25 +149,32 @@ const createSnapshot = (): string =>
 
 // Root items move as one unit. Child XYWH coordinates remain relative to their section.
 const rootLayout = computed({
-  get: () => pageDocument.value.layouts.lg.filter((item) => !item.parentId),
+  get: () => pageDocument.value.layouts[activeBreakpoint.value].filter((item) => !item.parentId),
   set: (layout: CmsLayoutItem[]) => {
+    const breakpoint = activeBreakpoint.value;
     const uniqueLayout = layout.filter(
       (item, index, items) =>
         items.findIndex((candidate) => candidate.i === item.i) === index,
     );
     const rootIds = new Set(uniqueLayout.map((item) => item.i));
-    const children = pageDocument.value.layouts.lg.filter(
+    const children = pageDocument.value.layouts[breakpoint].filter(
       (item) => item.parentId && !rootIds.has(item.i),
     );
-    pageDocument.value.layouts.lg = [
-      ...uniqueLayout.map((item) => ({ ...item, parentId: null })),
+    pageDocument.value.layouts[breakpoint] = [
+      ...uniqueLayout.map((item) => ({
+        ...item,
+        parentId: null,
+        ...(breakpoint === "xs" ? { x: 0, w: 12, minW: 12, maxW: 12 } : {}),
+      })),
       ...children,
     ];
   },
 });
 
-const childLayout = (sectionId: string) =>
-  pageDocument.value.layouts.lg.filter((item) => item.parentId === sectionId);
+const childLayout = (
+  sectionId: string,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
+) => pageDocument.value.layouts[breakpoint].filter((item) => item.parentId === sectionId);
 
 // Repair recoverable block/layout drift before PHP validates a draft; block content always remains authoritative.
 const repairDocumentIntegrity = (): number => {
@@ -299,7 +323,9 @@ const recordHistory = () => {
 };
 
 const restoreSnapshot = (snapshot: string) => {
-  pageDocument.value = normalizeDocument(JSON.parse(snapshot));
+  pageDocument.value = initializeCmsResponsiveLayouts(
+    normalizeDocument(JSON.parse(snapshot)),
+  );
   statusMessage.value = "Modification restaurée";
 };
 
@@ -337,7 +363,7 @@ const redo = () => {
   emitHistoryState();
 };
 
-defineExpose({ undo, redo });
+defineExpose({ undo, redo, addBlockFromPalette });
 
 const errorText = (error: unknown, fallback: string) => {
   if (typeof error !== "object" || error === null) return fallback;
@@ -425,6 +451,7 @@ const loadDraft = async () => {
 
     pageDocument.value = normalizeDocument(response.revision.pagecontent);
     repairDocumentIntegrity();
+    initializeCmsResponsiveLayouts(pageDocument.value);
     revisionNumber.value = response.revision.revision_number;
     historyPast.value = [];
     historyFuture.value = [];
@@ -539,8 +566,10 @@ const publish = async () => {
 
 const nextBlockId = () =>
   globalThis.crypto?.randomUUID?.() || `block-${Date.now()}`;
-const nextAvailableRow = (parentId: string | null) =>
-  pageDocument.value.layouts.lg
+const nextAvailableRow = (
+  parentId: string | null,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
+) => pageDocument.value.layouts[breakpoint]
     .filter((item) => (item.parentId ?? null) === parentId)
     .reduce((row, item) => Math.max(row, item.y + item.h), 0);
 
@@ -582,14 +611,17 @@ const defaultProps = (type: CmsBlockType): CmsBlock["props"] => ({
       : null,
 });
 
-const syncSectionHeight = (sectionId: string) => {
-  const section = pageDocument.value.layouts.lg.find(
+const syncSectionHeight = (
+  sectionId: string,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
+) => {
+  const section = pageDocument.value.layouts[breakpoint].find(
     (item) => item.i === sectionId && !item.parentId,
   );
 
   if (!section) return;
 
-  const children = childLayout(sectionId);
+  const children = childLayout(sectionId, breakpoint);
   const contentRows = children.reduce(
     (row, item) => Math.max(row, item.y + item.h),
     0,
@@ -600,15 +632,17 @@ const syncSectionHeight = (sectionId: string) => {
 };
 
 const updateChildLayout = (sectionId: string, layout: Layout) => {
+  const breakpoint = activeBreakpoint.value;
+  const isMobile = breakpoint === "xs";
   const currentById = new Map(
-    childLayout(sectionId).map((item) => [item.i, item]),
+    childLayout(sectionId, breakpoint).map((item) => [item.i, item]),
   );
   const uniqueLayout = layout.filter(
     (item, index, items) =>
       items.findIndex((candidate) => candidate.i === item.i) === index,
   );
   const updatedIds = new Set(uniqueLayout.map((item) => String(item.i)));
-  const otherItems = pageDocument.value.layouts.lg.filter(
+  const otherItems = pageDocument.value.layouts[breakpoint].filter(
     (item) => item.parentId !== sectionId && !updatedIds.has(item.i),
   );
   const updatedItems = uniqueLayout.map((item) => ({
@@ -616,22 +650,19 @@ const updateChildLayout = (sectionId: string, layout: Layout) => {
     ...item,
     i: String(item.i),
     parentId: sectionId,
+    ...(isMobile ? { x: 0, w: 12, minW: 12, maxW: 12 } : {}),
   })) as CmsLayoutItem[];
 
-  pageDocument.value.layouts.lg = [...otherItems, ...updatedItems];
-  syncSectionHeight(sectionId);
+  pageDocument.value.layouts[breakpoint] = [...otherItems, ...updatedItems];
+  syncSectionHeight(sectionId, breakpoint);
 };
 
-const addBlock = (event: DragEvent, parentId: string | null = null) => {
-  const definition = parseDefinition(event);
-  const dropTarget =
-    event.currentTarget instanceof HTMLElement
-      ? event.currentTarget
-      : canvas.value;
-  const bounds = dropTarget?.getBoundingClientRect();
-
-  if (!definition || !bounds) return;
-
+// One block definition creates shared content plus independent positions in every editable viewport.
+const insertBlock = (
+  definition: CmsBlockDefinition,
+  parentId: string | null,
+  desiredX: number,
+) => {
   if (parentId && definition.type === "section") {
     errorMessage.value =
       "Une zone ne peut pas être placée dans une autre zone.";
@@ -640,12 +671,6 @@ const addBlock = (event: DragEvent, parentId: string | null = null) => {
 
   recordHistory();
   errorMessage.value = "";
-  const width = Math.min(
-    Math.max(definition.defaultWidth, 1),
-    pageDocument.value.settings.desktopColumns,
-  );
-  const columnWidth = bounds.width / pageDocument.value.settings.desktopColumns;
-  const desiredX = Math.floor((event.clientX - bounds.left) / columnWidth);
   const id = nextBlockId();
 
   pageDocument.value.blocks[id] = {
@@ -653,23 +678,52 @@ const addBlock = (event: DragEvent, parentId: string | null = null) => {
     type: definition.type,
     props: defaultProps(definition.type),
   };
-  pageDocument.value.layouts.lg.push({
-    i: id,
-    parentId,
-    x: Math.min(
-      Math.max(desiredX, 0),
-      pageDocument.value.settings.desktopColumns - width,
-    ),
-    y: nextAvailableRow(parentId),
-    w: width,
-    h: Math.max(definition.defaultHeight, 1),
-    minW: 1,
-    minH: 1,
+
+  editableBreakpoints.forEach((breakpoint) => {
+    const isMobile = breakpoint === "xs";
+    const width = isMobile
+      ? 12
+      : Math.min(Math.max(definition.defaultWidth, 1), 12);
+
+    pageDocument.value.layouts[breakpoint].push({
+      i: id,
+      parentId,
+      x: isMobile ? 0 : Math.min(Math.max(desiredX, 0), 12 - width),
+      y: nextAvailableRow(parentId, breakpoint),
+      w: width,
+      h: Math.max(definition.defaultHeight, 1),
+      minW: isMobile ? 12 : 1,
+      minH: 1,
+      ...(isMobile ? { maxW: 12 } : {}),
+    });
   });
 
-  parentId && syncSectionHeight(parentId);
+  parentId && editableBreakpoints.forEach(
+    breakpoint => syncSectionHeight(parentId, breakpoint),
+  );
   statusMessage.value = parentId ? "Bloc ajouté dans la zone" : "Bloc ajouté";
 };
+
+const addBlock = (event: DragEvent, parentId: string | null = null) => {
+  const definition = parseDefinition(event);
+  const dropTarget = event.currentTarget instanceof HTMLElement
+    ? event.currentTarget
+    : canvas.value;
+  const bounds = dropTarget?.getBoundingClientRect();
+
+  if (!definition || !bounds) return;
+
+  const columnWidth = bounds.width / 12;
+  const desiredX = activeBreakpoint.value === "xs"
+    ? 0
+    : Math.floor((event.clientX - bounds.left) / columnWidth);
+  insertBlock(definition, parentId, desiredX);
+};
+
+function addBlockFromPalette(definition: CmsBlockDefinition) {
+  insertBlock(definition, null, 0);
+  statusMessage.value = `Bloc ${definition.label.toLowerCase()} ajouté à la fin`;
+}
 
 const removeBlock = (blockId: string) => {
   const block = pageDocument.value.blocks[blockId];
@@ -696,7 +750,9 @@ const removeBlock = (blockId: string) => {
     ].filter((item) => !removedIds.has(item.i));
   });
 
-  parentId && syncSectionHeight(parentId);
+  parentId && editableBreakpoints.forEach(
+    breakpoint => syncSectionHeight(parentId, breakpoint),
+  );
   statusMessage.value =
     removedIds.size > 1
       ? `Zone et ${removedIds.size - 1} bloc(s) supprimés`
@@ -721,14 +777,15 @@ const imageDimensions = (block: CmsBlock | undefined) => {
   return width > 0 && height > 0 ? { width, height } : null;
 };
 
-// Convert the natural pixel ratio to the closest complete grid row without changing the selected width.
+// Convert the natural pixel ratio to the closest complete row in the currently edited responsive grid.
 const snapImageLayoutToRatio = async (
   blockId: string,
   fallbackPixelWidth?: number,
 ) => {
   const block = pageDocument.value.blocks[blockId];
   const dimensions = imageDimensions(block);
-  const item = pageDocument.value.layouts.lg.find(
+  const breakpoint = activeBreakpoint.value;
+  const item = pageDocument.value.layouts[breakpoint].find(
     (candidate) => candidate.i === blockId,
   );
 
@@ -751,7 +808,7 @@ const snapImageLayoutToRatio = async (
     item.minH || 1,
     Math.round((proportionalHeight + margin) / (gridRowHeight + margin)),
   );
-  item.parentId && syncSectionHeight(item.parentId);
+  item.parentId && syncSectionHeight(item.parentId, breakpoint);
 };
 
 // Send the original multipart file to PHP; only validated and re-encoded media receive a MinIO objectKey.
@@ -912,8 +969,7 @@ onBeforeUnmount(() => {
         <div>
           <h1 class="text-2xl font-semibold">Édition libre</h1>
           <p class="secondary-color text-sm">
-            Page {{ pageId }} · révision {{ revisionNumber || "—" }} · desktop
-            12 colonnes
+            Page {{ pageId }} · révision {{ revisionNumber || "—" }} · {{ viewportDescription }}
           </p>
         </div>
 
@@ -961,7 +1017,8 @@ onBeforeUnmount(() => {
 
       <div
         ref="canvas"
-        class="cms-editor-grid primary-border flex min-h-0 w-full flex-1 flex-col rounded-xl border-2 border-dashed p-2"
+        class="cms-editor-grid primary-border flex min-h-0 flex-1 flex-col rounded-xl border-2 border-dashed p-2 transition-[max-width] duration-200"
+        :class="previewWidthClass"
         @dragover.prevent
         @drop.prevent="addBlock($event)"
         @pointerdown="captureGridInteraction"
@@ -972,7 +1029,7 @@ onBeforeUnmount(() => {
         >
           <div>
             <p class="text-xl font-medium">
-              Glissez un bloc depuis la palette située à droite
+              Glissez ou touchez un bloc dans la palette
             </p>
             <p class="secondary-color mt-2">
               Le contenu, la hiérarchie et les positions sont enregistrés
@@ -983,6 +1040,7 @@ onBeforeUnmount(() => {
 
         <ClientOnly v-else>
           <GridLayout
+            :key="`root-${activeBreakpoint}`"
             v-model:layout="rootLayout"
             :col-num="pageDocument.settings.desktopColumns"
             :row-height="gridRowHeight"
@@ -1000,9 +1058,9 @@ onBeforeUnmount(() => {
               :y="item.y"
               :w="item.w"
               :h="item.h"
-              :min-w="item.minW"
+              :min-w="activeBreakpoint === 'xs' ? 12 : item.minW"
               :min-h="item.minH"
-              :max-w="item.maxW"
+              :max-w="activeBreakpoint === 'xs' ? 12 : item.maxW"
               :max-h="item.maxH"
               drag-allow-from=".cms-root-drag-handle"
               drag-ignore-from=".cms-no-drag"
@@ -1043,6 +1101,7 @@ onBeforeUnmount(() => {
 
                     <GridLayout
                       v-else
+                      :key="`children-${activeBreakpoint}-${item.i}`"
                       :layout="childLayout(item.i)"
                       :col-num="pageDocument.settings.desktopColumns"
                       :row-height="gridRowHeight"
@@ -1062,9 +1121,9 @@ onBeforeUnmount(() => {
                         :y="child.y"
                         :w="child.w"
                         :h="child.h"
-                        :min-w="child.minW"
+                        :min-w="activeBreakpoint === 'xs' ? 12 : child.minW"
                         :min-h="child.minH"
-                        :max-w="child.maxW"
+                        :max-w="activeBreakpoint === 'xs' ? 12 : child.maxW"
                         :max-h="child.maxH"
                         drag-allow-from=".cms-child-drag-handle"
                         drag-ignore-from=".cms-no-drag"
