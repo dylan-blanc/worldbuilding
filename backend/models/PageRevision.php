@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Stores and publishes CMS revisions for the authenticated page owner.
  * PageController calls this model from GET/PUT /pages/{id}/draft and POST /pages/{id}/publish.
  * Draft JSON stays in page_revision; CmsModerationGuard requires actual replacement of marked blocks before
- * their marker is removed, then publication promotes the draft and copies it to pages.pagecontent.
+ * their marker is removed, then publication promotes the draft and copies it with its visibility to pages.
  */
 final class PageRevision
 {
@@ -54,9 +54,9 @@ final class PageRevision
         });
     }
 
-    public function publishDraft(int $pageId, int $ownerUserId): array
+    public function publishDraft(int $pageId, int $ownerUserId, bool $isAnonymous): array
     {
-        return $this->transaction(function () use ($pageId, $ownerUserId): array {
+        return $this->transaction(function () use ($pageId, $ownerUserId, $isAnonymous): array {
             $this->lockOwnedPage($pageId, $ownerUserId);
             $draft = $this->findCurrentDraftForUpdate($pageId);
 
@@ -95,14 +95,14 @@ final class PageRevision
             ]);
 
             $publishPage = $this->pdo->prepare("UPDATE pages
-                SET pagecontent = :pagecontent, page_status = :page_status
+                SET pagecontent = :pagecontent, page_status = :page_status, is_anonymous = :is_anonymous
                 WHERE id = :id AND owner_user_id = :owner_user_id");
-            $publishPage->execute([
-                ":pagecontent" => (string) $draft["pagecontent"],
-                ":page_status" => "private",
-                ":id" => $pageId,
-                ":owner_user_id" => $ownerUserId,
-            ]);
+            $publishPage->bindValue(":pagecontent", (string) $draft["pagecontent"], PDO::PARAM_STR);
+            $publishPage->bindValue(":page_status", "public", PDO::PARAM_STR);
+            $publishPage->bindValue(":is_anonymous", $isAnonymous, PDO::PARAM_BOOL);
+            $publishPage->bindValue(":id", $pageId, PDO::PARAM_INT);
+            $publishPage->bindValue(":owner_user_id", $ownerUserId, PDO::PARAM_INT);
+            $publishPage->execute();
 
             return $this->normalizeRevision($this->findRevisionById((int) $draft["id"]));
         });

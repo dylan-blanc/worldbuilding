@@ -1,11 +1,17 @@
 <!--
-  This view edits one private CMS page selected by pagecms.vue through its numeric pageId prop.
+  This view edits one CMS page selected by pagecms.vue through its numeric pageId prop.
   Content, parent-child containment and XYWH layouts flow through GET/PUT /pages/{id}/draft to PageController,
-  CmsContentValidator, PageRevision and MySQL; publication copies the current draft through POST /pages/{id}/publish.
+  CmsContentValidator, PageRevision and MySQL; publication sends the selected public identity mode through
+  POST /pages/{id}/publish -> PageController -> PageRevision -> the pages and page_revision SQL tables.
   Media flows through POST /pages/{id}/media, PHP signature validation/re-encoding, MinIO and an authorized GET proxy.
   New image uploads store their natural ratio and resize the related desktop grid item; later resizes snap to that ratio.
 -->
 <script setup lang="ts">
+import {
+  EyeSlashIcon,
+  GlobeAltIcon,
+  XMarkIcon,
+} from "@heroicons/vue/24/outline";
 import { GridItem, GridLayout, type Layout } from "grid-layout-plus";
 import {
   CMS_BLOCK_MIME,
@@ -37,6 +43,8 @@ type MediaResponse = {
   };
 };
 
+type PublicationVisibility = "public" | "anonymous";
+
 const props = defineProps<{
   pageId: number;
 }>();
@@ -46,10 +54,14 @@ const emit = defineEmits<{
 }>();
 
 const config = useRuntimeConfig();
+const router = useRouter();
 const canvas = ref<HTMLElement>();
+const publishDialog = ref<HTMLElement>();
 const isLoaded = ref(false);
 const isSaving = ref(false);
 const isPublishing = ref(false);
+const isPublishModalOpen = ref(false);
+const publicationVisibility = ref<PublicationVisibility>("public");
 const dirty = ref(false);
 const statusMessage = ref("");
 const errorMessage = ref("");
@@ -483,20 +495,41 @@ const saveDraft = async (): Promise<boolean> => {
   }
 };
 
+const openPublishModal = async () => {
+  publicationVisibility.value = "public";
+  errorMessage.value = "";
+  isPublishModalOpen.value = true;
+  await nextTick();
+  publishDialog.value?.focus();
+};
+
+const closePublishModal = () => {
+  isPublishing.value || (isPublishModalOpen.value = false);
+};
+
+// Save pending edits, then publish the same revision and visibility in one backend transaction.
 const publish = async () => {
+  if (isPublishing.value) return;
+
   clearTimeout(autosaveTimer);
-
-  if (dirty.value && !(await saveDraft())) return;
-
   isPublishing.value = true;
   errorMessage.value = "";
 
   try {
+    if (dirty.value && !(await saveDraft())) {
+      scheduleAutosave();
+      return;
+    }
+
     await $fetch(`${config.public.apiBase}/pages/${props.pageId}/publish`, {
       method: "POST",
       credentials: "include",
+      body: {
+        is_anonymous: publicationVisibility.value === "anonymous",
+      },
     });
-    statusMessage.value = "Page publiée en mode privé";
+    isPublishModalOpen.value = false;
+    await router.push(`/pagecmsresult/${props.pageId}`);
   } catch (error) {
     errorMessage.value = errorText(error, "Publication impossible");
   } finally {
@@ -897,9 +930,9 @@ onBeforeUnmount(() => {
             type="button"
             class="button-primary rounded-md px-4 py-2 text-sm"
             :disabled="isSaving || isPublishing"
-            @click="publish"
+            @click="openPublishModal"
           >
-            {{ isPublishing ? "Publication…" : "Publier en privé" }}
+            Publier
           </button>
           <span
             class="secondary-background primary-border rounded-full border px-3 py-1 text-sm"
@@ -1060,6 +1093,114 @@ onBeforeUnmount(() => {
         </ClientOnly>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="isPublishModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+        role="presentation"
+        @click.self="closePublishModal"
+        @keydown.esc="closePublishModal"
+      >
+        <section
+          ref="publishDialog"
+          class="primary-background primary-border max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-xl border p-6 shadow-2xl outline-none"
+          role="dialog"
+          tabindex="-1"
+          aria-modal="true"
+          aria-labelledby="publish-page-title"
+          aria-describedby="publish-page-description"
+        >
+          <header class="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="publish-page-title" class="text-2xl font-semibold">
+                Publier la page
+              </h2>
+              <p id="publish-page-description" class="secondary-color mt-2 text-sm">
+                Choisissez comment votre identité apparaîtra sur cette page publique.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="secondary-color shrink-0 rounded-md p-1 disabled:opacity-40"
+              :disabled="isPublishing"
+              aria-label="Fermer"
+              @click="closePublishModal"
+            >
+              <XMarkIcon class="size-7" aria-hidden="true" />
+            </button>
+          </header>
+
+          <form class="mt-6" @submit.prevent="publish">
+            <fieldset :disabled="isPublishing" class="space-y-3">
+              <legend class="sr-only">Visibilité de l’auteur</legend>
+
+              <label
+                class="primary-border flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition hover:bg-(--secondary-background)"
+                :class="publicationVisibility === 'public' ? 'secondary-background ring-2 ring-(--focus-color)' : ''"
+              >
+                <input
+                  v-model="publicationVisibility"
+                  type="radio"
+                  name="publication-visibility"
+                  value="public"
+                  class="size-5 shrink-0 accent-(--accent-color)"
+                >
+                <GlobeAltIcon class="size-7 shrink-0" aria-hidden="true" />
+                <span>
+                  <span class="block font-semibold">Publier publiquement</span>
+                  <span class="secondary-color mt-1 block text-sm">
+                    La page sera visible par tous avec votre identité.
+                  </span>
+                </span>
+              </label>
+
+              <label
+                class="primary-border flex cursor-pointer items-center gap-4 rounded-lg border p-4 transition hover:bg-(--secondary-background)"
+                :class="publicationVisibility === 'anonymous' ? 'secondary-background ring-2 ring-(--focus-color)' : ''"
+              >
+                <input
+                  v-model="publicationVisibility"
+                  type="radio"
+                  name="publication-visibility"
+                  value="anonymous"
+                  class="size-5 shrink-0 accent-(--accent-color)"
+                >
+                <EyeSlashIcon class="size-7 shrink-0" aria-hidden="true" />
+                <span>
+                  <span class="block font-semibold">Publier anonymement</span>
+                  <span class="secondary-color mt-1 block text-sm">
+                    La page sera visible par tous sans révéler votre identité.
+                  </span>
+                </span>
+              </label>
+            </fieldset>
+
+            <p v-if="errorMessage" class="error-color mt-4 text-sm font-medium" role="alert">
+              {{ errorMessage }}
+            </p>
+
+            <footer class="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                class="primary-border rounded-lg border px-4 py-2 disabled:opacity-40"
+                :disabled="isPublishing"
+                @click="closePublishModal"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                class="button-primary rounded-lg px-4 py-2 disabled:opacity-40"
+                :disabled="isPublishing"
+              >
+                {{ isPublishing ? "Publication…" : "Publier" }}
+              </button>
+            </footer>
+          </form>
+        </section>
+      </div>
+    </Teleport>
   </section>
 </template>
 

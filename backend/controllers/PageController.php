@@ -145,16 +145,24 @@ final class PageController
     {
         Request::requireSameOrigin();
         $userId = $this->authenticatedUserId();
+        $body = Request::body();
+
+        if (!array_key_exists("is_anonymous", $body) || !is_bool($body["is_anonymous"])) {
+            Response::error("Parametre is_anonymous invalide", 422, "invalid_publication_visibility");
+        }
+
+        $isAnonymous = $body["is_anonymous"];
 
         try {
-            $revision = $this->revisions->publishDraft($id, $userId);
+            $revision = $this->revisions->publishDraft($id, $userId, $isAnonymous);
         } catch (DomainException $exception) {
             $this->revisionError($exception, "draft_publication_failed");
         }
 
         Response::json(200, [
-            "message" => "Page publiee en mode prive",
-            "page_status" => "private",
+            "message" => $isAnonymous ? "Page publiee anonymement" : "Page publiee publiquement",
+            "page_status" => "public",
+            "is_anonymous" => $isAnonymous,
             "revision" => $revision,
         ]);
     }
