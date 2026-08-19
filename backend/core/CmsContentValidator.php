@@ -22,7 +22,8 @@ final class CmsContentValidator
     private const DANGEROUS_NODE_TYPES = ["script", "iframe", "object", "embed", "style", "html"];
     private const NAVIGATION_EXTENSIONS = ["html", "htm"];
     private const FONT_FAMILIES = ["sans-serif", "serif", "monospace"];
-    private const FONT_SIZES = ["12px", "14px", "16px", "18px", "24px", "32px"];
+    private const MIN_FONT_SIZE = 8;
+    private const MAX_FONT_SIZE = 256;
     private const LINE_HEIGHTS = ["1", "1.25", "1.5", "1.75", "2"];
 
     public static function emptyDocument(): array
@@ -238,7 +239,7 @@ final class CmsContentValidator
 
         if ($key === "fontsize"
             && $value !== null
-            && (!is_string($value) || !in_array($value, self::FONT_SIZES, true))
+            && !self::isValidFontSize($value)
         ) {
             throw new DomainException("Taille de texte invalide");
         }
@@ -268,6 +269,20 @@ final class CmsContentValidator
         if (in_array($key, ["class", "classname"], true) && $value !== null && $value !== "") {
             throw new DomainException("Classe CSS utilisateur interdite");
         }
+    }
+
+    // Font sizes are persisted by Tiptap as canonical integer pixel strings shared with CmsTextBlockEditor.
+    private static function isValidFontSize(mixed $value): bool
+    {
+        if (!is_string($value)
+            || preg_match("/^([1-9][0-9]{0,2})px$/D", $value, $matches) !== 1
+        ) {
+            return false;
+        }
+
+        $fontSize = (int) $matches[1];
+
+        return $fontSize >= self::MIN_FONT_SIZE && $fontSize <= self::MAX_FONT_SIZE;
     }
 
     private static function validateLayouts(array $layouts, array $blocks): void

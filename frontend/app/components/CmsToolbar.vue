@@ -1,7 +1,7 @@
 <!--
   This component is the upper CMS tool layer mounted by pagecms.vue below Header.
-  It owns the visual editing controls, temporary preset/layout values, preview drawer state and the full-width
-  teleport host used by the focused CmsTextBlockEditor without placing formatting controls inside the canvas.
+  It owns the visual editing controls, temporary preset/layout values and preview drawer state.
+  Focused text formatting stays inside CmsTextBlockEditor through a Tiptap BubbleMenu anchored to its paragraph.
   Its mode, responsive viewport and history actions flow to pagecms.vue, which delegates them to Freepage.
   When the editing drawer closes, a compact preview bar keeps viewport selection and the return action accessible.
 -->
@@ -184,12 +184,6 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
             </div>
           </div>
         </div>
-
-        <div
-          id="cms-text-toolbar-host"
-          class="secondary-background primary-border w-full empty:hidden border-t px-[5px] py-2"
-          aria-label="Outils du bloc texte sélectionné"
-        />
       </div>
     </div>
 

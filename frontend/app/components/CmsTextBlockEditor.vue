@@ -14,7 +14,8 @@ import { TextStyleKit } from "@tiptap/extension-text-style"
 import Typography from "@tiptap/extension-typography"
 import StarterKit from "@tiptap/starter-kit"
 import { EditorContent, useEditor } from "@tiptap/vue-3"
-import type { JSONContent } from "@tiptap/core"
+import { BubbleMenu } from "@tiptap/vue-3/menus"
+import type { Editor, JSONContent } from "@tiptap/core"
 import type { CmsJsonValue } from "~/types/cms"
 
 const props = defineProps<{
@@ -27,37 +28,48 @@ const emit = defineEmits<{
 }>()
 
 const toolbar = ref<HTMLElement>()
-const isToolbarVisible = ref(false)
+const fontSizeTrigger = ref<HTMLElement>()
+const fontSizeMenu = ref<HTMLElement>()
+const isFontSizeMenuOpen = ref(false)
+const fontSizeMenuId = useId()
+const fontSizeMenuStyle = ref({ left: "0px", top: "0px", width: "4rem" })
 const fontFamilies = [
   { label: "Sans serif", value: "sans-serif" },
   { label: "Serif", value: "serif" },
   { label: "Monospace", value: "monospace" },
 ]
-const fontSizes = ["12px", "14px", "16px", "18px", "24px", "32px"]
+const fontSizes = [
+  12,
+  14,
+  16,
+  18,
+  24,
+  32,
+  36,
+  40,
+  48,
+  56,
+  64,
+  72,
+  80,
+  96,
+  112,
+  128,
+]
+type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
+const paragraphFontSize = 16
+const headingFontSizes: Record<HeadingLevel, number> = {
+  1: 32,
+  2: 24,
+  3: 20,
+  4: 18,
+  5: 16,
+  6: 14,
+}
 const lineHeights = ["1", "1.25", "1.5", "1.75", "2"]
 let historyGroupOpen = false
 let historyTimer: ReturnType<typeof setTimeout> | undefined
-let blurTimer: ReturnType<typeof setTimeout> | undefined
 let syncingFromParent = false
-
-const setToolbarVisibility = (visible: boolean) => {
-  if (isToolbarVisible.value === visible) return
-
-  isToolbarVisible.value = visible
-}
-
-const showToolbar = () => {
-  clearTimeout(blurTimer)
-  setToolbarVisibility(true)
-}
-
-// Keep the toolbar open when focus moves from ProseMirror to one of its formatting controls.
-const scheduleToolbarClose = () => {
-  clearTimeout(blurTimer)
-  blurTimer = setTimeout(() => {
-    toolbar.value?.contains(document.activeElement) || setToolbarVisibility(false)
-  })
-}
 
 const normalizeContent = (value: CmsJsonValue): JSONContent => {
   if (typeof value === "object" && value !== null && !Array.isArray(value) && value.type === "doc") {
@@ -127,12 +139,30 @@ const editor = useEditor({
   onTransaction: ({ transaction }) => {
     transaction.docChanged && !syncingFromParent && openHistoryGroup()
   },
-  onFocus: showToolbar,
-  onBlur: scheduleToolbarClose,
   onUpdate: ({ editor: currentEditor }) => {
     emit("update:modelValue", currentEditor.getJSON() as CmsJsonValue)
   },
 })
+
+const appendToolbarToBody = () => document.body
+const shouldShowToolbar = ({ editor: currentEditor }: { editor: Editor }) => (
+  currentEditor.isFocused || Boolean(toolbar.value?.contains(document.activeElement))
+)
+
+// Anchor the menu to the complete paragraph or heading instead of the narrower caret rectangle.
+const getParagraphReference = () => {
+  const currentEditor = editor.value
+
+  if (!currentEditor) return null
+
+  const position = currentEditor.state.selection.from
+  const domPosition = currentEditor.view.domAtPos(position)
+  const origin = domPosition.node instanceof HTMLElement
+    ? domPosition.node
+    : domPosition.node.parentElement
+
+  return origin?.closest<HTMLElement>("p, h1, h2, h3, h4, h5, h6") || currentEditor.view.dom
+}
 
 watch(() => props.modelValue, value => {
   if (!editor.value) return
@@ -151,6 +181,25 @@ watch(() => props.modelValue, value => {
 const activeClass = (name: string, attributes?: Record<string, unknown>) => (
   editor.value?.isActive(name, attributes) ? "button-primary" : "form-control"
 )
+
+// Structural format buttons replace custom sizing and persist the visible default in the Tiptap JSON.
+const applyBlockFormat = (level?: HeadingLevel) => {
+  const currentEditor = editor.value
+
+  if (!currentEditor) return
+
+  const selection = currentEditor.state.selection
+  const formattingRange = selection.empty
+    ? { from: selection.$from.start(), to: selection.$from.end() }
+    : { from: selection.from, to: selection.to }
+  const chain = currentEditor.chain().focus().setTextSelection(formattingRange)
+
+  level ? chain.setHeading({ level }) : chain.setParagraph()
+  chain
+    .setFontSize(`${level ? headingFontSizes[level] : paragraphFontSize}px`)
+    .setTextSelection({ from: selection.from, to: selection.to })
+    .run()
+}
 
 const applyLink = () => {
   if (!editor.value) return
@@ -191,28 +240,101 @@ const setHighlightColor = (event: Event) => {
 
 const selectValue = (event: Event) => (event.target as HTMLSelectElement).value
 const setFontFamily = (event: Event) => editor.value?.chain().focus().setFontFamily(selectValue(event)).run()
-const setFontSize = (event: Event) => editor.value?.chain().focus().setFontSize(selectValue(event)).run()
+const currentFontSize = () => {
+  const value = Number.parseInt(String(editor.value?.getAttributes("textStyle").fontSize || ""), 10)
+
+  return Number.isFinite(value) ? value : ""
+}
+const applyFontSize = (requestedSize: number) => {
+  if (!Number.isFinite(requestedSize)) return null
+
+  const fontSize = Math.min(256, Math.max(8, Math.round(requestedSize)))
+  editor.value?.chain().focus().setFontSize(`${fontSize}px`).run()
+  return fontSize
+}
+const setFontSize = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const fontSize = applyFontSize(Number(input.value))
+
+  fontSize !== null && (input.value = String(fontSize))
+}
+const currentPresetFontSize = () => {
+  const value = currentFontSize()
+
+  return typeof value === "number" && fontSizes.includes(value) ? value : ""
+}
+const closeFontSizeMenu = () => {
+  isFontSizeMenuOpen.value = false
+}
+const toggleFontSizeMenu = () => {
+  if (isFontSizeMenuOpen.value) {
+    closeFontSizeMenu()
+    return
+  }
+
+  const bounds = fontSizeTrigger.value?.getBoundingClientRect()
+
+  if (!bounds) return
+
+  fontSizeMenuStyle.value = {
+    left: `${Math.max(8, Math.min(bounds.left, globalThis.innerWidth - bounds.width - 8))}px`,
+    top: `${bounds.bottom + 4}px`,
+    width: `${bounds.width}px`,
+  }
+  isFontSizeMenuOpen.value = true
+}
+const selectPresetFontSize = (fontSize: number) => {
+  applyFontSize(fontSize)
+  closeFontSizeMenu()
+}
+const closeFontSizeMenuFromPointer = (event: PointerEvent) => {
+  const target = event.target instanceof Node ? event.target : null
+
+  if (!target
+    || fontSizeTrigger.value?.contains(target)
+    || fontSizeMenu.value?.contains(target)
+  ) return
+
+  closeFontSizeMenu()
+}
 const setLineHeight = (event: Event) => editor.value?.chain().focus().setLineHeight(selectValue(event)).run()
+
+onMounted(() => {
+  globalThis.document.addEventListener("pointerdown", closeFontSizeMenuFromPointer)
+})
 
 onBeforeUnmount(() => {
   clearTimeout(historyTimer)
-  clearTimeout(blurTimer)
+  globalThis.document.removeEventListener("pointerdown", closeFontSizeMenuFromPointer)
 })
 </script>
 
 <template>
   <div v-if="editor" class="cms-no-drag relative flex h-full min-h-0 flex-col">
-    <Teleport v-if="isToolbarVisible" to="#cms-text-toolbar-host">
+    <BubbleMenu
+      :editor="editor"
+      :append-to="appendToolbarToBody"
+      :should-show="shouldShowToolbar"
+      :get-referenced-virtual-element="getParagraphReference"
+      :options="{
+        strategy: 'fixed',
+        placement: 'top',
+        offset: 8,
+        flip: false,
+        shift: { padding: 8 },
+      }"
+      :update-delay="0"
+      :resize-delay="0"
+    >
       <div
         ref="toolbar"
-        class="cms-tiptap-toolbar primary-background primary-border flex w-full flex-wrap items-center gap-1 rounded-lg border p-2 shadow-sm"
+        class="cms-tiptap-toolbar primary-background primary-border z-50 flex w-max max-w-[calc(100vw-1rem)] flex-col gap-1 rounded-lg border p-2 shadow-sm"
         role="toolbar"
         aria-label="Mise en forme du texte"
-        @focusin="showToolbar"
-        @focusout="scheduleToolbarClose"
       >
-      <button type="button" class="cms-format-button" :class="activeClass('paragraph')" title="Paragraphe" @click="editor.chain().focus().setParagraph().run()">P</button>
-      <button v-for="level in ([1, 2, 3, 4, 5, 6] as const)" :key="level" type="button" class="cms-format-button" :class="activeClass('heading', { level })" :title="`Titre ${level}`" @click="editor.chain().focus().toggleHeading({ level }).run()">H{{ level }}</button>
+      <div class="cms-tiptap-toolbar-row flex w-full items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
+      <button type="button" class="cms-format-button" :class="activeClass('paragraph')" title="Paragraphe · 16px" @click="applyBlockFormat()">P</button>
+      <button v-for="level in ([1, 2, 3, 4, 5, 6] as const)" :key="level" type="button" class="cms-format-button" :class="activeClass('heading', { level })" :title="`Titre ${level} · ${headingFontSizes[level]}px`" @click="applyBlockFormat(level)">H{{ level }}</button>
       <button type="button" class="cms-format-button font-bold" :class="activeClass('bold')" title="Gras" @click="editor.chain().focus().toggleBold().run()">B</button>
       <button type="button" class="cms-format-button italic" :class="activeClass('italic')" title="Italique" @click="editor.chain().focus().toggleItalic().run()">I</button>
       <button type="button" class="cms-format-button underline" :class="activeClass('underline')" title="Souligné" @click="editor.chain().focus().toggleUnderline().run()">U</button>
@@ -230,7 +352,9 @@ onBeforeUnmount(() => {
       <button v-for="alignment in ['left', 'center', 'right', 'justify']" :key="alignment" type="button" class="cms-format-button" :class="activeClass({ left: 'paragraph', center: 'paragraph', right: 'paragraph', justify: 'paragraph' }[alignment] || 'paragraph', { textAlign: alignment })" :title="`Aligner ${alignment}`" @click="editor.chain().focus().setTextAlign(alignment).run()">
         {{ { left: "⇤", center: "↔", right: "⇥", justify: "☰" }[alignment] }}
       </button>
+      </div>
 
+      <div class="cms-tiptap-toolbar-row flex w-full items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
       <button type="button" class="cms-format-button" :class="activeClass('link')" title="Ajouter ou modifier un lien" @click="applyLink">Lien</button>
       <button type="button" class="form-control cms-format-button" title="Retirer le lien" @click="editor.chain().focus().unsetLink().run()">Sans lien</button>
 
@@ -247,10 +371,34 @@ onBeforeUnmount(() => {
         <option value="" disabled>Police</option>
         <option v-for="font in fontFamilies" :key="font.value" :value="font.value">{{ font.label }}</option>
       </select>
-      <select class="form-control h-8 rounded border px-1 text-xs" title="Taille" :value="editor.getAttributes('textStyle').fontSize || ''" @change="setFontSize">
-        <option value="" disabled>Taille</option>
-        <option v-for="size in fontSizes" :key="size" :value="size">{{ size }}</option>
-      </select>
+      <div class="form-control flex h-8 items-center gap-1 rounded border px-1 text-xs" title="Taille du texte entre 8 et 256 pixels">
+        Taille
+        <button
+          ref="fontSizeTrigger"
+          type="button"
+          class="flex h-6 w-16 items-center justify-between rounded px-1 outline-none"
+          aria-haspopup="listbox"
+          :aria-controls="fontSizeMenuId"
+          :aria-expanded="isFontSizeMenuOpen"
+          aria-label="Ouvrir les tailles de texte prédéfinies"
+          @click="toggleFontSizeMenu"
+        >
+          <span>{{ currentPresetFontSize() || "Choix" }}</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        <input
+          type="number"
+          class="w-14 bg-transparent text-right outline-none"
+          :value="currentFontSize()"
+          min="8"
+          max="256"
+          step="1"
+          inputmode="numeric"
+          aria-label="Taille du texte en pixels"
+          @change="setFontSize"
+        >
+        <span>px</span>
+      </div>
       <select class="form-control h-8 rounded border px-1 text-xs" title="Interligne" :value="editor.getAttributes('textStyle').lineHeight || ''" @change="setLineHeight">
         <option value="" disabled>Interligne</option>
         <option v-for="height in lineHeights" :key="height" :value="height">{{ height }}</option>
@@ -260,6 +408,33 @@ onBeforeUnmount(() => {
       <button type="button" class="form-control cms-format-button" :disabled="!editor.can().undo()" title="Annuler la saisie" @click="editor.chain().focus().undo().run()">↶</button>
         <button type="button" class="form-control cms-format-button" :disabled="!editor.can().redo()" title="Rétablir la saisie" @click="editor.chain().focus().redo().run()">↷</button>
       </div>
+      </div>
+    </BubbleMenu>
+
+    <Teleport to="body">
+      <div
+        v-if="isFontSizeMenuOpen"
+        :id="fontSizeMenuId"
+        ref="fontSizeMenu"
+        role="listbox"
+        aria-label="Tailles de texte prédéfinies"
+        class="primary-background primary-border fixed z-[70] h-[194px] touch-pan-y overflow-y-auto overscroll-contain rounded-md border shadow-xl [scrollbar-width:thin]"
+        :style="fontSizeMenuStyle"
+      >
+        <button
+          v-for="size in fontSizes"
+          :key="size"
+          type="button"
+          role="option"
+          class="flex h-8 w-full shrink-0 items-center justify-center px-2 text-xs"
+          :class="currentFontSize() === size ? 'button-primary' : 'form-control'"
+          :aria-selected="currentFontSize() === size"
+          @mousedown.prevent
+          @click="selectPresetFontSize(size)"
+        >
+          {{ size }}
+        </button>
+      </div>
     </Teleport>
 
     <EditorContent :editor="editor" class="min-h-0 flex-1 overflow-auto p-3 text-left" />
@@ -267,21 +442,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.cms-tiptap-toolbar {
-  max-height: 16rem;
-  overflow-y: auto;
-}
-
 @media (max-width: 767px) {
-  .cms-tiptap-toolbar {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
+  .cms-tiptap-toolbar-row {
     scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
   }
 
-  .cms-tiptap-toolbar > * {
+  .cms-tiptap-toolbar-row > * {
     flex: 0 0 auto;
     min-height: 2.75rem;
     scroll-snap-align: start;
