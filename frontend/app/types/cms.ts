@@ -9,6 +9,7 @@ export const CMS_BLOCK_MIME = "application/x-worldbuilding-cms-block"
 export type CmsBlockType = "section" | "text" | "image" | "banner" | "gallery" | "video" | "separator"
 export type CmsBreakpoint = "lg" | "md" | "sm" | "xs"
 export type CmsViewportMode = "desktop" | "tablet" | "mobile"
+export type CmsWorkspaceViewportMode = CmsViewportMode | "responsive"
 export type CmsJsonPrimitive = string | number | boolean | null
 export type CmsJsonValue = CmsJsonPrimitive | CmsJsonValue[] | { [key: string]: CmsJsonValue }
 

@@ -24,6 +24,7 @@ import {
   type CmsLayoutItem,
   type CmsPageDocument,
   type CmsViewportMode,
+  type CmsWorkspaceViewportMode,
 } from "~/types/cms";
 import {
   cmsViewportBreakpoints,
@@ -54,8 +55,9 @@ type PublicationVisibility = "public" | "anonymous";
 
 const props = defineProps<{
   pageId: number;
-  viewportMode: CmsViewportMode;
+  viewportMode: CmsWorkspaceViewportMode;
   isEditing: boolean;
+  combinedResponsiveEnabled: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -64,7 +66,6 @@ const emit = defineEmits<{
 
 const config = useRuntimeConfig();
 const router = useRouter();
-const canvas = ref<HTMLElement>();
 const publishDialog = ref<HTMLElement>();
 const isLoaded = ref(false);
 const isSaving = ref(false);
@@ -104,15 +105,47 @@ const emptyDocument = (): CmsPageDocument => ({
 
 const responsiveBreakpoints = ["lg", "md", "sm", "xs"] as const;
 const editableBreakpoints: CmsBreakpoint[] = ["lg", "md", "xs"];
-const activeBreakpoint = computed(() => cmsViewportBreakpoints[props.viewportMode]);
-const previewWidthClass = computed(() => ({
-  desktop: "w-full",
-  tablet: "w-full max-w-[768px] self-center",
-  mobile: "w-full max-w-[390px] self-center",
-})[props.viewportMode]);
-const viewportDescription = computed(() => props.viewportMode === "mobile"
-  ? "mobile · colonne unique"
-  : `${props.viewportMode === "tablet" ? "tablette" : "bureau"} · 12 colonnes`);
+type DisplayedViewport = {
+  mode: CmsViewportMode;
+  breakpoint: CmsBreakpoint;
+  label: string;
+  widthClass: string;
+};
+const viewportDefinitions: Record<CmsViewportMode, DisplayedViewport> = {
+  desktop: {
+    mode: "desktop",
+    breakpoint: "lg",
+    label: "Bureau",
+    widthClass: "w-full",
+  },
+  tablet: {
+    mode: "tablet",
+    breakpoint: "md",
+    label: "Tablette",
+    widthClass: "w-full max-w-[768px]",
+  },
+  mobile: {
+    mode: "mobile",
+    breakpoint: "xs",
+    label: "Mobile",
+    widthClass: "w-full max-w-[390px]",
+  },
+};
+const singleViewportMode = computed<CmsViewportMode>(() => (
+  props.viewportMode === "responsive" ? "desktop" : props.viewportMode
+));
+const activeBreakpoint = computed(() => cmsViewportBreakpoints[singleViewportMode.value]);
+const isCombinedResponsive = computed(() => (
+  props.combinedResponsiveEnabled && props.viewportMode === "responsive"
+));
+const displayedViewports = computed<DisplayedViewport[]>(() => isCombinedResponsive.value
+  ? [viewportDefinitions.tablet, viewportDefinitions.mobile]
+  : [viewportDefinitions[singleViewportMode.value]]);
+const viewportDescription = computed(() => isCombinedResponsive.value
+  ? "tablette + mobile · aperçu côte à côte"
+  : singleViewportMode.value === "mobile"
+    ? "mobile · colonne unique"
+    : `${singleViewportMode.value === "tablet" ? "tablette" : "bureau"} · 12 colonnes`);
 
 const pageDocument = ref<CmsPageDocument>(emptyDocument());
 const allowedBlockTypes: CmsBlockType[] = [
@@ -150,28 +183,29 @@ const createSnapshot = (): string =>
   });
 
 // Root items move as one unit. Child XYWH coordinates remain relative to their section.
-const rootLayout = computed({
-  get: () => pageDocument.value.layouts[activeBreakpoint.value].filter((item) => !item.parentId),
-  set: (layout: CmsLayoutItem[]) => {
-    const breakpoint = activeBreakpoint.value;
-    const uniqueLayout = layout.filter(
-      (item, index, items) =>
-        items.findIndex((candidate) => candidate.i === item.i) === index,
-    );
-    const rootIds = new Set(uniqueLayout.map((item) => item.i));
-    const children = pageDocument.value.layouts[breakpoint].filter(
-      (item) => item.parentId && !rootIds.has(item.i),
-    );
-    pageDocument.value.layouts[breakpoint] = [
-      ...uniqueLayout.map((item) => ({
-        ...item,
-        parentId: null,
-        ...(breakpoint === "xs" ? { x: 0, w: 12, minW: 12, maxW: 12 } : {}),
-      })),
-      ...children,
-    ];
-  },
-});
+const rootLayout = (breakpoint: CmsBreakpoint) => (
+  pageDocument.value.layouts[breakpoint].filter(item => !item.parentId)
+);
+
+const updateRootLayout = (breakpoint: CmsBreakpoint, layout: Layout) => {
+  const currentById = new Map(rootLayout(breakpoint).map(item => [item.i, item]));
+  const uniqueLayout = layout.filter(
+    (item, index, items) => items.findIndex(candidate => candidate.i === item.i) === index,
+  );
+  const rootIds = new Set(uniqueLayout.map(item => String(item.i)));
+  const children = pageDocument.value.layouts[breakpoint].filter(
+    item => item.parentId && !rootIds.has(item.i),
+  );
+  const roots = uniqueLayout.map(item => ({
+    ...currentById.get(String(item.i)),
+    ...item,
+    i: String(item.i),
+    parentId: null,
+    ...(breakpoint === "xs" ? { x: 0, w: 12, minW: 12, maxW: 12 } : {}),
+  })) as CmsLayoutItem[];
+
+  pageDocument.value.layouts[breakpoint] = [...roots, ...children];
+};
 
 const childLayout = (
   sectionId: string,
@@ -633,8 +667,11 @@ const syncSectionHeight = (
   section.h !== requiredHeight && (section.h = requiredHeight);
 };
 
-const updateChildLayout = (sectionId: string, layout: Layout) => {
-  const breakpoint = activeBreakpoint.value;
+const updateChildLayout = (
+  sectionId: string,
+  layout: Layout,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
+) => {
   const isMobile = breakpoint === "xs";
   const currentById = new Map(
     childLayout(sectionId, breakpoint).map((item) => [item.i, item]),
@@ -706,17 +743,21 @@ const insertBlock = (
   statusMessage.value = parentId ? "Bloc ajouté dans la zone" : "Bloc ajouté";
 };
 
-const addBlock = (event: DragEvent, parentId: string | null = null) => {
+const addBlock = (
+  event: DragEvent,
+  parentId: string | null = null,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
+) => {
   const definition = parseDefinition(event);
   const dropTarget = event.currentTarget instanceof HTMLElement
     ? event.currentTarget
-    : canvas.value;
+    : null;
   const bounds = dropTarget?.getBoundingClientRect();
 
   if (!definition || !bounds) return;
 
   const columnWidth = bounds.width / 12;
-  const desiredX = activeBreakpoint.value === "xs"
+  const desiredX = breakpoint === "xs"
     ? 0
     : Math.floor((event.clientX - bounds.left) / columnWidth);
   insertBlock(definition, parentId, desiredX);
@@ -782,11 +823,11 @@ const imageDimensions = (block: CmsBlock | undefined) => {
 // Convert the natural pixel ratio to the closest complete row in the currently edited responsive grid.
 const snapImageLayoutToRatio = async (
   blockId: string,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
   fallbackPixelWidth?: number,
 ) => {
   const block = pageDocument.value.blocks[blockId];
   const dimensions = imageDimensions(block);
-  const breakpoint = activeBreakpoint.value;
   const item = pageDocument.value.layouts[breakpoint].find(
     (candidate) => candidate.i === blockId,
   );
@@ -795,7 +836,7 @@ const snapImageLayoutToRatio = async (
 
   await nextTick();
   const blockElement = globalThis.document?.querySelector<HTMLElement>(
-    `[data-cms-block-id="${CSS.escape(blockId)}"]`,
+    `[data-cms-breakpoint="${breakpoint}"] [data-cms-block-id="${CSS.escape(blockId)}"]`,
   );
   const pixelWidth =
     blockElement?.closest<HTMLElement>(".vgl-item")?.getBoundingClientRect()
@@ -814,7 +855,11 @@ const snapImageLayoutToRatio = async (
 };
 
 // Send the original multipart file to PHP; only validated and re-encoded media receive a MinIO objectKey.
-const uploadMedia = async (blockId: string, event: Event) => {
+const uploadMedia = async (
+  blockId: string,
+  event: Event,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
+) => {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   const block = pageDocument.value.blocks[blockId];
@@ -849,7 +894,7 @@ const uploadMedia = async (blockId: string, event: Event) => {
     block.props.height = response.media.height;
     block.props.aspectRatioLocked = mediaType === "image";
     delete block.props.moderationRemoved;
-    await snapImageLayoutToRatio(blockId, initialPixelWidth);
+    await snapImageLayoutToRatio(blockId, breakpoint, initialPixelWidth);
     statusMessage.value = "Média validé et enregistré";
   } catch (error) {
     errorMessage.value = errorText(error, "Upload du média impossible");
@@ -879,8 +924,11 @@ const captureGridInteraction = (event: PointerEvent) => {
   ) && (pendingGridSnapshot = createSnapshot());
 };
 
-const finishGridInteraction = (sectionId: string | null = null) => {
-  sectionId && syncSectionHeight(sectionId);
+const finishGridInteraction = (
+  sectionId: string | null = null,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
+) => {
+  sectionId && syncSectionHeight(sectionId, breakpoint);
   const before = pendingGridSnapshot;
   pendingGridSnapshot = null;
 
@@ -890,9 +938,10 @@ const finishGridInteraction = (sectionId: string | null = null) => {
 const finishGridResize = async (
   blockId: string,
   sectionId: string | null = null,
+  breakpoint: CmsBreakpoint = activeBreakpoint.value,
 ) => {
-  await snapImageLayoutToRatio(blockId);
-  finishGridInteraction(sectionId);
+  await snapImageLayoutToRatio(blockId, breakpoint);
+  finishGridInteraction(sectionId, breakpoint);
 };
 
 const handleKeyboardHistory = (event: KeyboardEvent) => {
@@ -1017,160 +1066,183 @@ onBeforeUnmount(() => {
         {{ statusMessage }}
       </p>
 
-      <div
-        ref="canvas"
-        class="cms-editor-grid primary-border flex min-h-0 flex-1 flex-col rounded-xl border-2 border-dashed p-2 transition-[max-width] duration-200"
-        :class="previewWidthClass"
-        @dragover.prevent
-        @drop.prevent="addBlock($event)"
-        @pointerdown="captureGridInteraction"
-      >
-        <div
-          v-if="rootLayout.length === 0"
-          class="pointer-events-none flex min-h-96 flex-1 items-center justify-center p-8 text-center"
+      <div class="flex min-h-0 flex-1 items-start justify-center gap-6 overflow-x-auto">
+        <section
+          v-for="viewport in displayedViewports"
+          :key="`editor-${viewport.breakpoint}`"
+          class="flex min-h-0 shrink-0 flex-col"
+          :class="viewport.widthClass"
         >
-          <div>
-            <p class="text-xl font-medium">
-              Glissez ou touchez un bloc dans la palette
-            </p>
-            <p class="secondary-color mt-2">
-              Le contenu, la hiérarchie et les positions sont enregistrés
-              séparément dans le JSON.
-            </p>
-          </div>
-        </div>
-
-        <ClientOnly v-else>
-          <GridLayout
-            :key="`root-${activeBreakpoint}`"
-            v-model:layout="rootLayout"
-            :col-num="pageDocument.settings.desktopColumns"
-            :row-height="gridRowHeight"
-            :margin="[10, 10]"
-            :is-draggable="true"
-            :is-resizable="true"
-            :vertical-compact="true"
-            :use-css-transforms="true"
+          <h2
+            v-if="isCombinedResponsive"
+            class="secondary-color mb-2 text-center text-sm font-semibold"
           >
-            <GridItem
-              v-for="item in rootLayout"
-              :key="item.i"
-              :i="item.i"
-              :x="item.x"
-              :y="item.y"
-              :w="item.w"
-              :h="item.h"
-              :min-w="activeBreakpoint === 'xs' ? 12 : item.minW"
-              :min-h="item.minH"
-              :max-w="activeBreakpoint === 'xs' ? 12 : item.maxW"
-              :max-h="item.maxH"
-              drag-allow-from=".cms-root-drag-handle"
-              drag-ignore-from=".cms-no-drag"
-              resize-ignore-from=".cms-no-drag"
-              @moved="finishGridInteraction()"
-              @resized="
-                finishGridResize(
-                  item.i,
-                  pageDocument.blocks[item.i]?.type === 'section'
-                    ? item.i
-                    : null,
-                )
-              "
-            >
-              <CmsEditorBlock
-                v-if="pageDocument.blocks[item.i]"
-                :block="blockById(item.i)"
-                :media-url="mediaUrl(item.i)"
-                :uploading="uploadingBlockId === item.i"
-                drag-handle-class="cms-root-drag-handle"
-                @history-boundary="recordHistory"
-                @remove="removeBlock"
-                @update-content="updateBlockContent"
-                @upload-media="uploadMedia"
-              >
-                <template #section>
-                  <div
-                    class="cms-section-drop min-h-full p-1"
-                    @dragover.prevent.stop
-                    @drop.prevent.stop="addBlock($event, item.i)"
-                  >
-                    <p
-                      v-if="childLayout(item.i).length === 0"
-                      class="secondary-color pointer-events-none flex h-full min-h-24 items-center justify-center p-3 text-sm"
-                    >
-                      Glissez plusieurs blocs dans cette zone
-                    </p>
+            {{ viewport.label }}
+          </h2>
 
-                    <GridLayout
-                      v-else
-                      :key="`children-${activeBreakpoint}-${item.i}`"
-                      :layout="childLayout(item.i)"
-                      :col-num="pageDocument.settings.desktopColumns"
-                      :row-height="gridRowHeight"
-                      :margin="[8, 8]"
-                      :is-draggable="true"
-                      :is-resizable="true"
-                      :vertical-compact="true"
-                      :use-css-transforms="true"
-                      @update:layout="updateChildLayout(item.i, $event)"
-                      @layout-updated="syncSectionHeight(item.i)"
-                    >
-                      <GridItem
-                        v-for="child in childLayout(item.i)"
-                        :key="child.i"
-                        :i="child.i"
-                        :x="child.x"
-                        :y="child.y"
-                        :w="child.w"
-                        :h="child.h"
-                        :min-w="activeBreakpoint === 'xs' ? 12 : child.minW"
-                        :min-h="child.minH"
-                        :max-w="activeBreakpoint === 'xs' ? 12 : child.maxW"
-                        :max-h="child.maxH"
-                        drag-allow-from=".cms-child-drag-handle"
-                        drag-ignore-from=".cms-no-drag"
-                        resize-ignore-from=".cms-no-drag"
-                        @moved="finishGridInteraction(item.i)"
-                        @resized="finishGridResize(child.i, item.i)"
+          <div
+            class="cms-editor-grid primary-border flex min-h-0 w-full flex-1 flex-col rounded-xl border-2 border-dashed p-2"
+            :data-cms-breakpoint="viewport.breakpoint"
+            @dragover.prevent
+            @drop.prevent="addBlock($event, null, viewport.breakpoint)"
+            @pointerdown="captureGridInteraction"
+          >
+            <div
+              v-if="rootLayout(viewport.breakpoint).length === 0"
+              class="pointer-events-none flex min-h-96 flex-1 items-center justify-center p-8 text-center"
+            >
+              <div>
+                <p class="text-xl font-medium">Glissez ou touchez un bloc dans la palette</p>
+                <p class="secondary-color mt-2">
+                  Le contenu, la hiérarchie et les positions sont enregistrés séparément dans le JSON.
+                </p>
+              </div>
+            </div>
+
+            <ClientOnly v-else>
+              <GridLayout
+                :key="`root-${viewport.breakpoint}`"
+                :layout="rootLayout(viewport.breakpoint)"
+                :col-num="pageDocument.settings.desktopColumns"
+                :row-height="gridRowHeight"
+                :margin="[10, 10]"
+                :is-draggable="true"
+                :is-resizable="true"
+                :vertical-compact="true"
+                :use-css-transforms="true"
+                @update:layout="updateRootLayout(viewport.breakpoint, $event)"
+              >
+                <GridItem
+                  v-for="item in rootLayout(viewport.breakpoint)"
+                  :key="item.i"
+                  :i="item.i"
+                  :x="item.x"
+                  :y="item.y"
+                  :w="item.w"
+                  :h="item.h"
+                  :min-w="viewport.breakpoint === 'xs' ? 12 : item.minW"
+                  :min-h="item.minH"
+                  :max-w="viewport.breakpoint === 'xs' ? 12 : item.maxW"
+                  :max-h="item.maxH"
+                  drag-allow-from=".cms-root-drag-handle"
+                  drag-ignore-from=".cms-no-drag"
+                  resize-ignore-from=".cms-no-drag"
+                  @moved="finishGridInteraction(null, viewport.breakpoint)"
+                  @resized="finishGridResize(
+                    item.i,
+                    pageDocument.blocks[item.i]?.type === 'section' ? item.i : null,
+                    viewport.breakpoint,
+                  )"
+                >
+                  <CmsEditorBlock
+                    v-if="pageDocument.blocks[item.i]"
+                    :block="blockById(item.i)"
+                    :media-url="mediaUrl(item.i)"
+                    :uploading="uploadingBlockId === item.i"
+                    drag-handle-class="cms-root-drag-handle"
+                    @history-boundary="recordHistory"
+                    @remove="removeBlock"
+                    @update-content="updateBlockContent"
+                    @upload-media="(blockId, event) => uploadMedia(blockId, event, viewport.breakpoint)"
+                  >
+                    <template #section>
+                      <div
+                        class="cms-section-drop min-h-full p-1"
+                        @dragover.prevent.stop
+                        @drop.prevent.stop="addBlock($event, item.i, viewport.breakpoint)"
                       >
-                        <CmsEditorBlock
-                          v-if="pageDocument.blocks[child.i]"
-                          :block="blockById(child.i)"
-                          :media-url="mediaUrl(child.i)"
-                          :uploading="uploadingBlockId === child.i"
-                          drag-handle-class="cms-child-drag-handle"
-                          @history-boundary="recordHistory"
-                          @remove="removeBlock"
-                          @update-content="updateBlockContent"
-                          @upload-media="uploadMedia"
-                        />
-                      </GridItem>
-                    </GridLayout>
-                  </div>
-                </template>
-              </CmsEditorBlock>
-            </GridItem>
-          </GridLayout>
-        </ClientOnly>
+                        <p
+                          v-if="childLayout(item.i, viewport.breakpoint).length === 0"
+                          class="secondary-color pointer-events-none flex h-full min-h-24 items-center justify-center p-3 text-sm"
+                        >
+                          Glissez plusieurs blocs dans cette zone
+                        </p>
+
+                        <GridLayout
+                          v-else
+                          :key="`children-${viewport.breakpoint}-${item.i}`"
+                          :layout="childLayout(item.i, viewport.breakpoint)"
+                          :col-num="pageDocument.settings.desktopColumns"
+                          :row-height="gridRowHeight"
+                          :margin="[8, 8]"
+                          :is-draggable="true"
+                          :is-resizable="true"
+                          :vertical-compact="true"
+                          :use-css-transforms="true"
+                          @update:layout="updateChildLayout(item.i, $event, viewport.breakpoint)"
+                          @layout-updated="syncSectionHeight(item.i, viewport.breakpoint)"
+                        >
+                          <GridItem
+                            v-for="child in childLayout(item.i, viewport.breakpoint)"
+                            :key="child.i"
+                            :i="child.i"
+                            :x="child.x"
+                            :y="child.y"
+                            :w="child.w"
+                            :h="child.h"
+                            :min-w="viewport.breakpoint === 'xs' ? 12 : child.minW"
+                            :min-h="child.minH"
+                            :max-w="viewport.breakpoint === 'xs' ? 12 : child.maxW"
+                            :max-h="child.maxH"
+                            drag-allow-from=".cms-child-drag-handle"
+                            drag-ignore-from=".cms-no-drag"
+                            resize-ignore-from=".cms-no-drag"
+                            @moved="finishGridInteraction(item.i, viewport.breakpoint)"
+                            @resized="finishGridResize(child.i, item.i, viewport.breakpoint)"
+                          >
+                            <CmsEditorBlock
+                              v-if="pageDocument.blocks[child.i]"
+                              :block="blockById(child.i)"
+                              :media-url="mediaUrl(child.i)"
+                              :uploading="uploadingBlockId === child.i"
+                              drag-handle-class="cms-child-drag-handle"
+                              @history-boundary="recordHistory"
+                              @remove="removeBlock"
+                              @update-content="updateBlockContent"
+                              @upload-media="(blockId, event) => uploadMedia(blockId, event, viewport.breakpoint)"
+                            />
+                          </GridItem>
+                        </GridLayout>
+                      </div>
+                    </template>
+                  </CmsEditorBlock>
+                </GridItem>
+              </GridLayout>
+            </ClientOnly>
+          </div>
+        </section>
       </div>
     </div>
 
-    <div v-else class="flex min-h-0 w-full flex-1 flex-col">
-      <p
-        v-if="rootLayout.length === 0"
-        class="secondary-color flex min-h-96 items-center justify-center text-center"
+    <div v-else class="flex min-h-0 w-full flex-1 items-start justify-center gap-6 overflow-x-auto">
+      <section
+        v-for="viewport in displayedViewports"
+        :key="`preview-${viewport.breakpoint}`"
+        class="flex shrink-0 flex-col"
+        :class="viewport.widthClass"
       >
-        Cette prévisualisation ne contient encore aucun bloc.
-      </p>
+        <h2
+          v-if="isCombinedResponsive"
+          class="secondary-color mb-2 text-center text-sm font-semibold"
+        >
+          {{ viewport.label }}
+        </h2>
 
-      <CmsPageRenderer
-        v-else
-        :document="pageDocument"
-        :page-id="pageId"
-        :breakpoint="activeBreakpoint"
-        :class="previewWidthClass"
-        preview
-      />
+        <p
+          v-if="rootLayout(viewport.breakpoint).length === 0"
+          class="secondary-color flex min-h-96 items-center justify-center text-center"
+        >
+          Cette prévisualisation ne contient encore aucun bloc.
+        </p>
+
+        <CmsPageRenderer
+          v-else
+          :document="pageDocument"
+          :page-id="pageId"
+          :breakpoint="viewport.breakpoint"
+          preview
+        />
+      </section>
     </div>
 
     <Teleport to="body">

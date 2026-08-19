@@ -17,19 +17,20 @@ import {
 } from "@heroicons/vue/24/outline"
 import type { Component } from "vue"
 import CmsBlockPalette from "~/components/CmsBlockPalette.vue"
-import type { CmsBlockDefinition, CmsViewportMode } from "~/types/cms"
+import type { CmsBlockDefinition, CmsWorkspaceViewportMode } from "~/types/cms"
 
 const props = defineProps<{
   isEditing: boolean
   blockPaletteEnabled: boolean
   canUndo: boolean
   canRedo: boolean
-  viewportMode: CmsViewportMode
+  viewportMode: CmsWorkspaceViewportMode
+  combinedResponsiveEnabled: boolean
 }>()
 
 const emit = defineEmits<{
   "update:isEditing": [value: boolean]
-  "update:viewportMode": [value: CmsViewportMode]
+  "update:viewportMode": [value: CmsWorkspaceViewportMode]
   addBlock: [definition: CmsBlockDefinition]
   undo: []
   redo: []
@@ -41,15 +42,24 @@ const isBlockPaletteOpen = ref(false)
 const helpText = "Choissez un Preset suivi d'un Layout afin de commencer a créer plus rapidement, vous pourez toujours modifier ceux-ci vous même, Sinon, Vous pouvez aussi Créer a partir d'une page blanche"
 const presetOptions = ["Article", "Encyclopédie", "Fiche de personnage"]
 const layoutOptions = ["Colonne unique", "Deux colonnes", "Grille"]
-const viewportOptions: Array<{
-  value: CmsViewportMode
+const viewportOptions = computed<Array<{
+  value: CmsWorkspaceViewportMode
   label: string
-  icon: Component
-}> = [
-  { value: "desktop", label: "Vue bureau", icon: ComputerDesktopIcon },
-  { value: "tablet", label: "Vue tablette", icon: DeviceTabletIcon },
-  { value: "mobile", label: "Vue mobile", icon: DevicePhoneMobileIcon },
-]
+  icons: Component[]
+}>>(() => props.combinedResponsiveEnabled
+  ? [
+      { value: "desktop", label: "Vue bureau", icons: [ComputerDesktopIcon] },
+      {
+        value: "responsive",
+        label: "Vues tablette et mobile côte à côte",
+        icons: [DeviceTabletIcon, DevicePhoneMobileIcon],
+      },
+    ]
+  : [
+      { value: "desktop", label: "Vue bureau", icons: [ComputerDesktopIcon] },
+      { value: "tablet", label: "Vue tablette", icons: [DeviceTabletIcon] },
+      { value: "mobile", label: "Vue mobile", icons: [DevicePhoneMobileIcon] },
+    ])
 
 const setMode = (editing: boolean) => emit("update:isEditing", editing)
 const toggleBlockPalette = () => {
@@ -135,7 +145,14 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
                 :aria-pressed="props.viewportMode === option.value"
                 @click="emit('update:viewportMode', option.value)"
               >
-                <component :is="option.icon" class="size-5" aria-hidden="true" />
+                <span class="flex items-center gap-0.5" aria-hidden="true">
+                  <component
+                    :is="icon"
+                    v-for="(icon, iconIndex) in option.icons"
+                    :key="`${option.value}-${iconIndex}`"
+                    class="size-5"
+                  />
+                </span>
               </button>
             </div>
           </div>
@@ -197,7 +214,14 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
           :aria-pressed="props.viewportMode === option.value"
           @click="emit('update:viewportMode', option.value)"
         >
-          <component :is="option.icon" class="size-5" aria-hidden="true" />
+          <span class="flex items-center gap-0.5" aria-hidden="true">
+            <component
+              :is="icon"
+              v-for="(icon, iconIndex) in option.icons"
+              :key="`preview-${option.value}-${iconIndex}`"
+              class="size-5"
+            />
+          </span>
         </button>
       </div>
 
