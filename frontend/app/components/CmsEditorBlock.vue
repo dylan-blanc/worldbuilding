@@ -40,6 +40,11 @@ const numericProperty = (value: CmsJsonValue | undefined) => (
 )
 const naturalWidth = computed(() => numericProperty(props.block.props.width))
 const naturalHeight = computed(() => numericProperty(props.block.props.height))
+const hasLockedImageRatio = computed(() => (
+  ["image", "banner", "gallery"].includes(props.block.type)
+  && props.block.props.aspectRatioLocked === true
+  && Boolean(naturalWidth.value && naturalHeight.value)
+))
 </script>
 
 <template>
@@ -111,7 +116,8 @@ const naturalHeight = computed(() => numericProperty(props.block.props.height))
         :alt="label"
         :width="naturalWidth"
         :height="naturalHeight"
-        class="size-full object-fill"
+        class="size-full"
+        :class="hasLockedImageRatio ? 'object-contain' : 'object-fill'"
       >
     </div>
 

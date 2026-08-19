@@ -820,6 +820,18 @@ const imageDimensions = (block: CmsBlock | undefined) => {
   return width > 0 && height > 0 ? { width, height } : null;
 };
 
+// Only newly uploaded image media with natural dimensions receives a live ratio lock.
+const isImageRatioLocked = (blockId: string) => {
+  const block = pageDocument.value.blocks[blockId];
+
+  return Boolean(
+    block
+    && ["image", "banner", "gallery"].includes(block.type)
+    && block.props.aspectRatioLocked === true
+    && imageDimensions(block),
+  );
+};
+
 // Convert the natural pixel ratio to the closest complete row in the currently edited responsive grid.
 const snapImageLayoutToRatio = async (
   blockId: string,
@@ -832,7 +844,7 @@ const snapImageLayoutToRatio = async (
     (candidate) => candidate.i === blockId,
   );
 
-  if (!block?.props.aspectRatioLocked || !dimensions || !item) return;
+  if (!isImageRatioLocked(blockId) || !dimensions || !item) return;
 
   await nextTick();
   const blockElement = globalThis.document?.querySelector<HTMLElement>(
@@ -1114,7 +1126,7 @@ onBeforeUnmount(() => {
               >
                 <GridItem
                   v-for="item in rootLayout(viewport.breakpoint)"
-                  :key="item.i"
+                  :key="`${item.i}-${isImageRatioLocked(item.i) ? 'ratio' : 'free'}`"
                   :i="item.i"
                   :x="item.x"
                   :y="item.y"
@@ -1124,6 +1136,7 @@ onBeforeUnmount(() => {
                   :min-h="item.minH"
                   :max-w="viewport.breakpoint === 'xs' ? 12 : item.maxW"
                   :max-h="item.maxH"
+                  :preserve-aspect-ratio="viewport.breakpoint !== 'xs' && isImageRatioLocked(item.i)"
                   drag-allow-from=".cms-root-drag-handle"
                   drag-ignore-from=".cms-no-drag"
                   resize-ignore-from=".cms-no-drag"
@@ -1174,7 +1187,7 @@ onBeforeUnmount(() => {
                         >
                           <GridItem
                             v-for="child in childLayout(item.i, viewport.breakpoint)"
-                            :key="child.i"
+                            :key="`${child.i}-${isImageRatioLocked(child.i) ? 'ratio' : 'free'}`"
                             :i="child.i"
                             :x="child.x"
                             :y="child.y"
@@ -1184,6 +1197,7 @@ onBeforeUnmount(() => {
                             :min-h="child.minH"
                             :max-w="viewport.breakpoint === 'xs' ? 12 : child.maxW"
                             :max-h="child.maxH"
+                            :preserve-aspect-ratio="viewport.breakpoint !== 'xs' && isImageRatioLocked(child.i)"
                             drag-allow-from=".cms-child-drag-handle"
                             drag-ignore-from=".cms-no-drag"
                             resize-ignore-from=".cms-no-drag"
