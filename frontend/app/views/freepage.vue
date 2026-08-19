@@ -1,10 +1,11 @@
 <!--
-  This view edits one CMS page selected by pagecms.vue through its numeric pageId prop.
+  This view edits and previews one CMS page selected by pagecms.vue through its numeric pageId prop.
   Content, parent-child containment and XYWH layouts flow through GET/PUT /pages/{id}/draft to PageController,
   CmsContentValidator, PageRevision and MySQL; publication sends the selected public identity mode through
   POST /pages/{id}/publish -> PageController -> PageRevision -> the pages and page_revision SQL tables.
+  Visualisation passes the current in-memory document to CmsPageRenderer, including unsaved responsive changes.
   Media flows through POST /pages/{id}/media, PHP signature validation/re-encoding, MinIO and an authorized GET proxy.
-  New image uploads store their natural ratio and resize the related desktop grid item; later resizes snap to that ratio.
+  New image uploads store their natural ratio and resize the selected responsive grid item; later resizes snap to that ratio.
 -->
 <script setup lang="ts">
 import {
@@ -54,6 +55,7 @@ type PublicationVisibility = "public" | "anonymous";
 const props = defineProps<{
   pageId: number;
   viewportMode: CmsViewportMode;
+  isEditing: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -964,7 +966,7 @@ onBeforeUnmount(() => {
       </button>
     </div>
 
-    <div v-else class="flex min-h-0 w-full flex-1 flex-col">
+    <div v-else-if="props.isEditing" class="flex min-h-0 w-full flex-1 flex-col">
       <div class="mb-3 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-semibold">Édition libre</h1>
@@ -1151,6 +1153,24 @@ onBeforeUnmount(() => {
           </GridLayout>
         </ClientOnly>
       </div>
+    </div>
+
+    <div v-else class="flex min-h-0 w-full flex-1 flex-col">
+      <p
+        v-if="rootLayout.length === 0"
+        class="secondary-color flex min-h-96 items-center justify-center text-center"
+      >
+        Cette prévisualisation ne contient encore aucun bloc.
+      </p>
+
+      <CmsPageRenderer
+        v-else
+        :document="pageDocument"
+        :page-id="pageId"
+        :breakpoint="activeBreakpoint"
+        :class="previewWidthClass"
+        preview
+      />
     </div>
 
     <Teleport to="body">

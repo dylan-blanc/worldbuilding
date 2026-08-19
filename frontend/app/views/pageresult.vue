@@ -1,13 +1,10 @@
 <!--
   This view renders the published JSON of one page for readers and owners.
   It fetches GET /pages/{id} in the browser so Nuxt remains SSG-compatible and the session cookie
-  can authorize private or admin-only banned content, then maps blocks and XYWH layouts to CSS grids.
+  can authorize private or admin-only banned content, then CmsPageRenderer maps blocks and XYWH layouts to CSS grids.
 -->
 <script setup lang="ts">
-import type { CSSProperties } from "vue"
 import type {
-  CmsBlock,
-  CmsLayoutItem,
   CmsPageDocument,
   CmsViewportMode,
 } from "~/types/cms"
@@ -15,7 +12,6 @@ import {
   cmsViewportBreakpoints,
   cmsViewportModeFromWidth,
   resolveCmsLayout,
-  sortCmsLayout,
 } from "~/utils/cmsLayout"
 
 type ResultPage = {
@@ -155,15 +151,7 @@ const loadPage = async () => {
 const activeLayout = computed(() => document.value
   ? resolveCmsLayout(document.value, activeBreakpoint.value)
   : [])
-const rootLayout = computed(() => sortCmsLayout(activeLayout.value.filter(item => !item.parentId)))
-const childLayout = (sectionId: string) => (
-  sortCmsLayout(activeLayout.value.filter(item => item.parentId === sectionId))
-)
-const blockById = (blockId: string): CmsBlock | null => document.value?.blocks[blockId] || null
-const itemStyle = (item: CmsLayoutItem): CSSProperties => ({
-  gridColumn: `${item.x + 1} / span ${item.w}`,
-  gridRow: `${item.y + 1} / span ${item.h}`,
-})
+const hasRenderedBlocks = computed(() => activeLayout.value.some(item => !item.parentId))
 
 const updateViewportMode = () => {
   viewportMode.value = cmsViewportModeFromWidth(window.innerWidth)
@@ -209,60 +197,18 @@ onBeforeUnmount(() => {
       </header>
 
       <p
-        v-if="rootLayout.length === 0"
+        v-if="!hasRenderedBlocks"
         class="secondary-color flex min-h-96 items-center justify-center text-center"
       >
         Cette page publiée ne contient encore aucun bloc.
       </p>
 
-      <div v-else class="w-full rounded-xl border-2 border-transparent p-2">
-        <div class="cms-result-grid w-full">
-          <div
-            v-for="item in rootLayout"
-            :key="item.i"
-            :style="itemStyle(item)"
-            class="cms-result-item min-h-0 min-w-0 overflow-hidden"
-          >
-            <CmsResultBlock
-              v-if="blockById(item.i)"
-              :block="blockById(item.i)!"
-              :page-id="page.id"
-            >
-              <template #section>
-                <div class="cms-result-grid cms-result-child-grid size-full">
-                  <div
-                    v-for="child in childLayout(item.i)"
-                    :key="child.i"
-                    :style="itemStyle(child)"
-                    class="cms-result-item min-h-0 min-w-0 overflow-hidden"
-                  >
-                    <CmsResultBlock
-                      v-if="blockById(child.i)"
-                      :block="blockById(child.i)!"
-                      :page-id="page.id"
-                    />
-                  </div>
-                </div>
-              </template>
-            </CmsResultBlock>
-          </div>
-        </div>
-      </div>
+      <CmsPageRenderer
+        v-else
+        :document="document"
+        :page-id="page.id"
+        :breakpoint="activeBreakpoint"
+      />
     </template>
   </section>
 </template>
-
-<style scoped>
-.cms-result-grid {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-auto-rows: 40px;
-  gap: 10px;
-  padding: 10px;
-}
-
-.cms-result-child-grid {
-  gap: 8px;
-  padding: 8px;
-}
-</style>

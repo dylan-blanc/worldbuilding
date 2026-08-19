@@ -2,7 +2,8 @@
   This component is the upper CMS tool layer mounted by pagecms.vue below Header.
   It owns the visual editing controls, temporary preset/layout values, preview drawer state and the full-width
   teleport host used by the focused CmsTextBlockEditor without placing formatting controls inside the canvas.
-  Its mode and history actions flow to pagecms.vue, which delegates undo/redo to the active Freepage editor.
+  Its mode, responsive viewport and history actions flow to pagecms.vue, which delegates them to Freepage.
+  When the editing drawer closes, a compact preview bar keeps viewport selection and the return action accessible.
 -->
 <script setup lang="ts">
 import {
@@ -87,6 +88,40 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
             >
               <ArrowUturnRightIcon class="size-6" />
             </button>
+            <button
+              type="button"
+              class="rounded-md border p-2"
+              :class="isBlockPaletteOpen ? 'button-primary' : 'form-control'"
+              :disabled="!props.blockPaletteEnabled"
+              :aria-expanded="isBlockPaletteOpen"
+              aria-label="Afficher les blocs à glisser"
+              title="Blocs de contenu"
+              @click="toggleBlockPalette"
+            >
+              <Squares2X2Icon class="size-6" />
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div class="primary-border flex items-center gap-2 rounded-full border p-1" aria-label="Mode du CMS">
+              <button
+                type="button"
+                class="rounded-full px-3 py-1.5 text-sm transition disabled:cursor-not-allowed disabled:opacity-40"
+                :disabled="!props.blockPaletteEnabled"
+                aria-pressed="false"
+                @click="setMode(false)"
+              >
+                Visualisation
+              </button>
+              <button
+                type="button"
+                class="button-primary rounded-full px-3 py-1.5 text-sm"
+                aria-pressed="true"
+              >
+                Édition
+              </button>
+            </div>
+
             <div class="primary-border flex items-center rounded-md border p-1" aria-label="Aperçu responsive">
               <button
                 v-for="option in viewportOptions"
@@ -103,35 +138,6 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
                 <component :is="option.icon" class="size-5" aria-hidden="true" />
               </button>
             </div>
-            <button
-              type="button"
-              class="rounded-md border p-2"
-              :class="isBlockPaletteOpen ? 'button-primary' : 'form-control'"
-              :disabled="!props.blockPaletteEnabled"
-              :aria-expanded="isBlockPaletteOpen"
-              aria-label="Afficher les blocs à glisser"
-              title="Blocs de contenu"
-              @click="toggleBlockPalette"
-            >
-              <Squares2X2Icon class="size-6" />
-            </button>
-          </div>
-
-          <div class="flex items-center gap-2 rounded-full border primary-border p-1" aria-label="Mode du CMS">
-            <button
-              type="button"
-              class="rounded-full px-3 py-1.5 text-sm transition"
-              @click="setMode(false)"
-            >
-              Visualisation
-            </button>
-            <button
-              type="button"
-              class="button-primary rounded-full px-3 py-1.5 text-sm"
-              aria-pressed="true"
-            >
-              Édition
-            </button>
           </div>
 
           <div class="flex flex-wrap items-center justify-end gap-3">
@@ -170,15 +176,50 @@ watch(() => props.isEditing, editing => editing || (isBlockPaletteOpen.value = f
       </div>
     </div>
 
-    <button
+    <div
       v-if="!props.isEditing"
-      type="button"
-      class="button-primary absolute left-1/2 top-0 -translate-x-1/2 rounded-b-lg px-6 py-2 text-sm shadow-lg focus:outline-none focus:ring-2"
-      aria-label="Afficher les outils d'édition"
-      @click="setMode(true)"
+      class="secondary-background flex min-h-14 flex-wrap items-center justify-center gap-4 px-4 py-2"
+      aria-label="Outils de prévisualisation du CMS"
     >
-      Édition
-    </button>
+      <div
+        class="primary-border flex items-center rounded-md border p-1"
+        aria-label="Aperçu responsive de la visualisation"
+      >
+        <button
+          v-for="option in viewportOptions"
+          :key="`preview-${option.value}`"
+          type="button"
+          class="rounded-sm p-1.5 transition disabled:opacity-40"
+          :class="props.viewportMode === option.value ? 'button-primary' : 'form-control'"
+          :disabled="!props.blockPaletteEnabled"
+          :aria-label="option.label"
+          :title="option.label"
+          :aria-pressed="props.viewportMode === option.value"
+          @click="emit('update:viewportMode', option.value)"
+        >
+          <component :is="option.icon" class="size-5" aria-hidden="true" />
+        </button>
+      </div>
+
+      <div class="primary-border flex items-center gap-2 rounded-full border p-1" aria-label="Mode du CMS">
+        <button
+          type="button"
+          class="button-primary rounded-full px-3 py-1.5 text-sm"
+          aria-pressed="true"
+        >
+          Visualisation
+        </button>
+        <button
+          type="button"
+          class="rounded-full px-3 py-1.5 text-sm transition"
+          aria-label="Afficher les outils d'édition"
+          aria-pressed="false"
+          @click="setMode(true)"
+        >
+          Édition
+        </button>
+      </div>
+    </div>
 
     <CmsBlockPalette
       v-if="props.isEditing && props.blockPaletteEnabled && isBlockPaletteOpen"

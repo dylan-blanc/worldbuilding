@@ -1,7 +1,7 @@
 <!--
   This page owns the CMS workspace shell used at /pagecms.
-  It keeps Header, CmsToolbar and Footer mounted while the central creation view changes.
-  The current flow is: Createpage start action -> private SQL page -> Freepage editor and its history API.
+  It keeps Header, CmsToolbar and Footer mounted while the central creation view and responsive mode change.
+  The current flow is: Createpage start action -> private SQL page -> Freepage editor/preview and its history API.
 -->
 <script setup lang="ts">
 import CmsToolbar from "~/components/CmsToolbar.vue"
@@ -98,6 +98,7 @@ const startFreeEdition = async () => {
         v-else-if="pageId"
         ref="freepage"
         :page-id="pageId"
+        :is-editing="isEditing"
         :viewport-mode="viewportMode"
         @history-state="updateHistoryState"
       />
