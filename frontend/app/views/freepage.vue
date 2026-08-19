@@ -87,6 +87,7 @@ const childGridMargin = 8;
 let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
 let checkpointTimer: ReturnType<typeof setInterval> | undefined;
 let pendingGridSnapshot: string | null = null;
+const sectionResizeVersions = new Map<string, number>();
 
 const emptyDocument = (): CmsPageDocument => ({
   schemaVersion: 1,
@@ -840,21 +841,22 @@ const snapImageLayoutToRatio = async (
 ) => {
   const block = pageDocument.value.blocks[blockId];
   const dimensions = imageDimensions(block);
+
+  if (!isImageRatioLocked(blockId) || !dimensions) return;
+
+  await nextTick();
   const item = pageDocument.value.layouts[breakpoint].find(
     (candidate) => candidate.i === blockId,
   );
-
-  if (!isImageRatioLocked(blockId) || !dimensions || !item) return;
-
-  await nextTick();
   const blockElement = globalThis.document?.querySelector<HTMLElement>(
     `[data-cms-breakpoint="${breakpoint}"] [data-cms-block-id="${CSS.escape(blockId)}"]`,
   );
   const pixelWidth =
-    blockElement?.closest<HTMLElement>(".vgl-item")?.getBoundingClientRect()
-      .width || fallbackPixelWidth;
+    fallbackPixelWidth
+    || blockElement?.closest<HTMLElement>(".vgl-item")?.getBoundingClientRect()
+      .width;
 
-  if (!pixelWidth) return;
+  if (!item || !pixelWidth) return;
 
   const margin = item.parentId ? childGridMargin : rootGridMargin;
   const proportionalHeight =
@@ -864,6 +866,42 @@ const snapImageLayoutToRatio = async (
     Math.round((proportionalHeight + margin) / (gridRowHeight + margin)),
   );
   item.parentId && syncSectionHeight(item.parentId, breakpoint);
+};
+
+const waitForGridWidth = async () => {
+  await nextTick();
+
+  if (typeof globalThis.requestAnimationFrame !== "function") return;
+
+  await new Promise<void>((resolve) => {
+    globalThis.requestAnimationFrame(() => resolve());
+  });
+  await new Promise<void>((resolve) => {
+    globalThis.requestAnimationFrame(() => resolve());
+  });
+};
+
+// Nested GridLayout updates its pixel width after the parent section, then locked image rows can follow that width.
+const snapSectionImageLayouts = async (
+  sectionId: string,
+  breakpoint: CmsBreakpoint,
+) => {
+  const resizeKey = `${breakpoint}:${sectionId}`;
+  const version = (sectionResizeVersions.get(resizeKey) || 0) + 1;
+  sectionResizeVersions.set(resizeKey, version);
+  await waitForGridWidth();
+
+  if (sectionResizeVersions.get(resizeKey) !== version) return;
+
+  const imageIds = childLayout(sectionId, breakpoint)
+    .filter((item) => isImageRatioLocked(item.i))
+    .map((item) => item.i);
+
+  for (const imageId of imageIds) {
+    await snapImageLayoutToRatio(imageId, breakpoint);
+  }
+
+  syncSectionHeight(sectionId, breakpoint);
 };
 
 // Send the original multipart file to PHP; only validated and re-encoded media receive a MinIO objectKey.
@@ -949,11 +987,66 @@ const finishGridInteraction = (
 
 const finishGridResize = async (
   blockId: string,
-  sectionId: string | null = null,
   breakpoint: CmsBreakpoint = activeBreakpoint.value,
+  pixelWidth?: number,
 ) => {
-  await snapImageLayoutToRatio(blockId, breakpoint);
+  const item = pageDocument.value.layouts[breakpoint].find(
+    (candidate) => candidate.i === blockId,
+  );
+  const sectionId = item?.parentId
+    || (pageDocument.value.blocks[blockId]?.type === "section" ? blockId : null);
+
+  pageDocument.value.blocks[blockId]?.type === "section"
+    ? await snapSectionImageLayouts(blockId, breakpoint)
+    : await snapImageLayoutToRatio(blockId, breakpoint, pixelWidth);
   finishGridInteraction(sectionId, breakpoint);
+};
+
+type GridResizeHandler = (
+  blockId: string | number,
+  gridHeight: number,
+  gridWidth: number,
+  pixelHeight: number,
+  pixelWidth: number,
+) => void;
+
+// Grid Layout Plus emits the stable pixel width after resize; bind one handler per responsive JSON layout.
+const createGridResizeHandler = (breakpoint: CmsBreakpoint): GridResizeHandler => (
+  blockId,
+  _gridHeight,
+  _gridWidth,
+  _pixelHeight,
+  pixelWidth,
+) => {
+  void finishGridResize(String(blockId), breakpoint, Number(pixelWidth));
+};
+
+const createGridLiveResizeHandler = (breakpoint: CmsBreakpoint): GridResizeHandler => (
+  blockId,
+  _gridHeight,
+  _gridWidth,
+  _pixelHeight,
+  pixelWidth,
+) => {
+  const normalizedBlockId = String(blockId);
+
+  pageDocument.value.blocks[normalizedBlockId]?.type === "section"
+    ? void snapSectionImageLayouts(normalizedBlockId, breakpoint)
+    : void snapImageLayoutToRatio(normalizedBlockId, breakpoint, Number(pixelWidth));
+};
+
+const gridResizeHandlers: Record<CmsBreakpoint, GridResizeHandler> = {
+  lg: createGridResizeHandler("lg"),
+  md: createGridResizeHandler("md"),
+  sm: createGridResizeHandler("sm"),
+  xs: createGridResizeHandler("xs"),
+};
+
+const gridLiveResizeHandlers: Record<CmsBreakpoint, GridResizeHandler> = {
+  lg: createGridLiveResizeHandler("lg"),
+  md: createGridLiveResizeHandler("md"),
+  sm: createGridLiveResizeHandler("sm"),
+  xs: createGridLiveResizeHandler("xs"),
 };
 
 const handleKeyboardHistory = (event: KeyboardEvent) => {
@@ -1141,11 +1234,8 @@ onBeforeUnmount(() => {
                   drag-ignore-from=".cms-no-drag"
                   resize-ignore-from=".cms-no-drag"
                   @moved="finishGridInteraction(null, viewport.breakpoint)"
-                  @resized="finishGridResize(
-                    item.i,
-                    pageDocument.blocks[item.i]?.type === 'section' ? item.i : null,
-                    viewport.breakpoint,
-                  )"
+                  @resize="gridLiveResizeHandlers[viewport.breakpoint]"
+                  @resized="gridResizeHandlers[viewport.breakpoint]"
                 >
                   <CmsEditorBlock
                     v-if="pageDocument.blocks[item.i]"
@@ -1202,7 +1292,8 @@ onBeforeUnmount(() => {
                             drag-ignore-from=".cms-no-drag"
                             resize-ignore-from=".cms-no-drag"
                             @moved="finishGridInteraction(item.i, viewport.breakpoint)"
-                            @resized="finishGridResize(child.i, item.i, viewport.breakpoint)"
+                            @resize="gridLiveResizeHandlers[viewport.breakpoint]"
+                            @resized="gridResizeHandlers[viewport.breakpoint]"
                           >
                             <CmsEditorBlock
                               v-if="pageDocument.blocks[child.i]"
