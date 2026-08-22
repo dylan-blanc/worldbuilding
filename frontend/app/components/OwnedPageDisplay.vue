@@ -126,7 +126,6 @@ function saveSettings(page: OwnedPage): void {
         <div>
           <div class="flex flex-wrap items-start justify-between gap-2">
             <h2 class="text-xl font-semibold [overflow-wrap:anywhere]">{{ page.page_title }}</h2>
-            <span class="secondary-color text-sm">ID {{ page.id }}</span>
           </div>
           <p class="secondary-color mt-2 min-h-12 text-sm">
             {{ page.page_description || "Aucune description renseignée." }}
