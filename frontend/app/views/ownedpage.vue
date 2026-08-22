@@ -1,3 +1,7 @@
+<!--
+  This view renders the personal page-management shell and forwards each card mutation to personnalpage.vue.
+  OwnedPageDisplay supplies title, filters and visibility, while the page owns authenticated API requests.
+-->
 <script setup lang="ts">
 import type {
   OwnedPage,
@@ -16,6 +20,8 @@ const emit = defineEmits<{
     id: number,
     pageStatus: Exclude<OwnedPageStatus, "banned">,
     isAnonymous: boolean,
+    pageTitle: string,
+    filterIds: number[],
   ];
   uploadPicture: [payload: { pageId: number; event: Event }];
 }>();
@@ -44,7 +50,14 @@ const emit = defineEmits<{
           :pages="pages"
           :saving-page-id="savingPageId"
           :page-messages="pageMessages"
-          @save="emit('save', $event.id, $event.pageStatus, $event.isAnonymous)"
+          @save="emit(
+            'save',
+            $event.id,
+            $event.pageStatus,
+            $event.isAnonymous,
+            $event.pageTitle,
+            $event.filterIds,
+          )"
           @upload-picture="emit('uploadPicture', $event)"
         />
       </section>

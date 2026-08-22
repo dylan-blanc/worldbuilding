@@ -97,6 +97,16 @@ function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
         pageMethodNotAllowed();
     }
 
+    if (preg_match("#^/pages/(\\d+)/metadata$#", $route, $matches) === 1) {
+        if ($method !== "PUT") {
+            pageMethodNotAllowed();
+        }
+
+        Request::requireSameOrigin();
+        $controller = new PageController($pdo);
+        $controller->updateMetadata((int) $matches[1]);
+    }
+
     if (preg_match("#^/pages/(\\d+)/owner-picture$#", $route, $matches) === 1) {
         if ($method !== "GET") {
             pageMethodNotAllowed();

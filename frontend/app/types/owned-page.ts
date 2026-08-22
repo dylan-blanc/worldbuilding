@@ -1,3 +1,6 @@
+// Owned-page types mirror /me/owned-pages responses consumed by personnalpage and OwnedPageDisplay.
+import type { PageFilterOption } from "~/types/page-filter"
+
 export type OwnedPageStatus = "public" | "private" | "banned"
 
 export type OwnedPage = {
@@ -13,6 +16,7 @@ export type OwnedPage = {
   page_picture: string | null
   created_at: string
   updated_at: string
+  filters: PageFilterOption[]
 }
 
 export type OwnedPageMessage = {

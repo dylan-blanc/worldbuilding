@@ -1,6 +1,6 @@
 <!--
-  This component lists pages owned by the authenticated user and edits their visibility settings.
-  Its save event flows through the owning page view to the authenticated PHP page update endpoint and MySQL.
+  This component lists pages owned by the authenticated user and edits title, filters and visibility settings.
+  Its save event flows through the owning page view to OwnedPageController and pages/page_filters SQL.
   Per-page reactive settings mirror the pages prop so each card can be submitted independently.
 -->
 <script setup lang="ts">
@@ -19,6 +19,8 @@ import type {
 type PageSettings = {
   page_status: Exclude<OwnedPageStatus, "banned">
   is_anonymous: boolean
+  page_title: string
+  filter_ids: number[]
 }
 
 const props = defineProps<{
@@ -28,7 +30,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [{ id: number, pageStatus: Exclude<OwnedPageStatus, "banned">, isAnonymous: boolean }]
+  save: [{
+    id: number
+    pageStatus: Exclude<OwnedPageStatus, "banned">
+    isAnonymous: boolean
+    pageTitle: string
+    filterIds: number[]
+  }]
   uploadPicture: [payload: { pageId: number, event: Event }]
 }>()
 
@@ -40,6 +48,8 @@ watch(() => props.pages, currentPages => {
     settings[page.id] = {
       page_status: page.page_status === "public" ? "public" : "private",
       is_anonymous: page.is_anonymous,
+      page_title: page.page_title,
+      filter_ids: page.filters.map(filter => filter.filter_id || filter.id),
     }
   }
 }, { immediate: true, deep: true })
@@ -76,6 +86,8 @@ function saveSettings(page: OwnedPage): void {
     id: page.id,
     pageStatus: pageSettings.page_status,
     isAnonymous: pageSettings.is_anonymous,
+    pageTitle: pageSettings.page_title,
+    filterIds: pageSettings.filter_ids,
   })
 }
 </script>
@@ -151,6 +163,14 @@ function saveSettings(page: OwnedPage): void {
           class="secondary-background primary-border flex flex-col gap-4 border-t p-4"
           @submit.prevent="saveSettings(page)"
         >
+          <PageMetadataForm
+            v-if="settings[page.id]"
+            v-model:page-title="settings[page.id]!.page_title"
+            v-model:filter-ids="settings[page.id]!.filter_ids"
+            :disabled="page.page_status === 'banned' || savingPageId === page.id"
+            filter-display="modal"
+          />
+
           <fieldset
             class="grid gap-3 sm:grid-cols-2"
             :disabled="page.page_status === 'banned' || savingPageId === page.id"

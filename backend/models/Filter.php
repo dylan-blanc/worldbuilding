@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+/**
+ * Reads and manages the shared filter hierarchy stored in filters.
+ * Public FilterController calls navigational queries, while administrative controllers use mutation methods.
+ */
 final class Filter
 {
     private const TYPES = ["theme", "category", "subcategory", "moderation"];
@@ -14,6 +18,20 @@ final class Filter
             FROM filters child
             LEFT JOIN filters parent ON parent.id = child.belong_to
             ORDER BY child.filter_type, child.filter_name";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findNavigational(): array
+    {
+        $sql = "SELECT child.id, child.filter_name, child.filter_type, child.belong_to, parent.filter_name AS parent_name, child.created_at
+            FROM filters child
+            LEFT JOIN filters parent ON parent.id = child.belong_to
+            WHERE child.filter_type IN ('theme', 'category', 'subcategory')
+            ORDER BY FIELD(child.filter_type, 'theme', 'category', 'subcategory'), child.filter_name";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();

@@ -6,20 +6,23 @@ declare(strict_types=1);
  * Handles page metadata, CMS drafts and publication for routes declared in routes/pages.php.
  * GET /pages/{id} reads pages.pagecontent and applies PageReadAccess using the SQL user role.
  * PUT /pages/{id}/draft validates frontend JSON then calls PageRevision, which writes page_revision through PDO.
- * POST /pages/{id}/publish promotes that draft and copies its JSON to pages.pagecontent while keeping the page private.
+ * POST /pages/{id}/publish validates metadata and remote links, then promotes JSON and publishes the page.
+ * PUT /pages/{id}/metadata writes the owner-selected title and page_filters without changing CMS JSON.
  */
 final class PageController
 {
-    private const TITLE_MAX_LENGTH = 255;
-
+    private PDO $pdo;
     private Page $pages;
     private PageRevision $revisions;
+    private PageFilter $pageFilters;
     private User $users;
 
     public function __construct(PDO $pdo)
     {
+        $this->pdo = $pdo;
         $this->pages = new Page($pdo);
         $this->revisions = new PageRevision($pdo);
+        $this->pageFilters = new PageFilter($pdo);
         $this->users = new User($pdo);
     }
 
@@ -89,9 +92,7 @@ final class PageController
         Request::requireSameOrigin();
         $userId = $this->authenticatedUserId();
         $body = Request::body();
-        $title = Request::field($body, ["page_title", "title"]);
-
-        $this->validateTitle($title);
+        $title = $this->validatedTitle(Request::field($body, ["page_title", "title"]));
 
         $initialContent = json_encode(
             CmsContentValidator::emptyDocument(),
@@ -116,6 +117,8 @@ final class PageController
 
         Response::json(200, [
             "revision" => $revision,
+            "page_title" => (string) $this->pages->findOwnedById($id, $userId)["page_title"],
+            "filters" => $this->pageFilters->findByPageId($id),
         ]);
     }
 
@@ -157,7 +160,14 @@ final class PageController
         $isAnonymous = $body["is_anonymous"];
 
         try {
-            $revision = $this->revisions->publishDraft($id, $userId, $isAnonymous);
+            $title = PageMetadataValidator::title($body["page_title"] ?? null);
+            $filterIds = PageMetadataValidator::filterIds($body["filter_ids"] ?? null);
+        } catch (DomainException $exception) {
+            Response::error($exception->getMessage(), 422, "invalid_page_metadata");
+        }
+
+        try {
+            $revision = $this->revisions->publishDraft($id, $userId, $isAnonymous, $title, $filterIds);
         } catch (DomainException $exception) {
             $this->revisionError($exception, "draft_publication_failed");
         }
@@ -173,16 +183,42 @@ final class PageController
     public function updateTitle(int $id): void
     {
         $userId = $this->authenticatedUserId();
-        $this->requireOwnedPage($id, $userId);
+        $this->requireMutableOwnedPage($id, $userId);
         $body = Request::body();
-        $title = Request::field($body, ["page_title", "title"]);
-
-        $this->validateTitle($title);
+        $title = $this->validatedTitle(Request::field($body, ["page_title", "title"]));
         $page = $this->pages->updateTitle($id, $userId, $title);
 
         Response::json(200, [
             "message" => "Titre mis a jour",
             "page" => $page,
+        ]);
+    }
+
+    public function updateMetadata(int $id): void
+    {
+        $userId = $this->authenticatedUserId();
+        $this->requireMutableOwnedPage($id, $userId);
+        $body = Request::body();
+
+        try {
+            $title = PageMetadataValidator::title($body["page_title"] ?? null);
+            $filterIds = PageMetadataValidator::filterIds($body["filter_ids"] ?? null);
+            $this->pdo->beginTransaction();
+            $page = $this->pages->updateTitle($id, $userId, $title);
+            $filters = $this->pageFilters->replaceForPage($id, $filterIds);
+            $this->pdo->commit();
+        } catch (DomainException $exception) {
+            $this->pdo->inTransaction() && $this->pdo->rollBack();
+            Response::error($exception->getMessage(), 422, "invalid_page_metadata");
+        } catch (Throwable $exception) {
+            $this->pdo->inTransaction() && $this->pdo->rollBack();
+            throw $exception;
+        }
+
+        Response::json(200, [
+            "message" => "Metadonnees mises a jour",
+            "page" => $page,
+            "filters" => $filters,
         ]);
     }
 
@@ -282,14 +318,25 @@ final class PageController
         Response::error($message, $status, $code);
     }
 
-    private function validateTitle(string $title): void
+    private function validatedTitle(mixed $title): string
     {
-        if ($title === "") {
-            Response::error("Titre de page requis", 422);
+        try {
+            return PageMetadataValidator::title($title);
+        } catch (DomainException $exception) {
+            Response::error($exception->getMessage(), 422, "invalid_page_title");
+        }
+    }
+
+    private function requireMutableOwnedPage(int $id, int $userId): void
+    {
+        $page = $this->pages->findOwnedById($id, $userId);
+
+        if ($page === null) {
+            Response::error("Page introuvable", 404);
         }
 
-        if (strlen($title) > self::TITLE_MAX_LENGTH) {
-            Response::error("Titre de page trop long", 422);
+        if ($page["page_status"] === "banned") {
+            Response::error("Une page bannie ne peut pas etre modifiee", 403);
         }
     }
 

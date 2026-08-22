@@ -30,6 +30,8 @@ import {
   cmsViewportBreakpoints,
   initializeCmsResponsiveLayouts,
 } from "~/utils/cmsLayout";
+import type { PageFilterOption } from "~/types/page-filter";
+import { containsPageTitleUrl } from "~/utils/pageMetadata";
 
 type DraftResponse = {
   revision: {
@@ -37,6 +39,8 @@ type DraftResponse = {
     pagecontent: CmsPageDocument;
     updated_at: string;
   };
+  page_title: string;
+  filters: PageFilterOption[];
 };
 
 type MediaResponse = {
@@ -72,6 +76,17 @@ const isSaving = ref(false);
 const isPublishing = ref(false);
 const isPublishModalOpen = ref(false);
 const publicationVisibility = ref<PublicationVisibility>("public");
+const pageTitle = ref("Page sans titre");
+const selectedFilterIds = ref<number[]>([]);
+const metadataIsValid = computed(() => {
+  const title = pageTitle.value.trim();
+
+  return Boolean(title)
+    && title.length <= 255
+    && !containsPageTitleUrl(title)
+    && selectedFilterIds.value.length >= 1
+    && selectedFilterIds.value.length <= 15;
+});
 const dirty = ref(false);
 const statusMessage = ref("");
 const errorMessage = ref("");
@@ -490,6 +505,8 @@ const loadDraft = async () => {
     repairDocumentIntegrity();
     initializeCmsResponsiveLayouts(pageDocument.value);
     revisionNumber.value = response.revision.revision_number;
+    pageTitle.value = response.page_title;
+    selectedFilterIds.value = response.filters.map(filter => filter.filter_id || filter.id);
     historyPast.value = [];
     historyFuture.value = [];
     await nextTick();
@@ -575,6 +592,11 @@ const closePublishModal = () => {
 const publish = async () => {
   if (isPublishing.value) return;
 
+  if (!metadataIsValid.value) {
+    errorMessage.value = "Renseignez un titre valide et selectionnez entre 1 et 15 filtres";
+    return;
+  }
+
   clearTimeout(autosaveTimer);
   isPublishing.value = true;
   errorMessage.value = "";
@@ -590,6 +612,8 @@ const publish = async () => {
       credentials: "include",
       body: {
         is_anonymous: publicationVisibility.value === "anonymous",
+        page_title: pageTitle.value.trim(),
+        filter_ids: selectedFilterIds.value,
       },
     });
     isPublishModalOpen.value = false;
@@ -1388,6 +1412,13 @@ onBeforeUnmount(() => {
           </header>
 
           <form class="mt-6" @submit.prevent="publish">
+            <PageMetadataForm
+              v-model:page-title="pageTitle"
+              v-model:filter-ids="selectedFilterIds"
+              :disabled="isPublishing"
+              class="mb-6"
+            />
+
             <fieldset :disabled="isPublishing" class="space-y-3">
               <legend class="sr-only">Visibilité de l’auteur</legend>
 
@@ -1448,7 +1479,7 @@ onBeforeUnmount(() => {
               <button
                 type="submit"
                 class="button-primary rounded-lg px-4 py-2 disabled:opacity-40"
-                :disabled="isPublishing"
+                :disabled="isPublishing || !metadataIsValid"
               >
                 {{ isPublishing ? "Publication…" : "Publier" }}
               </button>

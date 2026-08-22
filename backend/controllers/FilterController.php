@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+/**
+ * Lists public page filters for GET /filters.
+ * Requests optionally select one type, then Filter reads the theme/category/subcategory hierarchy from SQL.
+ */
 final class FilterController
 {
     private Filter $filters;
@@ -16,7 +20,9 @@ final class FilterController
         $type = (string) ($_GET["type"] ?? "");
 
         if ($type === "") {
-            Response::error("Type de filtre requis", 422);
+            Response::json(200, [
+                "filters" => $this->filters->findNavigational(),
+            ]);
         }
 
         try {

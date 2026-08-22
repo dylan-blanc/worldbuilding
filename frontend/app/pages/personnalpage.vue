@@ -1,3 +1,7 @@
+<!--
+  This page loads and updates every page owned by the authenticated user at /personnalpage.
+  Its form data flows through /me/owned-pages routes to OwnedPageController, then pages and page_filters SQL.
+-->
 <script setup lang="ts">
 import Firstcreation from "~/views/firstcreation.vue"
 import Ownedpage from "~/views/ownedpage.vue"
@@ -74,6 +78,8 @@ async function saveOwnedPageSettings(
   id: number,
   pageStatus: Exclude<OwnedPageStatus, "banned">,
   isAnonymous: boolean,
+  pageTitle: string,
+  filterIds: number[],
 ): Promise<void> {
   savingPageId.value = id
   delete pageMessages[id]
@@ -87,6 +93,8 @@ async function saveOwnedPageSettings(
         body: {
           page_status: pageStatus,
           is_anonymous: isAnonymous,
+          page_title: pageTitle.trim(),
+          filter_ids: filterIds,
         },
       },
     )

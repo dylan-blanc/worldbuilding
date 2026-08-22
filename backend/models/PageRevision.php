@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Stores and publishes CMS revisions for the authenticated page owner.
  * PageController calls this model from GET/PUT /pages/{id}/draft and POST /pages/{id}/publish.
- * Publication checks remote links before opening its transaction, then atomically promotes the validated JSON.
+ * Publication checks remote links before opening its transaction, then atomically promotes JSON, title and filters.
  * Draft JSON stays in page_revision; CmsModerationGuard requires actual replacement of marked blocks before
  * their marker is removed, then publication promotes the draft and copies it with its visibility to pages.
  */
@@ -55,7 +55,13 @@ final class PageRevision
         });
     }
 
-    public function publishDraft(int $pageId, int $ownerUserId, bool $isAnonymous): array
+    public function publishDraft(
+        int $pageId,
+        int $ownerUserId,
+        bool $isAnonymous,
+        string $title,
+        array $filterIds
+    ): array
     {
         $this->requireOwnedMutablePage($pageId, $ownerUserId);
         $candidate = $this->findCurrentDraft($pageId);
@@ -74,7 +80,14 @@ final class PageRevision
         // Remote link checks run before the SQL transaction so network latency never holds page locks.
         CmsContentValidator::validate($document, $ownerUserId, $pageId, true);
 
-        return $this->transaction(function () use ($pageId, $ownerUserId, $isAnonymous, $validatedContent): array {
+        return $this->transaction(function () use (
+            $pageId,
+            $ownerUserId,
+            $isAnonymous,
+            $title,
+            $filterIds,
+            $validatedContent
+        ): array {
             $this->lockOwnedPage($pageId, $ownerUserId);
             $draft = $this->findCurrentDraftForUpdate($pageId);
 
@@ -85,6 +98,9 @@ final class PageRevision
             if (!hash_equals($validatedContent, (string) $draft["pagecontent"])) {
                 throw new DomainException("Le brouillon a change pendant sa verification, recommencez la publication");
             }
+
+            $pageFilters = new PageFilter($this->pdo);
+            $pageFilters->replaceForPage($pageId, $filterIds);
 
             $archive = $this->pdo->prepare("UPDATE page_revision
                 SET revision_status = :archived_status, is_current = FALSE, current_published_page_id = NULL
@@ -109,9 +125,11 @@ final class PageRevision
             ]);
 
             $publishPage = $this->pdo->prepare("UPDATE pages
-                SET pagecontent = :pagecontent, page_status = :page_status, is_anonymous = :is_anonymous
+                SET pagecontent = :pagecontent, page_title = :page_title,
+                    page_status = :page_status, is_anonymous = :is_anonymous
                 WHERE id = :id AND owner_user_id = :owner_user_id");
             $publishPage->bindValue(":pagecontent", (string) $draft["pagecontent"], PDO::PARAM_STR);
+            $publishPage->bindValue(":page_title", $title, PDO::PARAM_STR);
             $publishPage->bindValue(":page_status", "public", PDO::PARAM_STR);
             $publishPage->bindValue(":is_anonymous", $isAnonymous, PDO::PARAM_BOOL);
             $publishPage->bindValue(":id", $pageId, PDO::PARAM_INT);

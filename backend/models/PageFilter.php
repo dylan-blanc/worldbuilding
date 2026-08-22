@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+/**
+ * Reads and replaces page-to-filter associations in page_filters.
+ * PageController, OwnedPageController and PageRevision call this model after owner and metadata validation.
+ */
 final class PageFilter
 {
     public function __construct(private PDO $pdo)
@@ -98,5 +102,46 @@ final class PageFilter
         $statement->execute();
 
         return $statement->rowCount() > 0;
+    }
+
+    public function replaceForPage(int $pageId, array $filterIds): array
+    {
+        $placeholders = implode(", ", array_fill(0, count($filterIds), "?"));
+        $validation = $this->pdo->prepare(
+            "SELECT id
+            FROM filters
+            WHERE id IN (" . $placeholders . ")
+                AND filter_type IN ('theme', 'category', 'subcategory')"
+        );
+
+        foreach ($filterIds as $index => $filterId) {
+            $validation->bindValue($index + 1, $filterId, PDO::PARAM_INT);
+        }
+
+        $validation->execute();
+        $validIds = array_map("intval", $validation->fetchAll(PDO::FETCH_COLUMN));
+        sort($validIds);
+        $requestedIds = $filterIds;
+        sort($requestedIds);
+
+        if ($validIds !== $requestedIds) {
+            throw new DomainException("Un ou plusieurs filtres sont invalides");
+        }
+
+        $delete = $this->pdo->prepare("DELETE FROM page_filters WHERE page_id = :page_id");
+        $delete->bindValue(":page_id", $pageId, PDO::PARAM_INT);
+        $delete->execute();
+
+        $insert = $this->pdo->prepare(
+            "INSERT INTO page_filters (page_id, filter_id) VALUES (:page_id, :filter_id)"
+        );
+
+        foreach ($filterIds as $filterId) {
+            $insert->bindValue(":page_id", $pageId, PDO::PARAM_INT);
+            $insert->bindValue(":filter_id", $filterId, PDO::PARAM_INT);
+            $insert->execute();
+        }
+
+        return $this->findByPageId($pageId);
     }
 }
