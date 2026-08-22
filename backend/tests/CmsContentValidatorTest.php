@@ -8,6 +8,7 @@ declare(strict_types=1);
  * The tested flow mirrors frontend JSON -> PageController -> CmsContentValidator before any SQL write occurs.
  */
 
+require_once __DIR__ . "/../vendor/autoload.php";
 require_once __DIR__ . "/../core/CmsContentValidator.php";
 require_once __DIR__ . "/../core/CmsModerationGuard.php";
 require_once __DIR__ . "/../models/ModerationDecision.php";

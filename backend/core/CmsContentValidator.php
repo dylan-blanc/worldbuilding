@@ -5,12 +5,13 @@ declare(strict_types=1);
 /**
  * Validates CMS JSON before PageRevision writes it to page_revision or publishes it to pages.pagecontent.
  * PageController passes PUT /pages/{id}/draft and POST /pages/{id}/publish data through this allow-list.
- * Links are stored only when they are internal paths or HTTPS navigation targets without executable file extensions.
+ * Links use SafeLinkValidator locally for drafts and remotely for publication before JSON reaches SQL.
  */
 final class CmsContentValidator
 {
     private const MAX_DOCUMENT_BYTES = 2_000_000;
     private const MAX_BLOCKS = 200;
+    private const MAX_REMOTE_LINKS = 25;
     private const MAX_STRING_LENGTH = 200_000;
     private const BLOCK_TYPES = ["section", "text", "image", "banner", "gallery", "video", "separator"];
     private const BREAKPOINTS = ["lg", "md", "sm", "xs"];
@@ -20,7 +21,6 @@ final class CmsContentValidator
     private const LAYOUT_KEYS = ["i", "parentId", "x", "y", "w", "h", "minW", "minH", "maxW", "maxH"];
     private const DANGEROUS_KEYS = ["download", "html", "rawhtml", "innerhtml", "srcdoc", "script", "style", "css"];
     private const DANGEROUS_NODE_TYPES = ["script", "iframe", "object", "embed", "style", "html"];
-    private const NAVIGATION_EXTENSIONS = ["html", "htm"];
     private const FONT_FAMILIES = ["sans-serif", "serif", "monospace"];
     private const MIN_FONT_SIZE = 8;
     private const MAX_FONT_SIZE = 256;
@@ -44,7 +44,12 @@ final class CmsContentValidator
         ];
     }
 
-    public static function validate(array $document, int $ownerUserId, int $pageId): array
+    public static function validate(
+        array $document,
+        int $ownerUserId,
+        int $pageId,
+        bool $inspectExternalLinks = false
+    ): array
     {
         $encoded = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
@@ -74,8 +79,21 @@ final class CmsContentValidator
             throw new DomainException("Structure des blocs CMS invalide");
         }
 
+        $inspectExternalLinks && self::assertRemoteLinkBudget($blocks);
+
+        $inspectedLinks = [];
+        $linkValidator = SafeLinkValidator::createDefault();
+
         foreach ($blocks as $id => $block) {
-            self::validateBlock((string) $id, $block, $ownerUserId, $pageId);
+            self::validateBlock(
+                (string) $id,
+                $block,
+                $ownerUserId,
+                $pageId,
+                $inspectExternalLinks,
+                $inspectedLinks,
+                $linkValidator,
+            );
         }
 
         self::validateLayouts($layouts, $blocks);
@@ -95,7 +113,15 @@ final class CmsContentValidator
         }
     }
 
-    private static function validateBlock(string $id, mixed $block, int $ownerUserId, int $pageId): void
+    private static function validateBlock(
+        string $id,
+        mixed $block,
+        int $ownerUserId,
+        int $pageId,
+        bool $inspectExternalLinks,
+        array &$inspectedLinks,
+        SafeLinkValidator $linkValidator,
+    ): void
     {
         if (!preg_match("/^[A-Za-z0-9-]{1,64}$/", $id)
             || !is_array($block)
@@ -108,10 +134,26 @@ final class CmsContentValidator
             throw new DomainException("Bloc CMS invalide: " . $id);
         }
 
-        self::validateProperties($block["props"], $ownerUserId, $pageId, 0);
+        self::validateProperties(
+            $block["props"],
+            $ownerUserId,
+            $pageId,
+            0,
+            $inspectExternalLinks,
+            $inspectedLinks,
+            $linkValidator,
+        );
     }
 
-    private static function validateProperties(array $properties, int $ownerUserId, int $pageId, int $depth): void
+    private static function validateProperties(
+        array $properties,
+        int $ownerUserId,
+        int $pageId,
+        int $depth,
+        bool $inspectExternalLinks,
+        array &$inspectedLinks,
+        SafeLinkValidator $linkValidator,
+    ): void
     {
         if ($depth > 12) {
             throw new DomainException("Proprietes CMS trop profondes");
@@ -129,7 +171,7 @@ final class CmsContentValidator
             }
 
             if (in_array($normalizedKey, ["href", "url", "link"], true)) {
-                self::validateLink($value);
+                self::validateLink($value, $inspectExternalLinks, $inspectedLinks, $linkValidator);
             }
 
             if ($normalizedKey === "objectkey" && $value !== null && $value !== "") {
@@ -139,7 +181,15 @@ final class CmsContentValidator
             self::validateTextFormattingAttribute($normalizedKey, $value);
 
             if (is_array($value)) {
-                self::validateProperties($value, $ownerUserId, $pageId, $depth + 1);
+                self::validateProperties(
+                    $value,
+                    $ownerUserId,
+                    $pageId,
+                    $depth + 1,
+                    $inspectExternalLinks,
+                    $inspectedLinks,
+                    $linkValidator,
+                );
                 continue;
             }
 
@@ -157,48 +207,63 @@ final class CmsContentValidator
         }
     }
 
-    private static function validateLink(mixed $value): void
+    private static function validateLink(
+        mixed $value,
+        bool $inspectExternalLinks,
+        array &$inspectedLinks,
+        SafeLinkValidator $linkValidator,
+    ): void
     {
-        if (!is_string($value) || $value === "" || preg_match("/[\\x00-\\x20\\x7F\\\\]/", $value)) {
+        if (!is_string($value)) {
             throw new DomainException("Lien hypertexte invalide");
         }
 
-        if (str_starts_with($value, "/") && !str_starts_with($value, "//")) {
-            $parts = parse_url($value);
-
-            if (!is_array($parts)) {
-                throw new DomainException("Lien hypertexte invalide");
-            }
-
-            self::validateNavigationTarget((string) ($parts["path"] ?? ""), (string) ($parts["query"] ?? ""));
+        if (isset($inspectedLinks[$value])) {
             return;
         }
 
-        $parts = parse_url($value);
+        $mode = $inspectExternalLinks ? LinkValidationMode::REMOTE : LinkValidationMode::LOCAL;
+        $result = $linkValidator->validate($value, $mode);
 
-        if (filter_var($value, FILTER_VALIDATE_URL) === false
-            || !is_array($parts)
-            || strtolower((string) ($parts["scheme"] ?? "")) !== "https"
-            || !isset($parts["host"])
-            || isset($parts["user"])
-            || isset($parts["pass"])
-            || (isset($parts["port"]) && (int) $parts["port"] !== 443)
-        ) {
-            throw new DomainException("Seuls les liens internes et HTTPS sont autorises");
+        if (!$result->safe) {
+            throw new DomainException($result->message);
         }
 
-        self::validateNavigationTarget((string) ($parts["path"] ?? ""), (string) ($parts["query"] ?? ""));
+        $inspectedLinks[$value] = true;
     }
 
-    private static function validateNavigationTarget(string $path, string $query): void
+    private static function assertRemoteLinkBudget(array $blocks): void
     {
-        $decodedPath = rawurldecode($path);
-        $extension = strtolower(pathinfo($decodedPath, PATHINFO_EXTENSION));
-        $downloadQuery = preg_match("/(?:^|[&;])(download|attachment|file|filename)(?:=|&|;|$)/i", $query) === 1;
-        $downloadPath = preg_match("#/(downloads?|attachments?)(?:/|$)#i", $decodedPath) === 1;
+        $externalLinks = [];
 
-        if (($extension !== "" && !in_array($extension, self::NAVIGATION_EXTENSIONS, true)) || $downloadQuery || $downloadPath) {
-            throw new DomainException("Les liens directs vers des fichiers telechargeables sont interdits");
+        foreach ($blocks as $block) {
+            if (is_array($block) && is_array($block["props"] ?? null)) {
+                self::collectExternalLinks($block["props"], 0, $externalLinks);
+            }
+        }
+
+        if (count($externalLinks) > self::MAX_REMOTE_LINKS) {
+            throw new DomainException("La page contient trop de liens externes a verifier (25 maximum)");
+        }
+    }
+
+    private static function collectExternalLinks(mixed $value, int $depth, array &$externalLinks): void
+    {
+        if (!is_array($value) || $depth > 12) {
+            return;
+        }
+
+        foreach ($value as $key => $child) {
+            $normalizedKey = strtolower((string) $key);
+
+            if (in_array($normalizedKey, ["href", "url", "link"], true)
+                && is_string($child)
+                && (!str_starts_with($child, "/") || str_starts_with($child, "//"))
+            ) {
+                $externalLinks[$child] = true;
+            }
+
+            is_array($child) && self::collectExternalLinks($child, $depth + 1, $externalLinks);
         }
     }
 

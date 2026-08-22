@@ -30,6 +30,10 @@ if (dispatchFilterRoutes($path, $method, $pdo)) {
     exit;
 }
 
+if (dispatchLinkRoutes($path, $method)) {
+    exit;
+}
+
 if (dispatchModerationRoutes($path, $method, $pdo)) {
     exit;
 }

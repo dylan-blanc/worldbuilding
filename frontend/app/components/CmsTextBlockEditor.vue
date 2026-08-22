@@ -1,8 +1,8 @@
 <!--
   This component edits one CMS text block as Tiptap JSON inside Freepage.
-  Only EditorContent occupies the block; its formatting toolbar is teleported into CmsToolbar while text has focus.
+  Only EditorContent occupies the block; its formatting toolbar floats above the active paragraph while text has focus.
   It emits JSON to Freepage, where the document history and autosave send it through PUT /pages/{id}/draft.
-  Tiptap keeps fine-grained typing undo locally while historyBoundary creates grouped whole-document undo points.
+  Tiptap keeps fine-grained typing undo locally, while external links flow through POST /links/inspect before insertion.
 -->
 <script setup lang="ts">
 import Highlight from "@tiptap/extension-highlight"
@@ -16,6 +16,7 @@ import StarterKit from "@tiptap/starter-kit"
 import { EditorContent, useEditor } from "@tiptap/vue-3"
 import { BubbleMenu } from "@tiptap/vue-3/menus"
 import type { Editor, JSONContent } from "@tiptap/core"
+import type { SafeLinkInspection } from "~/composables/useSafeLink"
 import type { CmsJsonValue } from "~/types/cms"
 
 const props = defineProps<{
@@ -33,6 +34,15 @@ const fontSizeMenu = ref<HTMLElement>()
 const isFontSizeMenuOpen = ref(false)
 const fontSizeMenuId = useId()
 const fontSizeMenuStyle = ref({ left: "0px", top: "0px", width: "4rem" })
+const linkDialog = ref<HTMLElement>()
+const linkInput = ref<HTMLInputElement>()
+const isLinkDialogOpen = ref(false)
+const isInspectingLink = ref(false)
+const linkValue = ref("")
+const linkError = ref("")
+const linkInspection = ref<SafeLinkInspection | null>(null)
+const linkSelection = ref<{ from: number, to: number } | null>(null)
+const { inspect: inspectLink } = useSafeLink()
 const fontFamilies = [
   { label: "Sans serif", value: "sans-serif" },
   { label: "Serif", value: "serif" },
@@ -201,31 +211,88 @@ const applyBlockFormat = (level?: HeadingLevel) => {
     .run()
 }
 
-const applyLink = () => {
+const openLinkDialog = async () => {
   if (!editor.value) return
 
-  const currentHref = String(editor.value.getAttributes("link").href || "")
-  const requestedHref = globalThis.prompt("Lien interne ou HTTPS", currentHref)
+  linkSelection.value = {
+    from: editor.value.state.selection.from,
+    to: editor.value.state.selection.to,
+  }
+  linkValue.value = String(editor.value.getAttributes("link").href || "")
+  linkError.value = ""
+  linkInspection.value = null
+  isLinkDialogOpen.value = true
+  await nextTick()
+  linkDialog.value?.focus()
+  linkInput.value?.select()
+}
 
-  if (requestedHref === null) return
+const closeLinkDialog = () => {
+  if (isInspectingLink.value) return
 
-  const href = requestedHref.trim()
+  isLinkDialogOpen.value = false
+  const currentEditor = editor.value
+  const selection = linkSelection.value
+
+  if (currentEditor && selection && selection.to <= currentEditor.state.doc.content.size) {
+    currentEditor.chain().focus().setTextSelection(selection).run()
+  } else {
+    currentEditor?.commands.focus()
+  }
+
+  linkSelection.value = null
+}
+
+const resetLinkFeedback = () => {
+  linkError.value = ""
+  linkInspection.value = null
+}
+
+const applyLink = async () => {
+  const currentEditor = editor.value
+
+  if (!currentEditor || isInspectingLink.value) return
+
+  const href = linkValue.value.trim()
+  linkError.value = ""
+  linkInspection.value = null
+
+  if (linkSelection.value && linkSelection.value.to <= currentEditor.state.doc.content.size) {
+    currentEditor.commands.setTextSelection(linkSelection.value)
+  }
 
   if (href === "") {
-    editor.value.chain().focus().extendMarkRange("link").unsetLink().run()
+    currentEditor.chain().focus().extendMarkRange("link").unsetLink().run()
+    isLinkDialogOpen.value = false
+    linkSelection.value = null
     return
   }
 
-  if ((!href.startsWith("/") || href.startsWith("//")) && !href.startsWith("https://")) {
-    globalThis.alert("Seuls les liens internes et HTTPS sont autorisés.")
-    return
-  }
+  isInspectingLink.value = true
 
-  editor.value.chain().focus().extendMarkRange("link").setLink({
-    href,
-    target: href.startsWith("/") ? "_self" : "_blank",
-    rel: "noopener noreferrer nofollow",
-  }).run()
+  try {
+    const inspection = await inspectLink(href)
+    linkInspection.value = inspection
+
+    if (!inspection.safe) {
+      linkError.value = inspection.message
+      return
+    }
+
+    const isInternalLink = href.startsWith("/") && !href.startsWith("//")
+    currentEditor.chain().focus().extendMarkRange("link").setLink({
+      href,
+      target: isInternalLink ? "_self" : "_blank",
+      rel: "noopener noreferrer nofollow",
+    }).run()
+    isLinkDialogOpen.value = false
+    linkSelection.value = null
+  } catch (error) {
+    const candidate = error as { data?: { error?: string } }
+    linkError.value = candidate.data?.error || "La vérification du lien a échoué"
+  } finally {
+    isInspectingLink.value = false
+  }
 }
 
 const setTextColor = (event: Event) => {
@@ -355,7 +422,7 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="cms-tiptap-toolbar-row flex w-full items-center gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
-      <button type="button" class="cms-format-button" :class="activeClass('link')" title="Ajouter ou modifier un lien" @click="applyLink">Lien</button>
+      <button type="button" class="cms-format-button" :class="activeClass('link')" title="Ajouter ou modifier un lien" @click="openLinkDialog">Lien</button>
       <button type="button" class="form-control cms-format-button" title="Retirer le lien" @click="editor.chain().focus().unsetLink().run()">Sans lien</button>
 
       <label class="form-control flex h-8 items-center gap-1 rounded border px-1 text-xs" title="Couleur du texte">
@@ -434,6 +501,86 @@ onBeforeUnmount(() => {
         >
           {{ size }}
         </button>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div
+        v-if="isLinkDialogOpen"
+        class="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4"
+        role="presentation"
+        @click.self="closeLinkDialog"
+        @keydown.esc="closeLinkDialog"
+      >
+        <section
+          ref="linkDialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cms-link-dialog-title"
+          tabindex="-1"
+          class="primary-background primary-border w-full max-w-lg rounded-xl border p-5 shadow-2xl outline-none"
+        >
+          <h2 id="cms-link-dialog-title" class="text-xl font-semibold">Ajouter un lien</h2>
+          <p class="secondary-color mt-1 text-sm">
+            Les liens externes sont contrôlés avant leur insertion.
+          </p>
+
+          <form class="mt-4 flex flex-col gap-4" @submit.prevent="applyLink">
+            <label class="flex flex-col gap-2 text-sm font-medium">
+              Adresse interne ou HTTPS
+              <input
+                ref="linkInput"
+                v-model="linkValue"
+                type="text"
+                maxlength="2048"
+                class="form-control rounded-md border px-3 py-2"
+                :disabled="isInspectingLink"
+                autocomplete="off"
+                @input="resetLinkFeedback"
+              >
+            </label>
+
+            <section
+              v-if="linkInspection"
+              class="secondary-background primary-border rounded-md border p-3 text-sm"
+            >
+              <dl class="grid gap-2 sm:grid-cols-[auto_1fr]">
+                <dt class="secondary-color">MIME déclaré</dt>
+                <dd class="break-all">{{ linkInspection.declared_mime || "Non disponible" }}</dd>
+                <dt class="secondary-color">Signature détectée</dt>
+                <dd>{{ linkInspection.detected_signature }}</dd>
+                <dt v-if="linkInspection.signature_hex" class="secondary-color">Premiers octets</dt>
+                <dd v-if="linkInspection.signature_hex" class="break-all font-mono text-xs">
+                  {{ linkInspection.signature_hex }}
+                </dd>
+                <dt class="secondary-color">Redirections</dt>
+                <dd>{{ linkInspection.redirects.length }}/3</dd>
+              </dl>
+            </section>
+
+            <p v-if="linkError" class="error-color text-sm font-medium" role="alert">
+              {{ linkError }}
+            </p>
+
+            <footer class="flex justify-end gap-3">
+              <button
+                type="button"
+                class="primary-border rounded-md border px-4 py-2 disabled:opacity-40"
+                :disabled="isInspectingLink"
+                @click="closeLinkDialog"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                class="button-primary rounded-md px-4 py-2 disabled:opacity-40"
+                :disabled="isInspectingLink"
+              >
+                {{ isInspectingLink ? "Vérification…" : "Vérifier et insérer" }}
+              </button>
+            </footer>
+          </form>
+        </section>
       </div>
     </Teleport>
 

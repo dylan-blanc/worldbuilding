@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Stores and publishes CMS revisions for the authenticated page owner.
  * PageController calls this model from GET/PUT /pages/{id}/draft and POST /pages/{id}/publish.
+ * Publication checks remote links before opening its transaction, then atomically promotes the validated JSON.
  * Draft JSON stays in page_revision; CmsModerationGuard requires actual replacement of marked blocks before
  * their marker is removed, then publication promotes the draft and copies it with its visibility to pages.
  */
@@ -56,7 +57,24 @@ final class PageRevision
 
     public function publishDraft(int $pageId, int $ownerUserId, bool $isAnonymous): array
     {
-        return $this->transaction(function () use ($pageId, $ownerUserId, $isAnonymous): array {
+        $this->requireOwnedMutablePage($pageId, $ownerUserId);
+        $candidate = $this->findCurrentDraft($pageId);
+
+        if ($candidate === null) {
+            throw new DomainException("Aucun brouillon a publier");
+        }
+
+        $validatedContent = (string) $candidate["pagecontent"];
+        $document = json_decode($validatedContent, true, 512, JSON_THROW_ON_ERROR);
+
+        if (!is_array($document)) {
+            throw new DomainException("Contenu du brouillon invalide");
+        }
+
+        // Remote link checks run before the SQL transaction so network latency never holds page locks.
+        CmsContentValidator::validate($document, $ownerUserId, $pageId, true);
+
+        return $this->transaction(function () use ($pageId, $ownerUserId, $isAnonymous, $validatedContent): array {
             $this->lockOwnedPage($pageId, $ownerUserId);
             $draft = $this->findCurrentDraftForUpdate($pageId);
 
@@ -64,13 +82,9 @@ final class PageRevision
                 throw new DomainException("Aucun brouillon a publier");
             }
 
-            $document = json_decode((string) $draft["pagecontent"], true, 512, JSON_THROW_ON_ERROR);
-
-            if (!is_array($document)) {
-                throw new DomainException("Contenu du brouillon invalide");
+            if (!hash_equals($validatedContent, (string) $draft["pagecontent"])) {
+                throw new DomainException("Le brouillon a change pendant sa verification, recommencez la publication");
             }
-
-            CmsContentValidator::validate($document, $ownerUserId, $pageId);
 
             $archive = $this->pdo->prepare("UPDATE page_revision
                 SET revision_status = :archived_status, is_current = FALSE, current_published_page_id = NULL
@@ -168,6 +182,42 @@ final class PageRevision
         $revision = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return is_array($revision) ? $revision : null;
+    }
+
+    private function findCurrentDraft(int $pageId): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT *
+            FROM page_revision
+            WHERE page_id = :page_id AND current_draft_page_id = :current_page_id
+            LIMIT 1");
+        $stmt->execute([
+            ":page_id" => $pageId,
+            ":current_page_id" => $pageId,
+        ]);
+        $revision = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($revision) ? $revision : null;
+    }
+
+    private function requireOwnedMutablePage(int $pageId, int $ownerUserId): void
+    {
+        $stmt = $this->pdo->prepare("SELECT page_status
+            FROM pages
+            WHERE id = :id AND owner_user_id = :owner_user_id
+            LIMIT 1");
+        $stmt->execute([
+            ":id" => $pageId,
+            ":owner_user_id" => $ownerUserId,
+        ]);
+        $status = $stmt->fetchColumn();
+
+        if ($status === false) {
+            throw new DomainException("Page introuvable");
+        }
+
+        if ($status === "banned") {
+            throw new DomainException("Une page bannie ne peut pas etre modifiee");
+        }
     }
 
     private function findRevisionById(int $id): array
