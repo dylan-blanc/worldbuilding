@@ -5,10 +5,10 @@
   A client-only 1200 px viewport check enables the combined tablet/mobile workspace without affecting Nuxt SSG.
 -->
 <script setup lang="ts">
-import CmsToolbar from "~/components/CmsToolbar.vue"
-import Createpage from "~/views/createpage.vue"
-import Freepage from "~/views/freepage.vue"
-import type { CmsWorkspaceViewportMode } from "~/types/cms"
+import CmsToolbar from "~/components/cms/CmsToolbar.vue"
+import Createpage from "~/views/cms/createpage.vue"
+import Freepage from "~/views/cms/freepage.vue"
+import type { CmsWorkspaceViewportMode } from "~/types/cms/cms"
 
 type CmsView = "create" | "free"
 

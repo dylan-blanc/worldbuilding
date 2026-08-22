@@ -3,13 +3,13 @@
   Its form data flows through /me/owned-pages routes to OwnedPageController, then pages and page_filters SQL.
 -->
 <script setup lang="ts">
-import Firstcreation from "~/views/firstcreation.vue"
-import Ownedpage from "~/views/ownedpage.vue"
+import Firstcreation from "~/views/cms/firstcreation.vue"
+import Ownedpage from "~/views/cms/ownedpage.vue"
 import type {
   OwnedPage,
   OwnedPageMessage,
   OwnedPageStatus,
-} from "~/types/owned-page"
+} from "~/types/cms/owned-page"
 
 type OwnedPagesResponse = {
   pages: OwnedPage[]

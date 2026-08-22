@@ -4,7 +4,7 @@
   -> UserNotification owner-scoped SQL; links expose only the affected page and editor after authorization.
 -->
 <script setup lang="ts">
-import type { CmsBlock } from "~/types/cms"
+import type { CmsBlock } from "~/types/cms/cms"
 
 interface NotificationDetails {
   page_title?: string

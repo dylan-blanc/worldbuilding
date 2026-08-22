@@ -12,13 +12,13 @@
         "files": [
             "config/env.php",
             "config/database.php",
-            "routes/admin.php",
-            "routes/auth.php",
-            "routes/filters.php",
-            "routes/links.php",
-            "routes/moderation.php",
-            "routes/owned-pages.php",
-            "routes/pages.php"
+            "routes/admin/admin.php",
+            "routes/admin/moderation.php",
+            "routes/cms/owned-pages.php",
+            "routes/cms/pages.php",
+            "routes/index/filters.php",
+            "routes/link-validation/links.php",
+            "routes/shared/auth.php"
         ]
     },
     "authors": [
