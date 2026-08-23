@@ -56,3 +56,11 @@ frontend/app/assets/fonts
 
 
 backend/tests/
+!backend/tests/
+!backend/tests/**/
+!backend/tests/**/*.php
+!backend/tests/**/fixtures/*
+
+tutoPreCommit.md
+
+backend/db/migrations/20260722_create_page_revision.sql

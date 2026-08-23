@@ -1,18 +1,20 @@
 # Orchestrates production services with file-backed Docker secrets and persistent data.
 # MinIO remains internal to the application network while its console is bound to localhost.
+name: "${PROD_COMPOSE_PROJECT_NAME:-worldbuilding-prod}"
+
 services:
   backend:
-    container_name: backend
     build:
       context: ./backend
       target: prod
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE:-worldbuilding}
+      DB_NAME: "${PROD_MYSQL_DATABASE:-${MYSQL_DATABASE:-worldbuilding}}"
       DB_USER_FILE: /run/secrets/mysql_user
       DB_PASSWORD_FILE: /run/secrets/mysql_password
-      FRONTEND_URL: ${PROD_FRONTEND_URL}
+      FRONTEND_URL: "${PROD_FRONTEND_URL:-${FRONTEND_URL:-http://localhost:8080}}"
+      FRONTEND_FALLBACK_URL: "${PROD_FRONTEND_HTTP_URL:-${FRONTEND_URL:-http://localhost:8080}}"
       MINIO_ENDPOINT: "http://minio:9000"
       MINIO_REGION: "us-east-1"
       MINIO_BUCKET: "${BUCKET}"
@@ -28,7 +30,7 @@ services:
       BREVO_MAX_RETRIES: "2"
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
       minio-init:
         condition: service_completed_successfully
     secrets:
@@ -48,10 +50,12 @@ services:
     restart: unless-stopped
 
   frontend:
-    container_name: frontend
     build:
       context: ./frontend
       target: prod
+      args:
+        PROD_API_BASE: "${PROD_API_BASE:-${BASE_URL:-/api}}"
+        PROD_FRONTEND_URL: "${PROD_FRONTEND_URL:-${FRONTEND_URL:-http://localhost:8080}}"
     expose:
       - "80"
     healthcheck:
@@ -66,27 +70,38 @@ services:
     restart: unless-stopped
 
   nginx:
-    container_name: nginx
     image: nginx:1.30-alpine
+    environment:
+      PROD_DOMAIN: "${PROD_DOMAIN:-worldbuilding.molternate.com}"
     ports:
-      - "${PROD_WEB_PORT:-80}:80"
+      - "${PROD_WEB_PORT:-${WEB_PORT:-80}}:80"
       - "${PROD_WEB_SSL_PORT:-443}:443"
     volumes:
-      - ./frontend/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./frontend/nginx/prod-http.conf:/etc/nginx/prod/http.conf:ro
+      - ./frontend/nginx/prod.conf:/etc/nginx/prod/https.conf:ro
+      - ./frontend/nginx/prod-locations.conf:/etc/nginx/prod/locations.conf:ro
+      - ./frontend/nginx/start-production.sh:/usr/local/bin/start-production:ro
+      - "${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro"
+      - "${CERTBOT_WEBROOT:-/var/www/certbot}:/var/www/certbot:ro"
+    command: ["/bin/sh", "/usr/local/bin/start-production"]
     depends_on:
       frontend:
         condition: "service_healthy"
       backend:
         condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: "10s"
+      timeout: "5s"
+      retries: 5
+      start_period: "5s"
     restart: unless-stopped
 
   db:
-    container_name: db
     image: mysql:8
     environment:
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-worldbuilding}
+      MYSQL_DATABASE: "${PROD_MYSQL_DATABASE:-${MYSQL_DATABASE:-worldbuilding}}"
       MYSQL_USER_FILE: /run/secrets/mysql_user
       MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
     secrets:
@@ -96,10 +111,15 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./backend/db/db.sql:/docker-entrypoint-initdb.d/01-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root --password=\"$$(cat /run/secrets/mysql_root_password)\" --silent"]
+      interval: "10s"
+      timeout: "5s"
+      retries: 10
+      start_period: "30s"
     restart: unless-stopped
 
   phpmyadmin:
-    container_name: phpmyadmin
     image: phpmyadmin:5.2-apache
     profiles:
       - "admin"
@@ -107,7 +127,7 @@ services:
       PMA_HOST: db
       PMA_PORT: 3306
     ports:
-      - "127.0.0.1:${PHPMYADMIN_PROD_PORT}:80"
+      - "127.0.0.1:${PHPMYADMIN_PROD_PORT:-${PHPMYADMIN_PORT:-8081}}:80"
     depends_on:
       - db
     restart: unless-stopped
@@ -118,7 +138,6 @@ services:
     # docker compose -f docker-compose.prod.yml stop phpmyadmin
 
   minio:
-    container_name: "minio"
     image: "pgsty/minio:RELEASE.2026-06-18T00-00-00Z"
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
@@ -133,7 +152,7 @@ services:
       - "9000"
       - "9001"
     ports:
-      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${PROD_MINIO_CONSOLE_PORT:-${MINIO_CONSOLE_PORT:-9001}}:9001"
     restart: "unless-stopped"
 
   # Creates the private CMS bucket, service account and bucket-scoped policy without exposing MinIO publicly.
@@ -146,7 +165,13 @@ services:
         export MINIO_ROOT_PASSWORD="$$(cat /run/secrets/minio_root_password)"
         export MINIO_ACCESS_KEY="$$(cat /run/secrets/minio_access_key)"
         export MINIO_SECRET_KEY="$$(cat /run/secrets/minio_secret_key)"
+        attempt=0
         until mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" --api S3v4 --path on; do
+          attempt=$$((attempt + 1))
+          if [ "$${attempt}" -ge 60 ]; then
+            echo "MinIO did not become ready within 120 seconds"
+            exit 1
+          fi
           sleep 2
         done
         mc mb --ignore-existing "local/$${MINIO_BUCKET}"
