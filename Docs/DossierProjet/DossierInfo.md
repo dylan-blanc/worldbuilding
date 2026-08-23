@@ -195,3 +195,15 @@ appris : toujours passer par docker compose exec backend composer require/instal
 afin d'utiliser la même version PhP (local vs docker)
 
 ---
+
+
+
+
+
+## deploiement 
+
+Perte de MDP VPS ovh, banni par fail2ban (3echec connexion) récupération via boot en rescue et connexion de la console KVM de ovh, mise de l'ip local en whiteliste fail2ban
+
+---
+
+création du certificat HTTPS via let's encrypt (certbot) 
