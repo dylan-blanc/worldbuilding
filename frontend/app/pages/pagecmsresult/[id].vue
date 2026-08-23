@@ -4,7 +4,7 @@
   Pageresult performs the authenticated client-side JSON fetch while Header and Footer remain static.
 -->
 <script setup lang="ts">
-import Pageresult from "~/views/pageresult.vue"
+import Pageresult from "~/views/cms/pageresult.vue"
 
 definePageMeta({
   alias: ["/pageresult/:id"],

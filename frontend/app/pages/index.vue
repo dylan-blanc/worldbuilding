@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Accueil from '~/views/accueil.vue'
+import Accueil from "~/views/index/accueil.vue"
 </script>
 
 <template>

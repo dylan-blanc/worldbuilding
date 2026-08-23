@@ -138,7 +138,7 @@ services:
       MINIO_ACCESS_KEY: "${minio_access_key}"
       MINIO_SECRET_KEY: "${minio_secret_key}"
     volumes:
-      - ./backend/tests/fixtures:/test-fixtures:ro
+      - ./backend/tests/minio/fixtures:/test-fixtures:ro
       - ./docker/minio/cms-policy.json:/policies/cms-policy.json:ro
     depends_on:
       - minio

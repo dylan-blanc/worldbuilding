@@ -3,7 +3,7 @@
   The client-only middleware checks GET /api/me before the view loads private profile information.
 -->
 <script setup lang="ts">
-import UserProfile from "~/views/userprofile.vue"
+import UserProfile from "~/views/shared/userprofile.vue"
 
 definePageMeta({
   middleware: "pagecms-auth",

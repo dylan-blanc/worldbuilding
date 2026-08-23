@@ -1,12 +1,14 @@
 <!--
   This page owns the CMS workspace shell used at /pagecms.
-  It keeps Header, CmsToolbar and Footer mounted while the central creation view changes.
-  The current flow is: Createpage start action -> private SQL page -> Freepage editor and its history API.
+  It keeps Header, CmsToolbar and Footer mounted while the central creation view and responsive mode change.
+  The current flow is: Createpage start action -> private SQL page -> Freepage editor/preview and its history API.
+  A client-only 1200 px viewport check enables the combined tablet/mobile workspace without affecting Nuxt SSG.
 -->
 <script setup lang="ts">
-import CmsToolbar from "~/components/CmsToolbar.vue"
-import Createpage from "~/views/createpage.vue"
-import Freepage from "~/views/freepage.vue"
+import CmsToolbar from "~/components/cms/CmsToolbar.vue"
+import Createpage from "~/views/cms/createpage.vue"
+import Freepage from "~/views/cms/freepage.vue"
+import type { CmsWorkspaceViewportMode } from "~/types/cms/cms"
 
 type CmsView = "create" | "free"
 
@@ -32,6 +34,19 @@ const startError = ref("")
 const freepage = ref<InstanceType<typeof Freepage> | null>(null)
 const canUndo = ref(false)
 const canRedo = ref(false)
+const viewportMode = ref<CmsWorkspaceViewportMode>("desktop")
+const combinedResponsiveEnabled = ref(false)
+const combinedResponsiveMinimumWidth = 1200
+
+// Wide workspaces replace separate tablet/mobile controls with one side-by-side mode.
+const updateCombinedResponsiveAvailability = () => {
+  const isEnabled = window.innerWidth >= combinedResponsiveMinimumWidth
+
+  if (combinedResponsiveEnabled.value === isEnabled) return
+
+  combinedResponsiveEnabled.value = isEnabled
+  viewportMode.value = "desktop"
+}
 
 const errorText = (error: unknown) => {
   if (typeof error !== "object" || error === null) return "Creation de la page impossible"
@@ -69,6 +84,13 @@ const startFreeEdition = async () => {
     isStarting.value = false
   }
 }
+
+onMounted(() => {
+  updateCombinedResponsiveAvailability()
+  window.addEventListener("resize", updateCombinedResponsiveAvailability)
+})
+
+onBeforeUnmount(() => window.removeEventListener("resize", updateCombinedResponsiveAvailability))
 </script>
 
 <template>
@@ -76,11 +98,14 @@ const startFreeEdition = async () => {
     <Header />
     <CmsToolbar
       v-model:is-editing="isEditing"
+      v-model:viewport-mode="viewportMode"
       :block-palette-enabled="currentView === 'free'"
+      :combined-responsive-enabled="combinedResponsiveEnabled"
       :can-undo="currentView === 'free' && canUndo"
       :can-redo="currentView === 'free' && canRedo"
       @undo="freepage?.undo()"
       @redo="freepage?.redo()"
+      @add-block="freepage?.addBlockFromPalette($event)"
     />
 
     <main class="flex w-full flex-1">
@@ -94,6 +119,9 @@ const startFreeEdition = async () => {
         v-else-if="pageId"
         ref="freepage"
         :page-id="pageId"
+        :is-editing="isEditing"
+        :combined-responsive-enabled="combinedResponsiveEnabled"
+        :viewport-mode="viewportMode"
         @history-state="updateHistoryState"
       />
     </main>
