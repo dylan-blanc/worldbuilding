@@ -309,23 +309,6 @@ final class Page
         return $this->findOwnedById($id, $ownerUserId);
     }
 
-    public function updateContent(int $id, int $ownerUserId, string $content): ?array
-    {
-        $sql = "UPDATE pages
-            SET pagecontent = :pagecontent
-            WHERE id = :id AND owner_user_id = :owner_user_id";
-
-        $stmt = $this->pdo->prepare($sql);
-        $this->bindValues($stmt, [
-            ":id" => $id,
-            ":owner_user_id" => $ownerUserId,
-            ":pagecontent" => $content,
-        ]);
-        $stmt->execute();
-
-        return $this->findOwnedContentById($id, $ownerUserId);
-    }
-
     private function fetchPageWithContent(PDOStatement $stmt): ?array
     {
         $page = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -287,11 +287,6 @@ final class PageController
         ]);
     }
 
-    public function updateContent(int $id): void
-    {
-        $this->saveDraft($id);
-    }
-
     private function authenticatedUserId(): int
     {
         $userId = Session::userId();

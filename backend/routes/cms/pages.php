@@ -116,7 +116,7 @@ function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
         $controller->ownerPicture((int) $matches[1]);
     }
 
-    if (preg_match("#^/pages/(\\d+)/(title|description|picture|status|content)$#", $route, $matches) !== 1) {
+    if (preg_match("#^/pages/(\\d+)/(title|description|picture|status)$#", $route, $matches) !== 1) {
         return false;
     }
 
@@ -134,7 +134,6 @@ function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
         "description" => "updateDescription",
         "picture" => "updatePicture",
         "status" => "updateStatus",
-        "content" => "updateContent",
     ];
     $controller->{$handlers[$field]}($id);
 
