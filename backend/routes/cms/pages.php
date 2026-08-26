@@ -34,6 +34,15 @@ function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
         $controller->mine();
     }
 
+    if (preg_match("#^/me/pages/(\\d+)/settings$#", $route, $matches) === 1) {
+        if ($method !== "POST") {
+            pageMethodNotAllowed();
+        }
+
+        $controller = new PageController($pdo);
+        $controller->updateSettings((int) $matches[1]);
+    }
+
     if (preg_match("#^/pages/(\\d+)$#", $route, $matches) === 1) {
         if ($method !== "GET") {
             pageMethodNotAllowed();
@@ -82,7 +91,10 @@ function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
         pageMethodNotAllowed();
     }
 
-    if (preg_match("#^/pages/(\\d+)/picture$#", $route, $matches) === 1) {
+    if (
+        preg_match("#^/pages/(\\d+)/picture$#", $route, $matches) === 1
+        && in_array($method, ["GET", "POST"], true)
+    ) {
         $controller = new PageMediaController($pdo);
         $id = (int) $matches[1];
 

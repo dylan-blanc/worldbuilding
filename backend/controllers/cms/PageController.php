@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * Handles page metadata, CMS drafts and publication for routes declared in routes/cms/pages.php.
+ * GET /me/pages and POST /me/pages/{id}/settings read and update the authenticated owner's page cards and filters.
  * GET /pages/{id} reads pages.pagecontent and applies PageReadAccess using the SQL user role.
  * PUT /pages/{id}/draft validates frontend JSON then calls PageRevision, which writes page_revision through PDO.
  * POST /pages/{id}/publish validates metadata and remote links, then promotes JSON and publishes the page.
@@ -54,9 +55,68 @@ final class PageController
     public function mine(): void
     {
         $userId = $this->authenticatedUserId();
+        $pages = $this->pages->findCardsByOwnerId($userId);
+
+        foreach ($pages as &$page) {
+            $page["filters"] = $this->pageFilters->findByPageId((int) $page["id"]);
+        }
+
+        unset($page);
 
         Response::json(200, [
-            "pages" => $this->pages->findCardsByOwnerId($userId),
+            "pages" => $pages,
+        ]);
+    }
+
+    public function updateSettings(int $id): void
+    {
+        $userId = $this->authenticatedUserId();
+        $page = $this->pages->findOwnedById($id, $userId);
+
+        if ($page === null) {
+            Response::error("Page introuvable", 404);
+        }
+
+        if ($page["page_status"] === "banned") {
+            Response::error("Une page bannie ne peut pas etre modifiee", 403);
+        }
+
+        $body = Request::body();
+        $status = Request::field($body, ["page_status"]);
+
+        if (!in_array($status, ["public", "private"], true)) {
+            Response::error("Statut de page invalide", 422);
+        }
+
+        if (!array_key_exists("is_anonymous", $body) || !is_bool($body["is_anonymous"])) {
+            Response::error("Parametre is_anonymous invalide", 422);
+        }
+
+        try {
+            $title = PageMetadataValidator::title($body["page_title"] ?? null);
+            $filterIds = PageMetadataValidator::filterIds($body["filter_ids"] ?? null);
+            $this->pdo->beginTransaction();
+            $this->pages->updateTitle($id, $userId, $title);
+            $filters = $this->pageFilters->replaceForPage($id, $filterIds);
+            $updatedPage = $this->pages->updateSettings($id, $userId, $status, $body["is_anonymous"]);
+            $this->pdo->commit();
+        } catch (DomainException $exception) {
+            $this->pdo->inTransaction() && $this->pdo->rollBack();
+            Response::error($exception->getMessage(), 422, "invalid_page_metadata");
+        } catch (Throwable $exception) {
+            $this->pdo->inTransaction() && $this->pdo->rollBack();
+            throw $exception;
+        }
+
+        if ($updatedPage === null) {
+            Response::error("Page introuvable", 404);
+        }
+
+        $updatedPage["filters"] = $filters;
+
+        Response::json(200, [
+            "message" => "Parametres de page mis a jour",
+            "page" => $updatedPage,
         ]);
     }
 

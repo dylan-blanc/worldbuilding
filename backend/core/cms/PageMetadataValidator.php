@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Validates page titles and filter selections submitted by page owners.
- * PageController uses it for POST /pages, PUT /pages/{id}/metadata and POST /pages/{id}/publish
+ * PageController uses it for POST /pages, POST /me/pages/{id}/settings, PUT /pages/{id}/metadata and POST /pages/{id}/publish
  * before Page, PageFilter or PageRevision writes metadata to pages and page_filters.
  */
 final class PageMetadataValidator

@@ -1,6 +1,6 @@
 <!--
   This component lists pages owned by the authenticated user and edits title, filters and visibility settings.
-  Its save event flows through the owning page view to OwnedPageController and pages/page_filters SQL.
+  Its save event flows through the owning page view to PageController and pages/page_filters SQL.
   Per-page reactive settings mirror the pages prop so each card can be submitted independently.
 -->
 <script setup lang="ts">

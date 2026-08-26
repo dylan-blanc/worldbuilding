@@ -1,4 +1,4 @@
-// Owned-page types mirror /me/owned-pages responses consumed by personnalpage and OwnedPageDisplay.
+// Owned-page types mirror /me/pages responses consumed by personnalpage and OwnedPageDisplay.
 import type { PageFilterOption } from "~/types/cms/page-filter"
 
 export type OwnedPageStatus = "public" | "private" | "banned"

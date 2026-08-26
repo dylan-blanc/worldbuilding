@@ -14,7 +14,6 @@
             "config/database.php",
             "routes/admin/admin.php",
             "routes/admin/moderation.php",
-            "routes/cms/owned-pages.php",
             "routes/cms/pages.php",
             "routes/index/filters.php",
             "routes/link-validation/links.php",

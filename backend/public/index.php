@@ -38,10 +38,6 @@ if (dispatchModerationRoutes($path, $method, $pdo)) {
     exit;
 }
 
-if (dispatchOwnedPageRoutes($path, $method, $pdo)) {
-    exit;
-}
-
 if (dispatchPageRoutes($path, $method, $pdo)) {
     exit;
 }

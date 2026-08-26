@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Reads public/owned pages and updates page metadata for PageController and OwnedPageController.
+ * Reads public/owned pages and updates page metadata for PageController.
  * Public cards join users for owner identity/profile data and replace every owner field with NULL for anonymous pages.
  * POST /pages creates the private page row and its first page_revision draft in one SQL transaction.
  * CMS content edits no longer update pages.pagecontent directly; PageRevision copies content there on publication.
@@ -113,7 +113,7 @@ final class Page
                 created_at, updated_at
             FROM pages
             WHERE owner_user_id = :owner_user_id
-            ORDER BY created_at DESC, id DESC";
+            ORDER BY updated_at DESC, id DESC";
 
         $stmt = $this->pdo->prepare($sql);
         $this->bindValues($stmt, [
@@ -121,7 +121,10 @@ final class Page
         ]);
         $stmt->execute();
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_map(
+            fn (array $page): array => $this->normalizeOwnedPage($page),
+            $stmt->fetchAll(PDO::FETCH_ASSOC)
+        );
     }
 
     public function findPublicReportTarget(int $id): ?array
@@ -307,6 +310,37 @@ final class Page
         $stmt->execute();
 
         return $this->findOwnedById($id, $ownerUserId);
+    }
+
+    public function updateSettings(int $id, int $ownerUserId, string $status, bool $isAnonymous): ?array
+    {
+        $sql = "UPDATE pages
+            SET page_status = :page_status, is_anonymous = :is_anonymous
+            WHERE id = :id AND owner_user_id = :owner_user_id AND page_status != :banned_status";
+
+        $stmt = $this->pdo->prepare($sql);
+        $this->bindValues($stmt, [
+            ":page_status" => $status,
+            ":is_anonymous" => $isAnonymous,
+            ":id" => $id,
+            ":owner_user_id" => $ownerUserId,
+            ":banned_status" => "banned",
+        ]);
+        $stmt->execute();
+        $page = $this->findOwnedById($id, $ownerUserId);
+
+        return $page === null ? null : $this->normalizeOwnedPage($page);
+    }
+
+    private function normalizeOwnedPage(array $page): array
+    {
+        foreach (["id", "owner_user_id", "number_of_likes", "number_of_view", "number_of_followers"] as $key) {
+            $page[$key] = (int) $page[$key];
+        }
+
+        $page["is_anonymous"] = (bool) $page["is_anonymous"];
+
+        return $page;
     }
 
     private function fetchPageWithContent(PDOStatement $stmt): ?array

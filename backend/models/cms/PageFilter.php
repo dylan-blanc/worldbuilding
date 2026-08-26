@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Reads and replaces page-to-filter associations in page_filters.
- * PageController, OwnedPageController and PageRevision call this model after owner and metadata validation.
+ * PageController and PageRevision call this model after owner and metadata validation.
  */
 final class PageFilter
 {

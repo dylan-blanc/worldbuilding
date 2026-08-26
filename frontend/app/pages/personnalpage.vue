@@ -1,6 +1,6 @@
 <!--
   This page loads and updates every page owned by the authenticated user at /personnalpage.
-  Its form data flows through /me/owned-pages routes to OwnedPageController, then pages and page_filters SQL.
+  Its form data flows through /me/pages routes to PageController, then pages and page_filters SQL.
 -->
 <script setup lang="ts">
 import Firstcreation from "~/views/cms/firstcreation.vue"
@@ -43,9 +43,9 @@ function errorText(error: unknown): string {
   return candidate.data?.error || "Enregistrement impossible"
 }
 
-// Send an asynchronous request with the session cookie to the /me/owned-pages route.
-// The route calls OwnedPageController::index(), which gets the authenticated user's ID
-// from the session and passes it to OwnedPage::findByOwnerId(). The model selects that
+// Send an asynchronous request with the session cookie to the /me/pages route.
+// The route calls PageController::mine(), which gets the authenticated user's ID
+// from the session and passes it to Page::findCardsByOwnerId(). The model selects that
 // user's pages from the database, including their identity, status, visibility, metrics,
 // description, picture, and timestamps, then the result and request state are exposed to the UI.
 async function loadOwnedPages(): Promise<void> {
@@ -55,7 +55,7 @@ async function loadOwnedPages(): Promise<void> {
   errorMessage.value = ""
 
   try {
-    const response = await $fetch<OwnedPagesResponse>(`${config.public.apiBase}/me/owned-pages`, {
+    const response = await $fetch<OwnedPagesResponse>(`${config.public.apiBase}/me/pages`, {
       credentials: "include",
     })
 
@@ -86,7 +86,7 @@ async function saveOwnedPageSettings(
 
   try {
     const response = await $fetch<OwnedPageResponse>(
-      `${config.public.apiBase}/me/owned-pages/${id}/settings`,
+      `${config.public.apiBase}/me/pages/${id}/settings`,
       {
         method: "POST",
         credentials: "include",
