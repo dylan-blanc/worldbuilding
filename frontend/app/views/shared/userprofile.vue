@@ -54,6 +54,7 @@ const profile = ref<ProfileResponse | null>(null)
 const currentPasswordInput = ref<HTMLInputElement | null>(null)
 const loading = ref(true)
 const pending = ref(false)
+const logoutPending = ref(false)
 const submitted = ref(false)
 const currentPasswordSubmitted = ref(false)
 const showCurrentPassword = ref(false)
@@ -230,6 +231,27 @@ const saveProfile = async () => {
   }
 }
 
+const logout = async () => {
+  logoutPending.value = true
+  errorMessage.value = ""
+
+  try {
+    await $fetch(`${config.public.apiBase}/logout`, {
+      method: "POST",
+      credentials: "include",
+    })
+
+    localStorage.removeItem("auth_user")
+    sharedProfilePicture.value = null
+    sharedUserRole.value = null
+    await navigateTo("/")
+  } catch (error) {
+    errorMessage.value = errorText(error, "Déconnexion impossible")
+  } finally {
+    logoutPending.value = false
+  }
+}
+
 watch(hasProtectedChanges, (requiresPassword) => {
   if (requiresPassword) return
 
@@ -262,15 +284,25 @@ onBeforeUnmount(clearLocalPreview)
             <h1 class="text-3xl font-semibold">Mon profil</h1>
             <p class="secondary-color mt-1">Gérez votre identité et retrouvez l’activité de vos univers.</p>
           </div>
-          <NuxtLink
-            to="/profil/notification"
-            class="notification-background notification-contrast-color inline-flex items-center gap-3 rounded-md px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color)"
-          >
-            Mes notifications
-            <span class="rounded-full border border-current px-2 py-0.5 text-sm" aria-label="Notifications non lues">
-              {{ unreadNotificationCount }}
-            </span>
-          </NuxtLink>
+          <div class="flex flex-wrap items-center gap-3">
+            <NuxtLink
+              to="/profil/notification"
+              class="notification-background notification-contrast-color inline-flex items-center gap-3 rounded-md px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color)"
+            >
+              Mes notifications
+              <span class="rounded-full border border-current px-2 py-0.5 text-sm" aria-label="Notifications non lues">
+                {{ unreadNotificationCount }}
+              </span>
+            </NuxtLink>
+            <button
+              type="button"
+              :disabled="logoutPending"
+              class="inline-flex items-center rounded-md bg-(--warning-color) px-4 py-2 font-semibold text-white hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-color) disabled:cursor-not-allowed disabled:opacity-60"
+              @click="logout"
+            >
+              {{ logoutPending ? "Déconnexion..." : "Se déconnecter" }}
+            </button>
+          </div>
         </div>
 
         <div class="mb-8 grid gap-4 sm:grid-cols-2">
