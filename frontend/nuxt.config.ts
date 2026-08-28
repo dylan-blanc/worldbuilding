@@ -24,6 +24,11 @@ export default defineNuxtConfig({
       siteUrl,
     },
   },
+  nitro: {
+    prerender: {
+      routes: ["/external-link"],
+    },
+  },
   vite: {
     plugins: [
       tailwindcss(),
