@@ -14,6 +14,7 @@ interface FilterResponse {
 }
 
 const config = useRuntimeConfig()
+const apiFetch = useApi()
 const filters = ref<AdminFilter[]>([])
 const loading = ref(true)
 const creating = ref(false)
@@ -88,7 +89,7 @@ async function createModerationFilter(name: string, belongTo: number | null): Pr
   successMessage.value = ""
 
   try {
-    await $fetch(`${config.public.apiBase}/admin/filters`, {
+    await apiFetch(`${config.public.apiBase}/admin/filters`, {
       method: "POST",
       credentials: "include",
       body: {
@@ -118,7 +119,7 @@ async function moveFilter(filter: AdminFilter, belongTo: number | null): Promise
   successMessage.value = ""
 
   try {
-    await $fetch(`${config.public.apiBase}/admin/filters/${filter.id}`, {
+    await apiFetch(`${config.public.apiBase}/admin/filters/${filter.id}`, {
       method: "PATCH",
       credentials: "include",
       body: {
@@ -157,7 +158,7 @@ async function deleteFilter(): Promise<void> {
   successMessage.value = ""
 
   try {
-    await $fetch(`${config.public.apiBase}/admin/filters/${filterToDelete.value.id}`, {
+    await apiFetch(`${config.public.apiBase}/admin/filters/${filterToDelete.value.id}`, {
       method: "DELETE",
       credentials: "include",
     })

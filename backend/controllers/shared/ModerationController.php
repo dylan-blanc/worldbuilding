@@ -203,6 +203,8 @@ final class ModerationController
             Response::error("Veuillez vous connecter", 401, "authentication_required");
         }
 
+        Session::renewForMutation();
+
         return $userId;
     }
 

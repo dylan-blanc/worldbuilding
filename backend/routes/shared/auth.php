@@ -28,7 +28,7 @@ function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
         (new NotificationController($pdo))->markRead((int) $matches[1]);
     }
 
-    $routes = ["/admin/access", "/login", "/logout", "/me", "/me/picture", "/register"];
+    $routes = ["/admin/access", "/csrf", "/login", "/logout", "/me", "/me/picture", "/register", "/session/activity"];
 
     if (!in_array($route, $routes, true)) {
         return false;
@@ -60,6 +60,12 @@ function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
         ]);
     }
 
+    if ($route === "/csrf") {
+        $method === "GET" && (new AuthController($pdo))->csrf();
+
+        Response::json(405, ["error" => "Methode non autorisee"]);
+    }
+
     if ($method !== "POST") {
         Response::json(405, [
             "error" => "Methode non autorisee",
@@ -67,6 +73,10 @@ function dispatchAuthRoutes(string $path, string $method, PDO $pdo): bool
     }
 
     $controller = new AuthController($pdo);
+
+    if ($route === "/session/activity") {
+        $controller->activity();
+    }
 
     if ($route === "/register") {
         $controller->register();

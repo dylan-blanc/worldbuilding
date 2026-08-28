@@ -1,6 +1,6 @@
 <!--
   This view renders one protected moderation case per reported user page in AdminDashboard.
-  Lists follow GET /api/admin/moderation; case/report PATCH endpoints keep global and child decisions separate.
+  Lists follow GET /api/admin/moderation; case/report POST endpoints keep global and child decisions separate.
   The context accordion compares moderation_cases.reported_page_snapshot with current pages.pagecontent.
 -->
 <script setup lang="ts">
@@ -36,6 +36,7 @@ interface ModerationActionResponse {
 type ComparedVersion = "reported" | "current"
 
 const config = useRuntimeConfig()
+const apiFetch = useApi()
 const route = useRoute()
 const { resolveUrl: resolvePagePicture } = usePagePicture()
 const statuses: Array<{ value: ModerationStatus, label: string }> = [
@@ -224,7 +225,7 @@ async function executeModerationAction(
       ? `/admin/moderation/cases/${moderationCase.id}/dismiss`
       : `/admin/moderation/${report!.id}/${action === "dismiss-report" ? "dismiss" : "remove"}`
 
-    const response = await $fetch<ModerationActionResponse>(`${config.public.apiBase}${endpoint}`, {
+    const response = await apiFetch<ModerationActionResponse>(`${config.public.apiBase}${endpoint}`, {
       method: "POST",
       credentials: "include",
     })

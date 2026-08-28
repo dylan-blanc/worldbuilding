@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Reads and creates SQL users for authentication and authorization.
+ * Reads, creates and updates SQL users for authentication and profile flows.
  * AuthController and UserProfileController expose roles from these prepared queries,
  * while page/admin controllers call isAdmin() before allowing privileged operations.
  */
@@ -115,6 +115,19 @@ final class User
         }
 
         return $user;
+    }
+
+    public function updatePasswordHash(int $id, string $passwordHash): void
+    {
+        $statement = $this->pdo->prepare(
+            "UPDATE users
+            SET userpassword = :userpassword
+            WHERE id = :id"
+        );
+        $statement->execute([
+            ":id" => $id,
+            ":userpassword" => $passwordHash,
+        ]);
     }
 
     public function updateProfile(

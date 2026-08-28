@@ -22,6 +22,8 @@ const isMenuOpen = ref(false)
 const isDark = ref(false)
 const profilePicture = useState<string | null>("profile-picture", () => null)
 const userRole = useState<"user" | "admin" | null>("auth-role", () => null)
+const authenticated = useState<boolean | null>("auth-status", () => null)
+const { renewSession } = useSessionActivity()
 let removeSystemThemeListener: (() => void) | undefined
 const themePreference = useCookie<ThemePreference>("theme-preference", {
   default: () => null,
@@ -61,9 +63,11 @@ const loadProfile = async () => {
     })
     profilePicture.value = response.user.profil_picture
     userRole.value = response.user.roles
+    authenticated.value = true
   } catch {
     profilePicture.value = null
     userRole.value = null
+    authenticated.value = false
   }
 }
 
@@ -91,6 +95,7 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
         class="hidden shrink-0 items-center justify-center md:inline-flex"
         aria-label="Administration"
         title="Administration"
+        @click="renewSession"
       >
         <ShieldCheckIcon class="size-9" />
       </NuxtLink>
@@ -117,7 +122,7 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
       </form>
 
       <nav class="hidden items-center gap-8 md:flex" aria-label="Navigation principale">
-        <NuxtLink :to="pagesLinkPath" :aria-label="pagesLinkLabel" :title="pagesLinkLabel">
+        <NuxtLink :to="pagesLinkPath" :aria-label="pagesLinkLabel" :title="pagesLinkLabel" @click="renewSession">
           <HomeIcon v-if="isPersonalPage" class="size-9" />
           <BookOpenIcon v-else class="size-9" />
         </NuxtLink>
@@ -130,7 +135,7 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
         </button>
       </nav>
 
-      <NuxtLink to="/profil" class="shrink-0" aria-label="Profil">
+      <NuxtLink to="/profil" class="shrink-0" aria-label="Profil" @click="renewSession">
         <UserAvatar
           :picture="profilePicture"
           source="current-user"
@@ -160,7 +165,7 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
             v-if="isAdmin"
             to="/adminpanel"
             class="menu-action flex h-16 items-center justify-between border-2 px-3 text-left text-2xl"
-            @click="toggleMenu"
+            @click="toggleMenu(); renewSession()"
           >
             <span>Administration</span>
             <ShieldCheckIcon class="size-10" />
@@ -172,7 +177,7 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
           <NuxtLink
             :to="pagesLinkPath"
             class="menu-action flex h-16 items-center justify-between border-2 px-3 text-left text-2xl"
-            @click="toggleMenu"
+            @click="toggleMenu(); renewSession()"
           >
             <span>{{ pagesLinkLabel }}</span>
             <HomeIcon v-if="isPersonalPage" class="size-10" />

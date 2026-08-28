@@ -35,6 +35,7 @@ const pages = ref<PublicPage[]>([])
 const pending = ref(true)
 const errorMessage = ref("")
 const { resolveUrl: resolvePagePicture } = usePagePicture()
+const { renewSession } = useSessionActivity()
 
 function pagePicture(page: PublicPage): string | null {
   return resolvePagePicture(page.id, page.page_picture) || null
@@ -127,6 +128,7 @@ onMounted(() => {
           :to="`/pageresult/${page.id}`"
           class="block size-full focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-(--focus-color)"
           :aria-label="`Lire ${page.page_title}`"
+          @click="renewSession"
         >
           <img
             v-if="pagePicture(page)"

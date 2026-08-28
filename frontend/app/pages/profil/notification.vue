@@ -36,6 +36,7 @@ definePageMeta({
 })
 
 const config = useRuntimeConfig()
+const apiFetch = useApi()
 const notifications = ref<UserNotification[]>([])
 const unreadCount = ref(0)
 const loading = ref(true)
@@ -70,7 +71,7 @@ const markRead = async (notification: UserNotification) => {
   updatingId.value = notification.id
 
   try {
-    const response = await $fetch<{ notification: UserNotification }>(
+    const response = await apiFetch<{ notification: UserNotification }>(
       `${config.public.apiBase}/me/notifications/${notification.id}/read`,
       {
         method: "PATCH",

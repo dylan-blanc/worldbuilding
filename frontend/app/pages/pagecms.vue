@@ -25,6 +25,7 @@ type CreatedPageResponse = {
 const route = useRoute()
 const router = useRouter()
 const config = useRuntimeConfig()
+const apiFetch = useApi()
 const requestedPageId = Number(route.query.page)
 const pageId = ref<number | null>(Number.isInteger(requestedPageId) && requestedPageId > 0 ? requestedPageId : null)
 const currentView = ref<CmsView>(pageId.value ? "free" : "create")
@@ -66,7 +67,7 @@ const startFreeEdition = async () => {
   startError.value = ""
 
   try {
-    const response = await $fetch<CreatedPageResponse>(`${config.public.apiBase}/pages`, {
+    const response = await apiFetch<CreatedPageResponse>(`${config.public.apiBase}/pages`, {
       method: "POST",
       credentials: "include",
       body: {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Reads JSON, form and multipart request data for every PHP controller.
- * State-changing CMS endpoints also call requireSameOrigin before model SQL or MinIO operations.
+ * public/index.php calls requireMutationSecurity for every state-changing request before routing.
  * Production accepts its preferred HTTPS origin and a temporary HTTP fallback while TLS is provisioned.
  */
 final class Request
@@ -60,6 +60,20 @@ final class Request
 
         if ($origin === "" || !$originAllowed) {
             Response::error("Origine de la requete refusee", 403, "invalid_request_origin");
+        }
+    }
+
+    public static function requireMutationSecurity(): void
+    {
+        self::requireSameOrigin();
+        $providedToken = (string) ($_SERVER["HTTP_X_CSRF_TOKEN"] ?? "");
+
+        if ($providedToken === "" || !Session::hasIdentifierCookie()) {
+            Response::error("Token CSRF invalide", 403, "invalid_csrf_token");
+        }
+
+        if (!hash_equals(Session::csrfToken(), $providedToken)) {
+            Response::error("Token CSRF invalide", 403, "invalid_csrf_token");
         }
     }
 }
