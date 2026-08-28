@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Rejects deterministic download targets without contacting their server.
+ * Rejects file targets identified by their extension and protects internal application routes.
  * Draft saves, Tiptap inspection and publication all use this same policy through SafeLinkValidator.
  */
 final class LinkNavigationPolicy
@@ -27,21 +27,13 @@ final class LinkNavigationPolicy
     public function isDirectDownload(LinkTarget $target): bool
     {
         $decodedPath = $this->decodeRepeatedly($target->path);
-        $decodedQuery = $this->decodeRepeatedly($target->query);
         $extension = strtolower(pathinfo($decodedPath, PATHINFO_EXTENSION));
-        $downloadQuery = preg_match(
-            "/(?:^|[&;])(download|attachment|file|filename)(?:\[[^\]]*\])?(?:=|&|;|$)/i",
-            $decodedQuery
-        ) === 1;
-        $downloadPath = preg_match("#/(downloads?|attachments?)(?:/|$)#i", $decodedPath) === 1;
         $forbiddenInternalTarget = $target->isInternal()
             && (($extension !== "" && !in_array($extension, self::INTERNAL_HTML_EXTENSIONS, true))
                 || $this->isForbiddenInternalApiRoute($decodedPath));
 
         return $forbiddenInternalTarget
-            || ($extension !== "" && in_array($extension, self::DOWNLOAD_EXTENSIONS, true))
-            || $downloadQuery
-            || $downloadPath;
+            || ($extension !== "" && in_array($extension, self::DOWNLOAD_EXTENSIONS, true));
     }
 
     private function isForbiddenInternalApiRoute(string $path): bool

@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Validates CMS JSON before PageRevision writes it to page_revision or publishes it to pages.pagecontent.
  * PageController passes PUT /pages/{id}/draft and POST /pages/{id}/publish data through this allow-list.
- * Links use SafeLinkValidator locally for drafts and remotely for publication before JSON reaches SQL.
+ * PageController and PageRevision request remote link checks for draft saves and publication before JSON reaches SQL.
  */
 final class CmsContentValidator
 {

@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Handles page metadata, CMS drafts and publication for routes declared in routes/cms/pages.php.
  * GET /me/pages and POST /me/pages/{id}/settings read and update the authenticated owner's page cards and filters.
  * GET /pages/{id} reads pages.pagecontent and applies PageReadAccess using the SQL user role.
- * PUT /pages/{id}/draft validates frontend JSON then calls PageRevision, which writes page_revision through PDO.
+ * PUT /pages/{id}/draft validates frontend JSON and remote links, then writes page_revision through PageRevision.
  * POST /pages/{id}/publish validates metadata and remote links, then promotes JSON and publishes the page.
  * PUT /pages/{id}/metadata writes the owner-selected title and page_filters without changing CMS JSON.
  */
@@ -194,7 +194,7 @@ final class PageController
         }
 
         try {
-            $document = CmsContentValidator::validate($body["pagecontent"], $userId, $id);
+            $document = CmsContentValidator::validate($body["pagecontent"], $userId, $id, true);
             $content = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
             $revision = $this->revisions->saveDraft($id, $userId, $content);
         } catch (DomainException $exception) {
