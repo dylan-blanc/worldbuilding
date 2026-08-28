@@ -11,6 +11,10 @@ require_once __DIR__ . "/../vendor/autoload.php";
 $path = parse_url($_SERVER["REQUEST_URI"] ?? "/", PHP_URL_PATH) ?: "/";
 $method = $_SERVER["REQUEST_METHOD"] ?? "GET";
 
+if (in_array($method, ["POST", "PUT", "PATCH", "DELETE"], true)) {
+    Request::requireMutationSecurity();
+}
+
 if ($path === "/api" || $path === "/api/") {
     Response::json(200, [
         "status" => "ok",

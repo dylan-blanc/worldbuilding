@@ -12,7 +12,6 @@ declare(strict_types=1);
 final class UserProfileController
 {
     private const MAX_FIELD_LENGTH = 255;
-    private const MIN_PASSWORD_LENGTH = 8;
     private const OUTPUT_MIMES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
 
     private User $users;
@@ -36,6 +35,7 @@ final class UserProfileController
     {
         $userId = $this->authenticatedUserId();
         $user = $this->authenticatedUser($userId);
+        header("Cache-Control: private, no-store");
 
         Response::json(200, $this->profilePayload($user));
     }
@@ -56,12 +56,20 @@ final class UserProfileController
             || $newPassword !== ""
         );
 
-        if ($requiresPassword && ($currentPassword === "" || !password_verify($currentPassword, (string) $user["userpassword"]))) {
-            Response::error("Mot de passe actuel incorrect", 401, "invalid_current_password");
+        if ($requiresPassword) {
+            $normalizedCurrentPassword = PasswordPolicy::normalizeForVerification($currentPassword);
+            $currentPasswordValid = password_verify($normalizedCurrentPassword, (string) $user["userpassword"]);
+            $legacyCurrentPasswordValid = !$currentPasswordValid
+                && $normalizedCurrentPassword !== $currentPassword
+                && password_verify($currentPassword, (string) $user["userpassword"]);
+
+            if ($currentPassword === "" || (!$currentPasswordValid && !$legacyCurrentPasswordValid)) {
+                Response::error("Mot de passe actuel incorrect", 401, "invalid_current_password");
+            }
         }
 
         $this->validateIdentity($username, $email);
-        $newPassword !== "" && $this->validatePassword($newPassword);
+        $normalizedNewPassword = $newPassword === "" ? "" : PasswordPolicy::normalize($newPassword);
 
         if ($this->users->existsByUsernameOrEmailExceptId($username, $email, $userId)) {
             Response::error("Nom utilisateur ou email deja utilise", 409, "profile_identity_conflict");
@@ -78,7 +86,7 @@ final class UserProfileController
                 $userId,
                 $username,
                 $email,
-                $newPassword === "" ? null : password_hash($newPassword, PASSWORD_DEFAULT),
+                $normalizedNewPassword === "" ? null : PasswordPolicy::hash($normalizedNewPassword),
                 $profilePicture
             );
         } catch (PDOException $exception) {
@@ -146,22 +154,6 @@ final class UserProfileController
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Response::error("Email invalide", 422, "invalid_profile_email");
-        }
-    }
-
-    private function validatePassword(string $password): void
-    {
-        if (
-            strlen($password) < self::MIN_PASSWORD_LENGTH
-            || preg_match("/[A-Z]/", $password) !== 1
-            || preg_match("/[0-9]/", $password) !== 1
-            || preg_match("/[^A-Za-z0-9\s]/", $password) !== 1
-        ) {
-            Response::error(
-                "Le mot de passe doit contenir au moins 8 caracteres, une majuscule, un chiffre et un caractere special",
-                422,
-                "invalid_profile_password"
-            );
         }
     }
 
@@ -238,6 +230,8 @@ final class UserProfileController
         if ($userId === null) {
             Response::error("Non authentifie", 401, "authentication_required");
         }
+
+        Session::renewForMutation();
 
         return $userId;
     }

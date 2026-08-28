@@ -1,5 +1,6 @@
 # Orchestrates production services with file-backed Docker secrets and persistent data.
 # MinIO remains internal to the application network while its console is bound to localhost.
+# Builds and runs the production SSG frontend, PHP API, TLS proxy, MySQL and private object storage services.
 name: "${PROD_COMPOSE_PROJECT_NAME:-worldbuilding-prod}"
 
 services:
@@ -8,6 +9,7 @@ services:
       context: ./backend
       target: prod
     environment:
+      APP_ENV: "production"
       DB_HOST: db
       DB_PORT: 3306
       DB_NAME: "${PROD_MYSQL_DATABASE:-${MYSQL_DATABASE:-worldbuilding}}"

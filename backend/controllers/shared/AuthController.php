@@ -18,7 +18,9 @@ final class AuthController
     private const EMAIL_KEYS = ["useremail", "mail", "email"];
     private const PASSWORD_KEYS = ["userpassword", "password"];
     private const MAX_FIELD_LENGTH = 255;
-    private const MIN_PASSWORD_LENGTH = 8;
+    // used to simulate a password verification delay for non-existent users to mitigate timing attacks
+    // usefull for login attempts with non-existent emails to avoid revealing valid emails through timing differences
+    private const DUMMY_PASSWORD_HASH = "\$argon2id\$v=19\$m=19456,t=2,p=1\$ZkVLdDJLQ3ZxUGEwLm5vVg\$+n+Pd0tdKGMA/lId8b1TB6Y9EBhleo82i0+D+jthsks";
 
     private User $users;
 
@@ -32,7 +34,7 @@ final class AuthController
         $body = Request::body();
         $username = Request::field($body, self::USERNAME_KEYS);
         $email = strtolower(Request::field($body, self::EMAIL_KEYS));
-        $password = Request::field($body, self::PASSWORD_KEYS, false);
+        $password = PasswordPolicy::normalize(Request::field($body, self::PASSWORD_KEYS, false));
 
         $this->validateRegister($username, $email, $password);
 
@@ -41,7 +43,7 @@ final class AuthController
         }
 
         try {
-            $user = $this->users->create($username, $email, password_hash($password, PASSWORD_DEFAULT));
+            $user = $this->users->create($username, $email, PasswordPolicy::hash($password));
         } catch (PDOException $exception) {
             if ((int) ($exception->errorInfo[1] ?? 0) === 1062) {
                 Response::error("Nom utilisateur ou email deja utilise", 409);
@@ -59,9 +61,9 @@ final class AuthController
     {
         $body = Request::body();
         $email = strtolower(Request::field($body, self::EMAIL_KEYS));
-        $password = Request::field($body, self::PASSWORD_KEYS, false);
+        $rawPassword = Request::field($body, self::PASSWORD_KEYS, false);
 
-        if ($email === "" || $password === "") {
+        if ($email === "" || $rawPassword === "") {
             Response::error("Email et mot de passe requis", 422);
         }
 
@@ -70,9 +72,20 @@ final class AuthController
         }
 
         $user = $this->users->findByEmail($email);
+        $normalizedPassword = PasswordPolicy::normalizeForVerification($rawPassword);
 
-        if ($user === null || !password_verify($password, (string) $user["userpassword"])) {
+        $storedHash = (string) ($user["userpassword"] ?? self::DUMMY_PASSWORD_HASH);
+        $passwordValid = password_verify($normalizedPassword, $storedHash);
+        $legacyPasswordValid = !$passwordValid
+            && $normalizedPassword !== $rawPassword
+            && password_verify($rawPassword, $storedHash);
+
+        if ($user === null || (!$passwordValid && !$legacyPasswordValid)) {
             Response::error("Identifiants invalides", 401);
+        }
+
+        if (password_needs_rehash($storedHash, PASSWORD_ARGON2ID, PasswordPolicy::ARGON_OPTIONS)) {
+            $this->users->updatePasswordHash((int) $user["id"], PasswordPolicy::hash($normalizedPassword));
         }
 
         $this->respondWithSession("Connexion reussie", $user, 200);
@@ -81,10 +94,28 @@ final class AuthController
     public function logout(): void
     {
         Session::logout();
+        header("Cache-Control: no-store");
 
         Response::json(200, [
             "message" => "Deconnexion reussie",
         ]);
+    }
+
+    public function csrf(): void
+    {
+        header("Cache-Control: no-store");
+        Response::json(200, [
+            "csrf_token" => Session::csrfToken(),
+        ]);
+    }
+
+    public function activity(): void
+    {
+        if (!Session::renewAuthenticated()) {
+            Response::error("Non authentifie", 401, "authentication_required");
+        }
+
+        Response::noContent();
     }
 
     public function adminAccess(): void
@@ -111,20 +142,12 @@ final class AuthController
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Response::error("Email invalide", 422);
         }
-
-        if (
-            strlen($password) < self::MIN_PASSWORD_LENGTH
-            || preg_match("/[A-Z]/", $password) !== 1
-            || preg_match("/[0-9]/", $password) !== 1
-            || preg_match("/[^A-Za-z0-9\s]/", $password) !== 1
-        ) {
-            Response::error("Le mot de passe doit contenir au moins 8 caracteres, une majuscule, un chiffre et un caractere special", 422);
-        }
     }
 
     private function respondWithSession(string $message, array $user, int $status): void
     {
         Session::login($user);
+        header("Cache-Control: no-store");
 
         Response::json($status, [
             "message" => $message,
