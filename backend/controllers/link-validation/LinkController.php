@@ -17,6 +17,8 @@ final class LinkController
             Response::error("Non authentifie", 401, "authentication_required");
         }
 
+        Session::renewForMutation();
+
         $body = Request::body();
         $url = Request::field($body, ["url"]);
 

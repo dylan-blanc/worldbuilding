@@ -296,6 +296,8 @@ final class PageMediaController
             Response::error("Non authentifie", 401, "authentication_required");
         }
 
+        Session::renewForMutation();
+
         return $userId;
     }
 }

@@ -183,6 +183,8 @@ final class AdminModerationController
             Response::error("Acces refuse", 403, "access_denied");
         }
 
+        Session::renewForMutation();
+
         return $userId;
     }
 
