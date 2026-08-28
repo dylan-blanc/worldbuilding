@@ -20,9 +20,10 @@ type InspectionResponse = {
 
 export const useSafeLink = () => {
   const config = useRuntimeConfig()
+  const apiFetch = useApi()
 
   const inspect = async (url: string) => {
-    const response = await $fetch<InspectionResponse>(`${config.public.apiBase}/links/inspect`, {
+    const response = await apiFetch<InspectionResponse>(`${config.public.apiBase}/links/inspect`, {
       method: "POST",
       credentials: "include",
       body: { url },

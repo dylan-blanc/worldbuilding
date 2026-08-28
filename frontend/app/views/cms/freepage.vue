@@ -69,6 +69,7 @@ const emit = defineEmits<{
 }>();
 
 const config = useRuntimeConfig();
+const apiFetch = useApi();
 const router = useRouter();
 const publishDialog = ref<HTMLElement>();
 const isLoaded = ref(false);
@@ -494,7 +495,7 @@ const loadDraft = async () => {
   errorMessage.value = "";
 
   try {
-    const response = await $fetch<DraftResponse>(
+    const response = await apiFetch<DraftResponse>(
       `${config.public.apiBase}/pages/${props.pageId}/draft`,
       {
         credentials: "include",
@@ -545,7 +546,7 @@ const saveDraft = async (): Promise<boolean> => {
   statusMessage.value = "Enregistrement…";
 
   try {
-    const response = await $fetch<DraftResponse>(
+    const response = await apiFetch<DraftResponse>(
       `${config.public.apiBase}/pages/${props.pageId}/draft`,
       {
         method: "PUT",
@@ -607,7 +608,7 @@ const publish = async () => {
       return;
     }
 
-    await $fetch(`${config.public.apiBase}/pages/${props.pageId}/publish`, {
+    await apiFetch(`${config.public.apiBase}/pages/${props.pageId}/publish`, {
       method: "POST",
       credentials: "include",
       body: {
@@ -951,7 +952,7 @@ const uploadMedia = async (
   errorMessage.value = "";
 
   try {
-    const response = await $fetch<MediaResponse>(
+    const response = await apiFetch<MediaResponse>(
       `${config.public.apiBase}/pages/${props.pageId}/media`,
       {
         method: "POST",

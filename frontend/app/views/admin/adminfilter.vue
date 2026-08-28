@@ -20,6 +20,7 @@ interface FilterMutationResponse {
 }
 
 const config = useRuntimeConfig()
+const apiFetch = useApi()
 const filters = ref<AdminFilter[]>([])
 const loading = ref(true)
 const creating = ref(false)
@@ -107,7 +108,7 @@ const createFilter = async (
   successMessage.value = ""
 
   try {
-    await $fetch<FilterMutationResponse>(`${config.public.apiBase}/admin/filters`, {
+    await apiFetch<FilterMutationResponse>(`${config.public.apiBase}/admin/filters`, {
       method: "POST",
       credentials: "include",
       body: {
@@ -139,7 +140,7 @@ const moveFilter = async (
   successMessage.value = ""
 
   try {
-    await $fetch<FilterMutationResponse>(`${config.public.apiBase}/admin/filters/${filter.id}`, {
+    await apiFetch<FilterMutationResponse>(`${config.public.apiBase}/admin/filters/${filter.id}`, {
       method: "PATCH",
       credentials: "include",
       body: {
@@ -177,7 +178,7 @@ const deleteFilter = async (): Promise<void> => {
   successMessage.value = ""
 
   try {
-    await $fetch(`${config.public.apiBase}/admin/filters/${filterToDelete.value.id}`, {
+    await apiFetch(`${config.public.apiBase}/admin/filters/${filterToDelete.value.id}`, {
       method: "DELETE",
       credentials: "include",
     })

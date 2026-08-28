@@ -47,6 +47,7 @@ function errorDetails(error: unknown): { message: string, status: number } {
 
 export function useModerationReport() {
   const config = useRuntimeConfig()
+  const apiFetch = useApi()
   const sharedFilters = useState<ModerationFilter[]>("moderation-report-filters", () => [])
   const sharedFiltersPending = useState<boolean>("moderation-report-filters-pending", () => false)
   const target = ref<ModerationReportTarget | null>(null)
@@ -134,7 +135,7 @@ export function useModerationReport() {
     error.value = ""
 
     try {
-      const response = await $fetch<{ message: string }>(
+      const response = await apiFetch<{ message: string }>(
         `${config.public.apiBase}/pages/${target.value.pageId}/reports`,
         {
           method: "POST",

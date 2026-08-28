@@ -20,6 +20,7 @@ type OwnedPageResponse = {
 }
 
 const config = useRuntimeConfig()
+const apiFetch = useApi()
 const pages = ref<OwnedPage[]>([])
 const pending = ref(true)
 const loaded = ref(false)
@@ -85,7 +86,7 @@ async function saveOwnedPageSettings(
   delete pageMessages[id]
 
   try {
-    const response = await $fetch<OwnedPageResponse>(
+    const response = await apiFetch<OwnedPageResponse>(
       `${config.public.apiBase}/me/pages/${id}/settings`,
       {
         method: "POST",
@@ -129,7 +130,7 @@ async function uploadPagePicture(payload: { pageId: number, event: Event }): Pro
   delete pageMessages[pageId]
 
   try {
-    const response = await $fetch<OwnedPageResponse>(`${config.public.apiBase}/pages/${pageId}/picture`, {
+    const response = await apiFetch<OwnedPageResponse>(`${config.public.apiBase}/pages/${pageId}/picture`, {
       method: "POST",
       credentials: "include",
       body: formData,
