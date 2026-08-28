@@ -65,7 +65,7 @@ final class RemoteContentInspector
 
                 if ($status < 200 || $status >= 300) {
                     $response->getBody()->close();
-                    throw new DomainException("Le site distant a refuse la verification du lien");
+                    throw new DomainException("Un ou plusieurs liens sont invalide");
                 }
 
                 return $this->inspectFinalResponse(
