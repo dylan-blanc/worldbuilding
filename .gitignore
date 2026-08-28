@@ -64,3 +64,5 @@ backend/tests/
 tutoPreCommit.md
 
 backend/db/migrations/20260722_create_page_revision.sql
+
+backend/tests/
