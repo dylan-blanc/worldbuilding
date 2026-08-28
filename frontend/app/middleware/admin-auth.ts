@@ -9,6 +9,7 @@ export default defineNuxtRouteMiddleware(async () => {
   const config = useRuntimeConfig()
   const userRole = useState<"user" | "admin" | null>("auth-role", () => null)
   const profilePicture = useState<string | null>("profile-picture", () => null)
+  const authenticated = useState<boolean | null>("auth-status", () => null)
 
   try {
     const response = await $fetch<{
@@ -22,11 +23,13 @@ export default defineNuxtRouteMiddleware(async () => {
 
     userRole.value = response.user.roles
     profilePicture.value = response.user.profil_picture
+    authenticated.value = true
 
     if (response.user.roles === "admin") return
   } catch {
     userRole.value = null
     profilePicture.value = null
+    authenticated.value = false
   }
 
   return navigateTo("/")

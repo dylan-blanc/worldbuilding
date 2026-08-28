@@ -7,8 +7,6 @@
 -->
 <script setup lang="ts">
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}$/
-
 interface ProfileUser {
   id: number
   username: string
@@ -39,6 +37,8 @@ interface NotificationCountResponse {
 }
 
 const config = useRuntimeConfig()
+const apiFetch = useApi()
+const authenticated = useState<boolean | null>("auth-status", () => null)
 const sharedProfilePicture = useState<string | null>("profile-picture", () => null)
 const sharedUserRole = useState<"user" | "admin" | null>("auth-role", () => null)
 const username = ref("")
@@ -58,6 +58,7 @@ const logoutPending = ref(false)
 const submitted = ref(false)
 const currentPasswordSubmitted = ref(false)
 const showCurrentPassword = ref(false)
+const revealPasswords = ref(false)
 const errorMessage = ref("")
 const successMessage = ref("")
 const unreadNotificationCount = ref(0)
@@ -75,16 +76,20 @@ const emailError = computed(() => {
 const newPasswordError = computed(() => {
   if (newPassword.value === "") return ""
 
-  return PASSWORD_PATTERN.test(newPassword.value)
+  const length = Array.from(newPassword.value.normalize("NFC")).length
+
+  return length >= 15 && length <= 64
     ? ""
-    : "Utilisez au moins 8 caractères, une majuscule, un chiffre et un caractère spécial"
+    : "Utilisez entre 15 et 64 caractères"
 })
 
 const confirmPasswordError = computed(() => {
   if (newPassword.value === "" && confirmPassword.value === "") return ""
   if (confirmPassword.value === "") return submitted.value ? "Confirmez le nouveau mot de passe" : ""
 
-  return newPassword.value === confirmPassword.value ? "" : "Les mots de passe ne correspondent pas"
+  return newPassword.value.normalize("NFC") === confirmPassword.value.normalize("NFC")
+    ? ""
+    : "Les mots de passe ne correspondent pas"
 })
 
 const hasProtectedChanges = computed(() => {
@@ -122,6 +127,7 @@ const applyProfile = (response: ProfileResponse) => {
   selectedPicture.value = response.user.profil_picture || ""
   sharedProfilePicture.value = response.user.profil_picture
   sharedUserRole.value = response.user.roles
+  authenticated.value = true
 }
 
 const loadProfile = async () => {
@@ -141,6 +147,7 @@ const loadProfile = async () => {
     applyProfile(response)
     unreadNotificationCount.value = Number(notificationCount.unread_count) || 0
   } catch (error) {
+    authenticated.value = false
     errorMessage.value = errorText(error, "Chargement du profil impossible")
   } finally {
     loading.value = false
@@ -206,7 +213,7 @@ const saveProfile = async () => {
   pending.value = true
 
   try {
-    const response = await $fetch<ProfileResponse>(`${config.public.apiBase}/me`, {
+    const response = await apiFetch<ProfileResponse>(`${config.public.apiBase}/me`, {
       method: "POST",
       credentials: "include",
       body: formData,
@@ -223,7 +230,6 @@ const saveProfile = async () => {
     currentPasswordSubmitted.value = false
     showCurrentPassword.value = false
     successMessage.value = response.message || "Profil mis à jour"
-    localStorage.setItem("auth_user", JSON.stringify(response.user))
   } catch (error) {
     errorMessage.value = errorText(error, "Enregistrement du profil impossible")
   } finally {
@@ -236,12 +242,12 @@ const logout = async () => {
   errorMessage.value = ""
 
   try {
-    await $fetch(`${config.public.apiBase}/logout`, {
+    await apiFetch(`${config.public.apiBase}/logout`, {
       method: "POST",
       credentials: "include",
     })
 
-    localStorage.removeItem("auth_user")
+    authenticated.value = false
     sharedProfilePicture.value = null
     sharedUserRole.value = null
     await navigateTo("/")
@@ -335,20 +341,24 @@ onBeforeUnmount(clearLocalPreview)
 
               <div>
                 <label for="profile-password" class="secondary-color block text-sm font-medium">Nouveau mot de passe</label>
-                <input id="profile-password" v-model="newPassword" type="password" placeholder="********" autocomplete="new-password" :aria-invalid="Boolean(newPasswordError)" aria-describedby="profile-password-error" class="form-control mt-1 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2" />
+                <input id="profile-password" v-model="newPassword" :type="revealPasswords ? 'text' : 'password'" placeholder="********" autocomplete="new-password" :aria-invalid="Boolean(newPasswordError)" aria-describedby="profile-password-error" class="form-control mt-1 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2" />
                 <p id="profile-password-error" class="error-color mt-1 text-sm" aria-live="polite">{{ newPasswordError }}</p>
               </div>
 
               <div>
                 <label for="profile-password-confirmation" class="secondary-color block text-sm font-medium">Confirmer le nouveau mot de passe</label>
-                <input id="profile-password-confirmation" v-model="confirmPassword" type="password" placeholder="********" autocomplete="new-password" :aria-invalid="Boolean(confirmPasswordError)" aria-describedby="profile-password-confirmation-error" class="form-control mt-1 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2" />
+                <input id="profile-password-confirmation" v-model="confirmPassword" :type="revealPasswords ? 'text' : 'password'" placeholder="********" autocomplete="new-password" :aria-invalid="Boolean(confirmPasswordError)" aria-describedby="profile-password-confirmation-error" class="form-control mt-1 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2" />
                 <p id="profile-password-confirmation-error" class="error-color mt-1 text-sm" aria-live="polite">{{ confirmPasswordError }}</p>
               </div>
             </div>
 
+            <button type="button" class="secondary-color mt-3 text-sm underline" @click="revealPasswords = !revealPasswords">
+              {{ revealPasswords ? "Masquer les mots de passe" : "Afficher les mots de passe" }}
+            </button>
+
             <div v-if="showCurrentPassword && hasProtectedChanges" class="primary-border mt-6 border-t pt-6">
               <label for="current-password" class="secondary-color block text-sm font-medium">Mot de passe actuel requis pour enregistrer</label>
-              <input id="current-password" ref="currentPasswordInput" v-model="currentPassword" type="password" autocomplete="current-password" :aria-invalid="Boolean(currentPasswordError)" aria-describedby="current-password-error" class="form-control mt-1 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2" />
+              <input id="current-password" ref="currentPasswordInput" v-model="currentPassword" :type="revealPasswords ? 'text' : 'password'" autocomplete="current-password" :aria-invalid="Boolean(currentPasswordError)" aria-describedby="current-password-error" class="form-control mt-1 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2" />
               <p id="current-password-error" class="error-color mt-1 text-sm" aria-live="polite">{{ currentPasswordError }}</p>
             </div>
 

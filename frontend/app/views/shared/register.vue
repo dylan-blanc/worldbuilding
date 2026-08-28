@@ -6,13 +6,16 @@
 -->
 <script setup lang="ts">
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PASSWORD_PATTERN = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}$/
-
 const config = useRuntimeConfig()
+const apiFetch = useApi()
+const authenticated = useState<boolean | null>("auth-status", () => null)
+const profilePicture = useState<string | null>("profile-picture", () => null)
+const userRole = useState<"user" | "admin" | null>("auth-role", () => null)
 const username = ref("")
 const email = ref("")
 const password = ref("")
 const confirmPassword = ref("")
+const revealPasswords = ref(false)
 const error = ref("")
 const success = ref("")
 const pending = ref(false)
@@ -31,15 +34,19 @@ const emailError = computed(() => {
 const passwordError = computed(() => {
   if (password.value === "") return submitted.value ? "Le mot de passe est requis" : ""
 
-  return PASSWORD_PATTERN.test(password.value)
+  const length = Array.from(password.value.normalize("NFC")).length
+
+  return length >= 15 && length <= 64
     ? ""
-    : "Utilisez au moins 8 caractères, une majuscule, un chiffre et un caractère spécial"
+    : "Utilisez entre 15 et 64 caractères"
 })
 
 const confirmPasswordError = computed(() => {
   if (confirmPassword.value === "") return submitted.value ? "Confirmez le mot de passe" : ""
 
-  return password.value === confirmPassword.value ? "" : "Les mots de passe ne correspondent pas"
+  return password.value.normalize("NFC") === confirmPassword.value.normalize("NFC")
+    ? ""
+    : "Les mots de passe ne correspondent pas"
 })
 
 const errorText = (exception: unknown): string => {
@@ -58,11 +65,13 @@ const handleRegister = async () => {
   pending.value = true
 
   try {
-    const response = await $fetch<{
+    const response = await apiFetch<{
       user: {
         id: number
         username: string
         useremail: string
+        profil_picture: string | null
+        roles: "user" | "admin"
       }
     }>(`${config.public.apiBase}/register`, {
       method: "POST",
@@ -74,8 +83,9 @@ const handleRegister = async () => {
       },
     })
 
-    localStorage.removeItem("auth_token")
-    localStorage.setItem("auth_user", JSON.stringify(response.user))
+    authenticated.value = true
+    profilePicture.value = response.user.profil_picture
+    userRole.value = response.user.roles
     success.value = "Compte cree"
     await navigateTo("/")
   } catch (exception) {
@@ -109,14 +119,18 @@ const handleRegister = async () => {
 
           <div>
             <label for="register-password" class="secondary-color block text-sm font-medium">Mot de passe</label>
-            <input id="register-password" v-model="password" type="password" name="password" required autocomplete="new-password" :aria-invalid="Boolean(passwordError)" aria-describedby="register-password-error" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="register-password" v-model="password" :type="revealPasswords ? 'text' : 'password'" name="password" required autocomplete="new-password" :aria-invalid="Boolean(passwordError)" aria-describedby="register-password-error" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
             <p v-if="passwordError" id="register-password-error" class="error-color mt-1 text-sm" aria-live="polite">{{ passwordError }}</p>
           </div>
           <div>
             <label for="confirm-password" class="secondary-color block text-sm font-medium">Confirmer le mot de passe</label>
-            <input id="confirm-password" v-model="confirmPassword" type="password" name="confirm-password" required autocomplete="new-password" :aria-invalid="Boolean(confirmPasswordError)" aria-describedby="confirm-password-error" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="confirm-password" v-model="confirmPassword" :type="revealPasswords ? 'text' : 'password'" name="confirm-password" required autocomplete="new-password" :aria-invalid="Boolean(confirmPasswordError)" aria-describedby="confirm-password-error" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
             <p v-if="confirmPasswordError" id="confirm-password-error" class="error-color mt-1 text-sm" aria-live="polite">{{ confirmPasswordError }}</p>
           </div>
+
+          <button type="button" class="secondary-color self-start text-sm underline" @click="revealPasswords = !revealPasswords">
+            {{ revealPasswords ? "Masquer les mots de passe" : "Afficher les mots de passe" }}
+          </button>
 
           <p v-if="error" class="error-color text-sm font-medium" role="alert">{{ error }}</p>
           <p v-if="success" class="success-color text-sm font-medium">{{ success }}</p>
