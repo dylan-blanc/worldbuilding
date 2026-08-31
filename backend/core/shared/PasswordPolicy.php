@@ -56,7 +56,7 @@ final class PasswordPolicy
         $hash = password_hash($normalizedPassword, PASSWORD_ARGON2ID, self::ARGON_OPTIONS);
 
         if (!is_string($hash)) {
-            throw new RuntimeException("Echec du hachage Argon2id");
+            throw new RuntimeException("Echec du hachage");
         }
 
         return $hash;
