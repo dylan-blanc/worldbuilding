@@ -8,15 +8,18 @@
   --primary-background: #ffffff;
   --secondary-background: #e4edf8;
   --third-background: #cbd9ea;
-  --primary-border: #9eb2ca;
+  --primary-border: #000000;
   --accent-color: #0b3b75;
   --accent-hover-color: #072d5a;
-  --focus-color: #2563eb;
+  --focus-color: #000000;
   --error-color: #b42318;
   --success-color: #067647;
   --warning-color: #ff0000;
   --notification-color: #facc15;
   --notification-contrast-color: #1c1917;
+  --button-primary-background: #000000;
+  --button-primary-color: #ffffff;
+
 }
 
 html.theme-dark {
@@ -28,13 +31,17 @@ html.theme-dark {
   --secondary-background: #10233d;
   --third-background: #19314f;
   --primary-border: #385779;
+  --button-primary-background: #fff;
   --accent-color: #4c8fdc;
+  --accent-colorblack: #000000;
   --accent-hover-color: #77adf0;
-  --focus-color: #93c5fd;
+  --focus-color: #fff;
   --error-color: #fda29b;
   --success-color: #6ce9a6;
   --notification-color: #fde047;
   --notification-contrast-color: #1c1917;
+  --button-primary-color: #000000;
+
 }
 
 body {
@@ -68,8 +75,8 @@ body {
 }
 
 .button-primary {
-  background-color: var(--accent-color);
-  color: var(--primary-background);
+  background-color: var(--button-primary-background);
+  color: var(--button-primary-color);
 }
 
 .button-primary:hover { background-color: var(--accent-hover-color); }

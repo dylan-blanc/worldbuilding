@@ -233,7 +233,7 @@ onMounted(async () => {
 
 <template>
   <form
-    class="primary-background primary-border grid w-full gap-5 rounded-md border p-4 shadow-sm"
+    class="primary-background primary-border grid w-full gap-5 rounded-md p-4 shadow-sm"
     @submit.prevent="applyFilters"
   >
     <div class="grid gap-4 md:grid-cols-3">
@@ -243,11 +243,11 @@ onMounted(async () => {
         :for="`filter-${field.id}`"
         class="flex min-w-0 flex-col gap-2"
       >
-        <span class="primary-color text-base font-medium">{{ field.label }}</span>
+        <span class="primary-color text-base font-bold">{{ field.label }}</span>
         <select
           :id="`filter-${field.id}`"
           v-model="selectedFilters[field.id]"
-          class="form-control h-11 w-full rounded-sm border px-3 text-sm outline-none transition focus:ring-2"
+          class="form-control h-11 w-full rounded-sm border-2 px-3 text-sm outline-none transition focus:ring-2 font-semibold"
         >
           <option value="">{{ field.placeholder }}</option>
           <option
@@ -278,7 +278,7 @@ onMounted(async () => {
         </button>
         <button
           type="button"
-          class="form-control min-h-11 rounded-md border px-4 text-sm font-medium uppercase transition focus:outline-none focus:ring-2"
+          class="form-control min-h-11 rounded-md border-2 px-4 text-sm font-medium uppercase transition focus:outline-none focus:ring-2"
           @click="resetFilters"
         >
           Reinitialiser
@@ -290,7 +290,7 @@ onMounted(async () => {
           v-for="sortOption in sortOptions"
           :key="sortOption.id"
           type="button"
-          class="relative flex size-12 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2"
+          class="relative flex size-12 items-center justify-center rounded-md border-2 transition focus:outline-none focus:ring-2"
           :class="selectedSort.by === sortOption.id ? 'button-primary' : 'form-control'"
           :title="sortLabel(sortOption.id, sortOption.label)"
           :aria-label="sortLabel(sortOption.id, sortOption.label)"
@@ -308,7 +308,7 @@ onMounted(async () => {
 
         <button
           type="button"
-          class="flex size-12 items-center justify-center rounded-md border transition focus:outline-none focus:ring-2"
+          class="flex size-12 items-center justify-center rounded-md border-2 transition focus:outline-none focus:ring-2"
           :class="favoritesOnly ? 'button-primary' : 'form-control'"
           :title="favoritesOnly ? 'Afficher toutes les pages' : 'Afficher mes favoris'"
           :aria-label="favoritesOnly ? 'Afficher toutes les pages' : 'Afficher mes favoris'"
