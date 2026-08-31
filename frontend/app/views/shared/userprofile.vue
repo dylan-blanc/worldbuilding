@@ -2,10 +2,12 @@
   This view manages the authenticated profile displayed by app/pages/profil.vue.
   Loading follows frontend -> GET /api/me -> UserProfileController::show()
   -> User/UserProfil prepared SQL and MinIO listing -> profile response -> UserAvatar/useProfilePicture.
-  Saving follows multipart POST /api/me -> current-password verification -> optional MinIO upload
+  Saving follows multipart POST /api/me -> current-password verification -> default detected-type normalization and MinIO upload
   -> User::updateProfile() prepared SQL -> refreshed profile response.
 -->
 <script setup lang="ts">
+import NormalizeImageCheckbox from "~/components/shared/normalizeimagecheckbox.vue"
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 interface ProfileUser {
   id: number
@@ -49,6 +51,7 @@ const currentPassword = ref("")
 const selectedPicture = ref("")
 const profileFile = ref<File | null>(null)
 const profileInput = ref<HTMLInputElement | null>(null)
+const normalizeImageType = ref(true)
 const localPreview = ref("")
 const profile = ref<ProfileResponse | null>(null)
 const currentPasswordInput = ref<HTMLInputElement | null>(null)
@@ -209,6 +212,7 @@ const saveProfile = async () => {
   formData.append("current_password", currentPassword.value)
   formData.append("new_password", newPassword.value)
   formData.append("selected_picture", selectedPicture.value)
+  formData.append("normalize_image_type", normalizeImageType.value ? "1" : "0")
   profileFile.value && formData.append("profile_picture", profileFile.value)
   pending.value = true
 
@@ -221,6 +225,7 @@ const saveProfile = async () => {
 
     clearLocalPreview()
     profileFile.value = null
+    normalizeImageType.value = true
     profileInput.value && (profileInput.value.value = "")
     applyProfile(response)
     currentPassword.value = ""
@@ -387,6 +392,7 @@ onBeforeUnmount(clearLocalPreview)
               Choisir une nouvelle image
             </label>
             <input id="profile-picture" ref="profileInput" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif" class="sr-only" @change="selectUploadedFile" />
+            <NormalizeImageCheckbox v-model="normalizeImageType" class="mt-4" :disabled="pending" />
             <p class="secondary-color mt-2 text-center text-xs">JPEG, PNG, WebP, AVIF ou GIF · 10 Mo maximum</p>
 
             <div v-if="profile.profile_pictures.length" class="primary-border mt-6 border-t pt-5">

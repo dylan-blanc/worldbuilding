@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 /**
  * Handles secure CMS media uploads and authorized inline reads through MinIO.
- * POST /pages/{id}/media follows frontend multipart -> PHP validation/re-encoding -> MinIO putObject -> JSON objectKey.
- * POST/GET /pages/{id}/picture stores and streams MinIO-only page presentation images while preserving legacy URLs.
+ * POST /pages/{id}/media follows frontend multipart -> default detected-type normalization -> PHP validation/re-encoding -> MinIO putObject -> JSON objectKey.
+ * POST/GET /pages/{id}/picture applies the same default normalization and stores or streams MinIO-only presentation images.
  * GET /pages/{id}/media applies PageReadAccess and the SQL user role before streaming MinIO bytes with nosniff headers.
  * GET /pages/{id}/owner-picture resolves the current non-anonymous owner picture through Page/User SQL, then MinIO.
  */
@@ -48,7 +48,12 @@ final class PageMediaController
         }
 
         try {
-            $media = MediaUploadValidator::validate($_FILES["file"] ?? [], Request::field($_POST, ["media_type"]));
+            $media = MediaUploadValidator::validate(
+                $_FILES["file"] ?? [],
+                Request::field($_POST, ["media_type"]),
+                !array_key_exists("normalize_image_type", $_POST)
+                    || Request::field($_POST, ["normalize_image_type"]) === "1",
+            );
             $objectKey = $userId . "/pages/" . $pageId . "/" . $media["category"] . "/" . bin2hex(random_bytes(16)) . "." . $media["extension"];
             $this->storage->upload($objectKey, $media);
         } catch (DomainException $exception) {
@@ -146,7 +151,12 @@ final class PageMediaController
         }
 
         try {
-            $media = MediaUploadValidator::validate($_FILES["file"] ?? [], "image");
+            $media = MediaUploadValidator::validate(
+                $_FILES["file"] ?? [],
+                "image",
+                !array_key_exists("normalize_image_type", $_POST)
+                    || Request::field($_POST, ["normalize_image_type"]) === "1",
+            );
             $objectKey = $userId . "/pages/" . $pageId . "/images/" . bin2hex(random_bytes(16)) . "." . $media["extension"];
             $this->storage->upload($objectKey, $media);
             $updatedPage = $this->pages->updatePicture($pageId, $userId, $objectKey);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Validates multipart CMS and profile media before controllers stream it to MinIO.
  * Media POST endpoints pass PHP's temporary upload through size, extension, Fileinfo, signature and image decoding checks.
+ * Default-enabled image normalization accepts a mismatched safe extension, then uses the detected MIME for the MinIO key and GD output.
  * Images are re-encoded with GD to remove appended payloads; videos remain temporary files and are never executed locally.
  */
 final class MediaUploadValidator
@@ -29,7 +30,7 @@ final class MediaUploadValidator
         "exe", "cmd", "bat", "com", "msi", "ps1", "sh", "scr", "jar", "php", "phtml", "phar", "js", "vbs",
     ];
 
-    public static function validate(array $file, string $requestedType): array
+    public static function validate(array $file, string $requestedType, bool $normalizeImageType = true): array
     {
         self::validateUploadEnvelope($file);
 
@@ -63,7 +64,9 @@ final class MediaUploadValidator
 
         $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
-        if (!in_array($extension, $configuration["extensions"], true)) {
+        if (!in_array($extension, $configuration["extensions"], true)
+            && ($requestedType !== "image" || !$normalizeImageType)
+        ) {
             throw new DomainException("L'extension du fichier ne correspond pas a son contenu");
         }
 

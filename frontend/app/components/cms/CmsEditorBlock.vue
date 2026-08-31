@@ -2,6 +2,7 @@
   This component renders the editable chrome and content of one Freepage CMS block.
   Freepage supplies media URLs and handles deletion/upload; new image uploads also lock their grid item to the natural media ratio.
   Image controls overlay the media so the image occupies the same complete block area as the published CmsResultBlock output.
+  Image upload states expose a default-enabled detected-type normalization flag to Freepage and POST /pages/{id}/media.
   Text changes flow through CmsTextBlockEditor into the draft JSON.
   Section blocks expose a slot where Freepage mounts their nested Grid Layout Plus container.
   Blocks marked moderationRemoved render CmsBannedResult so owners can replace content without losing layout.
@@ -13,6 +14,7 @@ import {
   PlayCircleIcon,
   TrashIcon,
 } from "@heroicons/vue/24/outline"
+import NormalizeImageCheckbox from "~/components/shared/normalizeimagecheckbox.vue"
 import type { CmsBlock, CmsJsonValue } from "~/types/cms/cms"
 
 const props = defineProps<{
@@ -24,7 +26,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   remove: [blockId: string]
-  uploadMedia: [blockId: string, event: Event]
+  uploadMedia: [blockId: string, event: Event, normalizeImageType: boolean]
   updateContent: [blockId: string, value: CmsJsonValue]
   historyBoundary: []
 }>()
@@ -33,6 +35,7 @@ const label = computed(() => String(props.block.props.label || "Bloc"))
 const objectKey = computed(() => String(props.block.props.objectKey || ""))
 const moderationRemoved = computed(() => props.block.props.moderationRemoved === true)
 const isImageMedia = computed(() => ["image", "banner", "gallery"].includes(props.block.type))
+const normalizeImageType = ref(true)
 const numericProperty = (value: CmsJsonValue | undefined) => (
   typeof value === "number" || typeof value === "string"
     ? Number(value) || undefined
@@ -86,10 +89,15 @@ const hasLockedImageRatio = computed(() => (
         @update:model-value="emit('updateContent', block.id, $event)"
       />
 
-      <label
-        v-else
-        class="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 p-3 text-center"
-      >
+      <div v-else class="flex min-h-24 flex-col">
+        <NormalizeImageCheckbox
+          v-if="isImageMedia"
+          v-model="normalizeImageType"
+          compact
+          class="px-3 pt-3 text-left"
+          :disabled="uploading"
+        />
+        <label class="flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 p-3 text-center">
         <PlayCircleIcon v-if="block.type === 'video'" class="size-12" aria-hidden="true" />
         <PhotoIcon v-else class="size-12" aria-hidden="true" />
         <span class="text-sm">{{ uploading ? "Validation…" : "Importer un média de remplacement" }}</span>
@@ -98,9 +106,10 @@ const hasLockedImageRatio = computed(() => (
           class="sr-only"
           :accept="block.type === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp,image/avif,image/gif'"
           :disabled="uploading"
-          @change="emit('uploadMedia', block.id, $event)"
+          @change="emit('uploadMedia', block.id, $event, normalizeImageType)"
         >
-      </label>
+        </label>
+      </div>
     </CmsBannedResult>
 
     <CmsTextBlockEditor
@@ -129,10 +138,18 @@ const hasLockedImageRatio = computed(() => (
       preload="metadata"
     />
 
-    <label
+    <div
       v-else-if="block.type === 'image' || block.type === 'banner' || block.type === 'gallery' || block.type === 'video'"
-      class="cms-no-drag flex min-h-0 flex-1 cursor-pointer flex-col items-center justify-center gap-2 p-3"
+      class="cms-no-drag flex min-h-0 flex-1 flex-col"
     >
+      <NormalizeImageCheckbox
+        v-if="isImageMedia"
+        v-model="normalizeImageType"
+        compact
+        class="px-3 pt-3 text-left"
+        :disabled="uploading"
+      />
+      <label class="flex min-h-0 flex-1 cursor-pointer flex-col items-center justify-center gap-2 p-3">
       <PlayCircleIcon v-if="block.type === 'video'" class="size-12" />
       <PhotoIcon v-else class="size-12" />
       <span class="text-sm">{{ uploading ? "Validation…" : "Importer un média" }}</span>
@@ -141,9 +158,10 @@ const hasLockedImageRatio = computed(() => (
         class="sr-only"
         :accept="block.type === 'video' ? 'video/mp4,video/webm' : 'image/jpeg,image/png,image/webp,image/avif,image/gif'"
         :disabled="uploading"
-        @change="emit('uploadMedia', block.id, $event)"
+        @change="emit('uploadMedia', block.id, $event, normalizeImageType)"
       >
-    </label>
+      </label>
+    </div>
 
     <div v-else-if="block.type === 'separator'" class="flex min-h-0 flex-1 items-center px-3">
       <span class="primary-border w-full border-t" />

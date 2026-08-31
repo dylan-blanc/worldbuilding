@@ -1,6 +1,7 @@
 <!--
   This component lists pages owned by the authenticated user and edits title, filters and visibility settings.
   Its save event flows through the owning page view to PageController and pages/page_filters SQL.
+  Presentation image uploads enable detected-type normalization by default for PageMediaController and MinIO.
   Per-page reactive settings mirror the pages prop so each card can be submitted independently.
 -->
 <script setup lang="ts">
@@ -10,6 +11,7 @@ import {
   HeartIcon,
   UserGroupIcon,
 } from "@heroicons/vue/24/outline"
+import NormalizeImageCheckbox from "~/components/shared/normalizeimagecheckbox.vue"
 import type {
   OwnedPage,
   OwnedPageMessage,
@@ -21,6 +23,7 @@ type PageSettings = {
   is_anonymous: boolean
   page_title: string
   filter_ids: number[]
+  normalize_image_type: boolean
 }
 
 const props = defineProps<{
@@ -37,7 +40,7 @@ const emit = defineEmits<{
     pageTitle: string
     filterIds: number[]
   }]
-  uploadPicture: [payload: { pageId: number, event: Event }]
+  uploadPicture: [payload: { pageId: number, event: Event, normalizeImageType: boolean }]
 }>()
 
 const settings = reactive<Record<number, PageSettings>>({})
@@ -50,6 +53,7 @@ watch(() => props.pages, currentPages => {
       is_anonymous: page.is_anonymous,
       page_title: page.page_title,
       filter_ids: page.filters.map(filter => filter.filter_id || filter.id),
+      normalize_image_type: true,
     }
   }
 }, { immediate: true, deep: true })
@@ -195,6 +199,11 @@ function saveSettings(page: OwnedPage): void {
             </label>
           </fieldset>
 
+          <NormalizeImageCheckbox
+            v-model="settings[page.id]!.normalize_image_type"
+            :disabled="page.page_status === 'banned' || savingPageId === page.id"
+          />
+
           <label
             class="form-control inline-flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm font-medium"
             :class="page.page_status === 'banned' || savingPageId === page.id ? 'cursor-not-allowed opacity-60' : ''"
@@ -205,7 +214,11 @@ function saveSettings(page: OwnedPage): void {
               class="sr-only"
               accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
               :disabled="page.page_status === 'banned' || savingPageId === page.id"
-              @change="emit('uploadPicture', { pageId: page.id, event: $event })"
+              @change="emit('uploadPicture', {
+                pageId: page.id,
+                event: $event,
+                normalizeImageType: settings[page.id]!.normalize_image_type,
+              })"
             >
           </label>
 

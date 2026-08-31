@@ -1,6 +1,7 @@
 <!--
   This page loads and updates every page owned by the authenticated user at /personnalpage.
   Its form data flows through /me/pages routes to PageController, then pages and page_filters SQL.
+  Presentation images flow through POST /pages/{id}/picture with optional detected-type normalization before MinIO storage.
 -->
 <script setup lang="ts">
 import Firstcreation from "~/views/cms/firstcreation.vue"
@@ -117,8 +118,8 @@ async function saveOwnedPageSettings(
   }
 }
 
-async function uploadPagePicture(payload: { pageId: number, event: Event }): Promise<void> {
-  const { pageId, event } = payload
+async function uploadPagePicture(payload: { pageId: number, event: Event, normalizeImageType: boolean }): Promise<void> {
+  const { pageId, event, normalizeImageType } = payload
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
 
@@ -126,6 +127,7 @@ async function uploadPagePicture(payload: { pageId: number, event: Event }): Pro
 
   const formData = new FormData()
   formData.append("file", file)
+  formData.append("normalize_image_type", normalizeImageType ? "1" : "0")
   savingPageId.value = pageId
   delete pageMessages[pageId]
 

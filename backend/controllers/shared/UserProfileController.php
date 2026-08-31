@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Serves the authenticated profile API used by frontend/app/views/userprofile.vue.
  * GET /api/me reads User and UserProfil SQL data, then lists MinIO profile history.
- * POST /api/me verifies the current password, validates fields/file, uploads to MinIO,
+ * POST /api/me verifies the current password, optionally normalizes an image to its detected type, uploads to MinIO,
  * then calls User::updateProfile() and returns the refreshed profile.
  * GET /api/me/picture validates ownership before streaming a private MinIO image.
  */
@@ -50,6 +50,8 @@ final class UserProfileController
         $email = strtolower(Request::field($_POST, ["useremail", "email"]));
         $newPassword = Request::field($_POST, ["new_password"], false);
         $selectedPicture = Request::field($_POST, ["selected_picture"]);
+        $normalizeImageType = !array_key_exists("normalize_image_type", $_POST)
+            || Request::field($_POST, ["normalize_image_type"]) === "1";
         $requiresPassword = (
             $username !== (string) $user["username"]
             || $email !== strtolower((string) $user["useremail"])
@@ -78,7 +80,7 @@ final class UserProfileController
         $profilePicture = $this->selectedPicture($selectedPicture, $user, $userId);
 
         if (isset($_FILES["profile_picture"]) && ($_FILES["profile_picture"]["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-            $profilePicture = $this->uploadPicture($userId);
+            $profilePicture = $this->uploadPicture($userId, $normalizeImageType);
         }
 
         try {
@@ -177,10 +179,10 @@ final class UserProfileController
         return $selectedPicture;
     }
 
-    private function uploadPicture(int $userId): string
+    private function uploadPicture(int $userId, bool $normalizeImageType): string
     {
         try {
-            $media = MediaUploadValidator::validate($_FILES["profile_picture"], "image");
+            $media = MediaUploadValidator::validate($_FILES["profile_picture"], "image", $normalizeImageType);
             $objectKey = "User/" . $userId . "/profilepicture/" . bin2hex(random_bytes(16)) . "." . $media["extension"];
             $this->storage->upload($objectKey, $media);
         } catch (DomainException $exception) {

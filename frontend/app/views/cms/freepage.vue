@@ -5,7 +5,7 @@
   POST /pages/{id}/publish -> PageController -> PageRevision -> the pages and page_revision SQL tables.
   Visualisation passes the current in-memory document to CmsPageRenderer, including unsaved responsive changes.
   Media flows through POST /pages/{id}/media, PHP signature validation/re-encoding, MinIO and an authorized GET proxy.
-  New image uploads store their natural ratio and resize the selected responsive grid item; later resizes snap to that ratio.
+  New image uploads can normalize a mismatched extension to the detected safe format before storing their natural ratio.
 -->
 <script setup lang="ts">
 import {
@@ -933,6 +933,7 @@ const snapSectionImageLayouts = async (
 const uploadMedia = async (
   blockId: string,
   event: Event,
+  normalizeImageType: boolean,
   breakpoint: CmsBreakpoint = activeBreakpoint.value,
 ) => {
   const input = event.target as HTMLInputElement;
@@ -948,6 +949,7 @@ const uploadMedia = async (
   const formData = new FormData();
   formData.append("media_type", mediaType);
   formData.append("file", file);
+  formData.append("normalize_image_type", mediaType === "image" && normalizeImageType ? "1" : "0");
   uploadingBlockId.value = blockId;
   errorMessage.value = "";
 
@@ -1271,7 +1273,7 @@ onBeforeUnmount(() => {
                     @history-boundary="recordHistory"
                     @remove="removeBlock"
                     @update-content="updateBlockContent"
-                    @upload-media="(blockId, event) => uploadMedia(blockId, event, viewport.breakpoint)"
+                    @upload-media="(blockId, event, normalizeImageType) => uploadMedia(blockId, event, normalizeImageType, viewport.breakpoint)"
                   >
                     <template #section>
                       <div
@@ -1329,7 +1331,7 @@ onBeforeUnmount(() => {
                               @history-boundary="recordHistory"
                               @remove="removeBlock"
                               @update-content="updateBlockContent"
-                              @upload-media="(blockId, event) => uploadMedia(blockId, event, viewport.breakpoint)"
+                              @upload-media="(blockId, event, normalizeImageType) => uploadMedia(blockId, event, normalizeImageType, viewport.breakpoint)"
                             />
                           </GridItem>
                         </GridLayout>
