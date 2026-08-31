@@ -1,7 +1,13 @@
+<!--
+  FilterBar renders the discovery controls used on the index page.
+  It loads filter choices through frontend -> GET /filters -> backend, then writes active filters and sorting to the route query.
+-->
 <script setup lang="ts">
 import {
+  BarsArrowDownIcon,
   ClockIcon,
   EyeIcon,
+  FunnelIcon,
   HeartIcon,
   StarIcon,
 } from "@heroicons/vue/24/outline"
@@ -236,6 +242,38 @@ onMounted(async () => {
     class="primary-background primary-border grid w-full gap-5 rounded-md p-4 shadow-sm"
     @submit.prevent="applyFilters"
   >
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <button
+        type="button"
+        class="button-primary inline-flex min-h-12 w-fit items-center gap-2 px-4 py-3 text-sm font-medium uppercase focus:outline-none focus:ring-2"
+      >
+        <FunnelIcon class="size-6" aria-hidden="true" />
+        Filtres
+      </button>
+
+      <div class="flex flex-wrap gap-3 sm:justify-end" aria-label="Classements décoratifs">
+        <button
+          type="button"
+          class="button-primary inline-flex min-h-11 items-center gap-2 rounded-full px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"
+        >
+          Populaire
+          <BarsArrowDownIcon class="size-6" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          class="form-control min-h-11 rounded-full border-2 px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"
+        >
+          Nouveaux
+        </button>
+        <button
+          type="button"
+          class="form-control min-h-11 rounded-full border-2 px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"
+        >
+          Tendance
+        </button>
+      </div>
+    </div>
+
     <div class="grid gap-4 md:grid-cols-3">
       <label
         v-for="field in filterFields"
