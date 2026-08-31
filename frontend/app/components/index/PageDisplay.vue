@@ -147,7 +147,7 @@ onMounted(() => {
         </NuxtLink>
 
         <ModerationReportAction
-          class="absolute right-3 top-3 z-20"
+          class="pointer-events-none absolute right-3 top-3 z-20 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
           :page-id="page.id"
           content-type="page_display"
           :target-label="page.page_title"

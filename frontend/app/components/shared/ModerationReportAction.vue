@@ -3,21 +3,27 @@
   Submission follows useModerationReport -> POST /api/pages/{id}/reports -> ModerationController -> SQL.
 -->
 <script setup lang="ts">
-import { EllipsisHorizontalIcon, FlagIcon, XMarkIcon } from "@heroicons/vue/24/outline"
-import type { ReportedContentType } from "~/types/shared/moderation"
+import {
+  FlagIcon,
+  XMarkIcon,
+} from "@heroicons/vue/24/outline";
+import type { ReportedContentType } from "~/types/shared/moderation";
 
-const props = withDefaults(defineProps<{
-  pageId: number
-  contentType: ReportedContentType
-  blockId?: string
-  targetLabel: string
-  menuLabel?: string
-}>(), {
-  blockId: "",
-  menuLabel: "Report this content",
-})
+const props = withDefaults(
+  defineProps<{
+    pageId: number;
+    contentType: ReportedContentType;
+    blockId?: string;
+    targetLabel: string;
+    menuLabel?: string;
+  }>(),
+  {
+    blockId: "",
+    menuLabel: "Report this content",
+  },
+);
 
-const menuOpen = ref(false)
+const menuOpen = ref(false);
 const {
   target,
   selectedParentId,
@@ -33,60 +39,71 @@ const {
   open,
   close,
   submit,
-} = useModerationReport()
+} = useModerationReport();
 
 function selectParent(filterId: number): void {
-  selectedParentId.value = filterId
-  selectedFilterId.value = filters.value.some(filter => Number(filter.belong_to) === filterId)
+  selectedParentId.value = filterId;
+  selectedFilterId.value = filters.value.some(
+    (filter) => Number(filter.belong_to) === filterId,
+  )
     ? null
-    : filterId
-  error.value = ""
+    : filterId;
+  error.value = "";
 }
 
 function toggleMenu(): void {
-  menuOpen.value = !menuOpen.value
+  menuOpen.value = !menuOpen.value;
 }
 
 async function openModal(): Promise<void> {
-  menuOpen.value = false
+  menuOpen.value = false;
   await open({
     pageId: props.pageId,
     contentType: props.contentType,
     blockId: props.blockId,
     label: props.targetLabel,
-  })
+  });
 }
 
 function closeOnEscape(event: KeyboardEvent): void {
-  if (event.key !== "Escape") return
+  if (event.key !== "Escape") return;
 
-  menuOpen.value = false
-  close()
+  menuOpen.value = false;
+  close();
 }
 
 watch(target, (value) => {
-  if (!import.meta.client) return
+  if (!import.meta.client) return;
 
   value
     ? document.addEventListener("keydown", closeOnEscape)
-    : document.removeEventListener("keydown", closeOnEscape)
-})
+    : document.removeEventListener("keydown", closeOnEscape);
+});
 
 onBeforeUnmount(() => {
-  import.meta.client && document.removeEventListener("keydown", closeOnEscape)
-})
+  import.meta.client && document.removeEventListener("keydown", closeOnEscape);
+});
 </script>
 
 <template>
   <div @click.stop>
     <button
       type="button"
-      class="primary-background primary-border flex size-10 items-center justify-center rounded-full border shadow-md transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-(--focus-color)"
+      class="flex size-10 items-center justify-center transition focus:outline-none"
       :aria-expanded="menuOpen"
       :aria-label="`Actions de signalement pour ${targetLabel}`"
       @click="toggleMenu"
     >
-      <EllipsisHorizontalIcon class="size-7" aria-hidden="true" />
+      <svg
+        class="size-20 drop-shadow-[0_2px_2px_#000]"
+        viewBox="0 0 24 24"
+        fill="white"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="5" r="2" />
+        <circle cx="12" cy="12" r="2" />
+        <circle cx="12" cy="19" r="2" />
+      </svg>
     </button>
 
     <button
@@ -128,8 +145,15 @@ onBeforeUnmount(() => {
         >
           <div class="flex items-start justify-between gap-4">
             <div>
-              <h2 id="moderation-report-dialog-title" class="text-2xl font-semibold">
-                {{ target.contentType === "page_display" ? "Report image" : "Report content" }}
+              <h2
+                id="moderation-report-dialog-title"
+                class="text-2xl font-semibold"
+              >
+                {{
+                  target.contentType === "page_display"
+                    ? "Report image"
+                    : "Report content"
+                }}
               </h2>
               <p class="secondary-color mt-1 text-sm">{{ target.label }}</p>
             </div>
@@ -143,7 +167,11 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <LoadingSpinner v-if="filtersPending" class="mt-6" label="Chargement des motifs" />
+          <LoadingSpinner
+            v-if="filtersPending"
+            class="mt-6"
+            label="Chargement des motifs"
+          />
 
           <form v-else class="mt-6" @submit.prevent="submit">
             <fieldset :disabled="pending || success !== ''" class="space-y-3">
@@ -154,7 +182,9 @@ onBeforeUnmount(() => {
                 :key="filter.id"
                 class="grid gap-2"
               >
-                <label class="primary-border flex cursor-pointer items-center gap-4 rounded-lg border p-3 transition hover:bg-(--secondary-background)">
+                <label
+                  class="primary-border flex cursor-pointer items-center gap-4 rounded-lg border p-3 transition hover:bg-(--secondary-background)"
+                >
                   <input
                     v-model="selectedParentId"
                     type="radio"
@@ -162,12 +192,15 @@ onBeforeUnmount(() => {
                     :value="filter.id"
                     class="size-5 accent-(--accent-color)"
                     @change="selectParent(filter.id)"
-                  >
+                  />
                   <span>{{ filter.filter_name }}</span>
                 </label>
 
                 <label
-                  v-if="selectedParentId === filter.id && selectedParentChildren.length > 0"
+                  v-if="
+                    selectedParentId === filter.id &&
+                    selectedParentChildren.length > 0
+                  "
                   class="ml-9 block"
                 >
                   <span class="text-sm font-medium">Précisez le motif</span>
@@ -176,7 +209,9 @@ onBeforeUnmount(() => {
                     required
                     class="form-control mt-2 w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2"
                   >
-                    <option :value="null" disabled>Sélectionnez un sous-motif</option>
+                    <option :value="null" disabled>
+                      Sélectionnez un sous-motif
+                    </option>
                     <option
                       v-for="childFilter in selectedParentChildren"
                       :key="childFilter.id"
@@ -197,11 +232,17 @@ onBeforeUnmount(() => {
                   class="form-control mt-2 w-full resize-y rounded-md border px-3 py-2 focus:outline-none focus:ring-2"
                   placeholder="Ajoutez un contexte utile pour la modération"
                 />
-                <span class="secondary-color mt-1 block text-right text-xs">{{ message.length }}/2000</span>
+                <span class="secondary-color mt-1 block text-right text-xs"
+                  >{{ message.length }}/2000</span
+                >
               </label>
             </fieldset>
 
-            <p v-if="error" class="error-color mt-4 text-sm font-medium" role="alert">
+            <p
+              v-if="error"
+              class="error-color mt-4 text-sm font-medium"
+              role="alert"
+            >
               {{ error }}
               <NuxtLink
                 v-if="error.startsWith('Veuillez vous connecter')"
@@ -212,7 +253,11 @@ onBeforeUnmount(() => {
               </NuxtLink>
             </p>
 
-            <p v-if="success" class="success-color mt-4 text-sm font-medium" aria-live="polite">
+            <p
+              v-if="success"
+              class="success-color mt-4 text-sm font-medium"
+              aria-live="polite"
+            >
               {{ success }}
             </p>
 
@@ -227,7 +272,9 @@ onBeforeUnmount(() => {
               <button
                 v-if="!success"
                 type="submit"
-                :disabled="pending || filtersPending || rootFilters.length === 0"
+                :disabled="
+                  pending || filtersPending || rootFilters.length === 0
+                "
                 class="button-primary rounded-md px-4 py-2 font-medium focus:outline-none focus:ring-2 disabled:cursor-not-allowed"
               >
                 {{ pending ? "Envoi…" : "Envoyer le signalement" }}
