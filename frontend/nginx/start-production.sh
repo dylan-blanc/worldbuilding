@@ -11,7 +11,7 @@ if [ -f "${certificate}" ] && [ -f "${private_key}" ]; then
     echo "TLS certificates detected; HTTPS mode enabled for ${PROD_DOMAIN}"
 else
     cp /etc/nginx/prod/http.conf /etc/nginx/conf.d/default.conf
-    echo "TLS certificates unavailable; temporary HTTP mode enabled for ${PROD_DOMAIN}"
+    echo "TLS certificates unavailable; temporary HTTP mode enabled for ${PROD_DOMAIN} - please renew certificates"
 fi
 
 exec nginx -g "daemon off;"
