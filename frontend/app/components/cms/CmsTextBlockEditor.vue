@@ -549,12 +549,12 @@ onBeforeUnmount(() => {
                 <dd class="break-all">{{ linkInspection.declared_mime || "Non disponible" }}</dd>
                 <dt class="secondary-color">Signature détectée</dt>
                 <dd>{{ linkInspection.detected_signature }}</dd>
-                <dt v-if="linkInspection.signature_hex" class="secondary-color">Premiers octets</dt>
+                <!-- <dt v-if="linkInspection.signature_hex" class="secondary-color">Premiers octets</dt>
                 <dd v-if="linkInspection.signature_hex" class="break-all font-mono text-xs">
                   {{ linkInspection.signature_hex }}
-                </dd>
-                <dt class="secondary-color">Redirections</dt>
-                <dd>{{ linkInspection.redirects.length }}/3</dd>
+                </dd> -->
+                <!-- <dt class="secondary-color">Redirections</dt> -->
+                <!-- <dd>{{ linkInspection.redirects.length }}/3</dd> -->
               </dl>
             </section>
 
