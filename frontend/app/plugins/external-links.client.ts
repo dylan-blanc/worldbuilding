@@ -1,5 +1,5 @@
 /**
- * Routes every external HTTP link through the statically generated warning page.
+ * Routes every external HTTP link through the warning page.
  * Client-side event delegation also covers links created later by Tiptap and CMS rendering.
  * The warning opens in a new tab so the Worldbuilding tab keeps its route, state and scroll position.
  */
