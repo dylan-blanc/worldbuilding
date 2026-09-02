@@ -29,15 +29,19 @@ final class AuthController
         $this->users = new User($pdo);
     }
 
+    //ANCHOR - Argon2id Controller (login and register)
+
     public function register(): void
     {
+        // recupère les données du corps de la requête (POST) et les stocke dans des variables
         $body = Request::body();
         $username = Request::field($body, self::USERNAME_KEYS);
+        // convertit l'email en minuscules pour éviter les problèmes de casse lors de la vérification
         $email = strtolower(Request::field($body, self::EMAIL_KEYS));
         $password = PasswordPolicy::normalize(Request::field($body, self::PASSWORD_KEYS, false));
 
         $this->validateRegister($username, $email, $password);
-
+        // verifie si le nom d'utilisateur ou l'email existe déjà dans la base de données
         if ($this->users->existsByUsernameOrEmail($username, $email)) {
             Response::error("Nom utilisateur ou email deja utilise", 409);
         }
@@ -45,6 +49,7 @@ final class AuthController
         try {
             $user = $this->users->create($username, $email, PasswordPolicy::hash($password));
         } catch (PDOException $exception) {
+            // recupère l'erreur SQL et vérifie si c'est une erreur de duplication (code 1062)
             if ((int) ($exception->errorInfo[1] ?? 0) === 1062) {
                 Response::error("Nom utilisateur ou email deja utilise", 409);
             }
