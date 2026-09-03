@@ -23,7 +23,7 @@ final class MediaUploadValidator
         "image/avif" => ["extensions" => ["avif"], "extension" => "avif"],
         "image/gif" => ["extensions" => ["gif"], "extension" => "gif"],
     ];
-    /**
+    /*
      * limite les extensions de vidéos autoriser à mp4 et webm pour éviter les problèmes de 
      * compatibilité avec les navigateurs et les lecteurs vidéo.
      * Les autres formats peuvent être plus difficiles à lire ou à traiter et peuvent également poser des problèmes de sécurité.
@@ -37,6 +37,7 @@ final class MediaUploadValidator
     private const DANGEROUS_NAME_PARTS = [
         "exe", "cmd", "bat", "com", "msi", "ps1", "sh", "scr", "jar", "php", "phtml", "phar", "js", "vbs",
     ];
+
 
     public static function validate(array $file, string $requestedType, bool $normalizeImageType = true): array
     {
