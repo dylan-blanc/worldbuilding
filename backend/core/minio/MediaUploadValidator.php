@@ -221,28 +221,32 @@ final class MediaUploadValidator
         $sanitizedPath = tempnam(sys_get_temp_dir(), "cms-media-");
 
         if ($sanitizedPath === false) {
-            imagedestroy($image);
+            unset($image);
             throw new RuntimeException("Creation du fichier temporaire impossible");
         }
 
-        $written = match ($mime) {
-            "image/jpeg" => imagejpeg($image, $sanitizedPath, 90),
-            "image/png" => imagepng($image, $sanitizedPath, 6),
-            "image/gif" => imagegif($image, $sanitizedPath),
-            "image/webp" => imagewebp($image, $sanitizedPath, 85),
-            "image/avif" => imageavif($image, $sanitizedPath, 70, 6),
-            default => false,
-        };
-        imagedestroy($image);
+        try {
+            $written = match ($mime) {
+                "image/jpeg" => imagejpeg($image, $sanitizedPath, 90),
+                "image/png" => imagepng($image, $sanitizedPath, 6),
+                "image/gif" => imagegif($image, $sanitizedPath),
+                "image/webp" => imagewebp($image, $sanitizedPath, 85),
+                "image/avif" => imageavif($image, $sanitizedPath, 70, 6),
+                default => false,
+            };
+            $sanitizedSize = filesize($sanitizedPath);
 
-        $sanitizedSize = filesize($sanitizedPath);
+            if (!$written || $sanitizedSize === false || $sanitizedSize < 1 || $sanitizedSize > self::IMAGE_MAX_BYTES) {
+                throw new DomainException("Reencodage securise de l'image impossible");
+            }
 
-        if (!$written || $sanitizedSize === false || $sanitizedSize < 1 || $sanitizedSize > self::IMAGE_MAX_BYTES) {
+            self::validateSignature($sanitizedPath, $mime);
+        } catch (Throwable $exception) {
             @unlink($sanitizedPath);
-            throw new DomainException("Reencodage securise de l'image impossible");
+            throw $exception;
+        } finally {
+            unset($image);
         }
-
-        self::validateSignature($sanitizedPath, $mime);
 
         return [
             "path" => $sanitizedPath,
