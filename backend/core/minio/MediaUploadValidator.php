@@ -32,6 +32,8 @@ final class MediaUploadValidator
         "video/mp4" => ["extensions" => ["mp4"], "extension" => "mp4"],
         "video/webm" => ["extensions" => ["webm"], "extension" => "webm"],
     ];
+
+    // sert pour les double extensions comme "image.jpg.php" ou "video.mp4.sh" qui sont dangereuses même si l'extension finale est autorisée
     private const DANGEROUS_NAME_PARTS = [
         "exe", "cmd", "bat", "com", "msi", "ps1", "sh", "scr", "jar", "php", "phtml", "phar", "js", "vbs",
     ];
