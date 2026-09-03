@@ -179,7 +179,8 @@ final class MediaUploadValidator
             "image/webp" => substr($header, 0, 4) === "RIFF" && substr($header, 8, 4) === "WEBP",
             // Accept AVIF ISO-BMFF files branded avif or avis; reject every ftyp box without either brand.
             "image/avif" => self::hasIsoBaseMediaBrand($path, ["avif", "avis"]),
-            "video/mp4" => substr($header, 4, 4) === "ftyp",
+            // Accept explicit MP4 or AVC brands; reject generic ISO-BMFF, AVIF, HEIF, 3GP and QuickTime brands alone.
+            "video/mp4" => self::hasIsoBaseMediaBrand($path, ["mp41", "mp42", "avc1"]),
             "video/webm" => str_starts_with($header, "\x1A\x45\xDF\xA3"),
             default => false,
         };
