@@ -14,6 +14,7 @@ final class MediaUploadValidator
     private const VIDEO_MAX_BYTES = 250 * 1024 * 1024;
     private const IMAGE_MAX_PIXELS = 40_000_000;
     private const IMAGE_MAX_DIMENSION = 16_384;
+    private const FILE_TYPE_BOX_MAX_BYTES = 64 * 1024;
     private const IMAGE_MIMES = [
         "image/jpeg" => ["extensions" => ["jpg", "jpeg"], "extension" => "jpg"],
         "image/png" => ["extensions" => ["png"], "extension" => "png"],
@@ -176,12 +177,8 @@ final class MediaUploadValidator
             "image/png" => str_starts_with($header, "\x89PNG\r\n\x1A\n"),
             "image/gif" => str_starts_with($header, "GIF87a") || str_starts_with($header, "GIF89a"),
             "image/webp" => substr($header, 0, 4) === "RIFF" && substr($header, 8, 4) === "WEBP",
-            "image/avif" => substr($header, 4, 4) === "ftyp"
-                && (
-                    in_array(substr($header, 8, 4), ["avif", "avis"], true)
-                    || str_contains(substr($header, 16), "avif")
-                    || str_contains(substr($header, 16), "avis")
-                ),
+            // Accept AVIF ISO-BMFF files branded avif or avis; reject every ftyp box without either brand.
+            "image/avif" => self::hasIsoBaseMediaBrand($path, ["avif", "avis"]),
             "video/mp4" => substr($header, 4, 4) === "ftyp",
             "video/webm" => str_starts_with($header, "\x1A\x45\xDF\xA3"),
             default => false,
@@ -190,6 +187,96 @@ final class MediaUploadValidator
         if (!$valid) {
             throw new DomainException("Signature binaire du media invalide");
         }
+    }
+
+    // verfie que le fichier est bien un fichier ISO-BMFF (MP4, AVIF...) et qu'il contient une marque de type autorisée
+    // dans ce cas "avif" et "avis" pour les fichiers AVIF. Cette vérification est nécessaire car certains fichiers peuvent avoir une extension .avif mais ne pas être de vrais fichiers AVIF
+    // car 
+
+    private static function hasIsoBaseMediaBrand(string $path, array $allowedBrands): bool
+    {
+        // validateSignature() parses the first ISO-BMFF box so AVIF brands are checked on four-byte boundaries.
+        $handle = fopen($path, "rb");
+
+        if ($handle === false) {
+            return false;
+        }
+
+        try {
+            $boxHeader = self::readBytes($handle, 8);
+
+            if ($boxHeader === null || substr($boxHeader, 4, 4) !== "ftyp") {
+                return false;
+            }
+
+            $boxSize = unpack("Nsize", substr($boxHeader, 0, 4))["size"];
+            $headerSize = 8;
+
+            if ($boxSize === 1) {
+                $extendedSize = self::readBytes($handle, 8);
+
+                if ($extendedSize === null) {
+                    return false;
+                }
+
+                $parts = unpack("Nhigh/Nlow", $extendedSize);
+
+                if ($parts["high"] !== 0) {
+                    return false;
+                }
+
+                $boxSize = $parts["low"];
+                $headerSize = 16;
+            }
+
+            if ($boxSize < $headerSize + 8 || $boxSize > self::FILE_TYPE_BOX_MAX_BYTES) {
+                return false;
+            }
+
+            $statistics = fstat($handle);
+
+            if (!is_array($statistics) || !isset($statistics["size"]) || $boxSize > $statistics["size"]) {
+                return false;
+            }
+
+            $payload = self::readBytes($handle, $boxSize - $headerSize);
+
+            if ($payload === null || (strlen($payload) - 8) % 4 !== 0) {
+                return false;
+            }
+
+            if (in_array(substr($payload, 0, 4), $allowedBrands, true)) {
+                return true;
+            }
+
+            for ($offset = 8, $length = strlen($payload); $offset < $length; $offset += 4) {
+                if (in_array(substr($payload, $offset, 4), $allowedBrands, true)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    private static function readBytes($handle, int $length): ?string
+    {
+        // Binary parsers use exact-length reads because fread() may return fewer bytes than requested.
+        $contents = "";
+
+        while (strlen($contents) < $length && !feof($handle)) {
+            $chunk = fread($handle, $length - strlen($contents));
+
+            if ($chunk === false || $chunk === "") {
+                return null;
+            }
+
+            $contents .= $chunk;
+        }
+
+        return strlen($contents) === $length ? $contents : null;
     }
 
     private static function sanitizeImage(string $source, string $mime, string $extension): array
