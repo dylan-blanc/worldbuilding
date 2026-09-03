@@ -7,9 +7,10 @@ FROM php:8.4-apache AS base
 WORKDIR /var/www/html
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libavif-dev libicu-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev libzip-dev unzip \
+    && apt-get install -y --no-install-recommends ffmpeg libavif-dev libicu-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev libzip-dev unzip \
     && docker-php-ext-configure gd --with-avif --with-jpeg --with-webp \
     && docker-php-ext-install gd intl mbstring pdo_mysql zip \
+    && /usr/bin/ffprobe -version > /dev/null \
     && php -r "exit(defined(\"PASSWORD_ARGON2ID\") ? 0 : 1);" \
     && rm -rf /var/lib/apt/lists/* \
     && install -d -m 700 -o www-data -g www-data /var/lib/php/sessions \

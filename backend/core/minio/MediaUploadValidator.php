@@ -83,6 +83,13 @@ final class MediaUploadValidator
         self::validateSignature($temporaryPath, $normalizedMime);
 
         if ($requestedType === "video") {
+            /*
+             * Les signatures précédentes confirment le MIME et octets, mais pas les pistes qu'il contient.
+             * ffprobe analyse maintenant sa structure : une vraie piste vidéo est obligatoire tandis
+             * qu'une piste audio reste facultative avant l'envoi du fichier original vers MinIO.
+             */
+            MediaStreamProbe::validate($temporaryPath, "video");
+
             return [
                 "path" => $temporaryPath,
                 "cleanup" => false,
@@ -193,7 +200,8 @@ final class MediaUploadValidator
          * Les extensions et les types MIME sont déjà validés par validate() avant l'appel de cette méthode
          * 
          * fonctionne par liste blanche inversée : si les octets du fichier ne correspondent pas à la signature attendue pour le type MIME détecté, le fichier est rejeté
-         * avif et mp4 sont dans des conteneurs ftyp et ISO-BMFF et nécessitent une analyse plus approfondie pour distinguer les marques autorisées des marques génériques ou incompatibles
+         * avif et mp4 sont dans des conteneurs ftyp et ISO-BMFF et nécessitent une analyse plus approfondie pour distinguer les marques autorisées des marques génériques 
+         * ou incompatibles
          */
         $valid = match ($mime) {
             "image/jpeg" => str_starts_with($header, "\xFF\xD8\xFF"),
@@ -371,6 +379,11 @@ final class MediaUploadValidator
                     return false;
                 }
 
+                /*
+                 * L'identifiant EBML 0x4282 correspond à l'élément DocType.
+                 * Sa valeur est extraite ici : elle vaut "webm" pour un WebM et "matroska" pour un MKV.
+                 * Un second élément DocType ou une valeur vide rend l'en-tête ambigu et provoque son rejet.
+                 */
                 if ($elementId === "\x42\x82") {
                     if ($documentType !== null || $elementSize["value"] < 1) {
                         return false;
@@ -390,6 +403,10 @@ final class MediaUploadValidator
                 }
             }
 
+            /*
+             * si la signature est webm, le fichier est accepté
+             * sinon il est rejeté pour éviter de stocker un MKV renommé en WebM ou un fichier EBML inconnu
+             */
             return ftell($handle) === $headerEnd && $documentType === $allowedDocumentType;
         } finally {
             fclose($handle);
