@@ -15,6 +15,7 @@ final class MediaUploadValidator
     private const IMAGE_MAX_PIXELS = 40_000_000;
     private const IMAGE_MAX_DIMENSION = 16_384;
     private const FILE_TYPE_BOX_MAX_BYTES = 64 * 1024;
+    private const EBML_HEADER_MAX_BYTES = 64 * 1024;
     private const IMAGE_MIMES = [
         "image/jpeg" => ["extensions" => ["jpg", "jpeg"], "extension" => "jpg"],
         "image/png" => ["extensions" => ["png"], "extension" => "png"],
@@ -22,9 +23,13 @@ final class MediaUploadValidator
         "image/avif" => ["extensions" => ["avif"], "extension" => "avif"],
         "image/gif" => ["extensions" => ["gif"], "extension" => "gif"],
     ];
+    /**
+     * limite les extensions de vidéos autoriser à mp4 et webm pour éviter les problèmes de 
+     * compatibilité avec les navigateurs et les lecteurs vidéo.
+     * Les autres formats peuvent être plus difficiles à lire ou à traiter et peuvent également poser des problèmes de sécurité.
+     */
     private const VIDEO_MIMES = [
         "video/mp4" => ["extensions" => ["mp4"], "extension" => "mp4"],
-        "application/mp4" => ["extensions" => ["mp4"], "extension" => "mp4", "mime" => "video/mp4"],
         "video/webm" => ["extensions" => ["webm"], "extension" => "webm"],
     ];
     private const DANGEROUS_NAME_PARTS = [
@@ -157,6 +162,15 @@ final class MediaUploadValidator
         }
     }
 
+    /**
+     * Vérifie que les octets du fichier correspondent au type MIME détecté par Fileinfo.
+     * validate() appelle cette méthode après la validation prioritaire de l'upload PHP, de la taille,
+     * du nom, du MIME et de l'extension pour POST /pages/{id}/media, les images de page et de profil.
+     *
+     * JPEG, PNG, GIF et WebP utilisent une signature fixe. AVIF et MP4 partagent ISO-BMFF : leur boîte
+     * ftyp est donc analysée pour distinguer leurs marques. WebM utilise EBML et doit déclarer DocType=webm.
+     * Après le réencodage GD d'une image, sanitizeImage() rappelle cette méthode sur le fichier produit.
+     */
     private static function validateSignature(string $path, string $mime): void
     {
         $handle = fopen($path, "rb");
@@ -177,11 +191,12 @@ final class MediaUploadValidator
             "image/png" => str_starts_with($header, "\x89PNG\r\n\x1A\n"),
             "image/gif" => str_starts_with($header, "GIF87a") || str_starts_with($header, "GIF89a"),
             "image/webp" => substr($header, 0, 4) === "RIFF" && substr($header, 8, 4) === "WEBP",
-            // Accept AVIF ISO-BMFF files branded avif or avis; reject every ftyp box without either brand.
+            // AVIF accepte les marques avif ou avis et rejette toute boîte ftyp qui ne les contient pas.
             "image/avif" => self::hasIsoBaseMediaBrand($path, ["avif", "avis"]),
-            // Accept explicit MP4 or AVC brands; reject generic ISO-BMFF, AVIF, HEIF, 3GP and QuickTime brands alone.
+            // MP4 exige une marque MP4 ou AVC explicite et rejette les marques génériques, AVIF, HEIF, 3GP et QuickTime seules.
             "video/mp4" => self::hasIsoBaseMediaBrand($path, ["mp41", "mp42", "avc1"]),
-            "video/webm" => str_starts_with($header, "\x1A\x45\xDF\xA3"),
+            // WebM exige DocType=webm afin de rejeter Matroska et les autres documents EBML.
+            "video/webm" => self::hasEbmlDocumentType($path, "webm"),
             default => false,
         };
 
@@ -194,9 +209,17 @@ final class MediaUploadValidator
     // dans ce cas "avif" et "avis" pour les fichiers AVIF. Cette vérification est nécessaire car certains fichiers peuvent avoir une extension .avif mais ne pas être de vrais fichiers AVIF
     // car 
 
+    /**
+     * Analyse le contenu du type ftyp d'un fichier ISO-BMFF et compare ses marques à une liste blanche.
+     * rejette les extensions de fichiers qui ne correspondent pas à leur contenu réel
+     *  même si elles ont été renommées pour correspondre à un type MIME autorisé.
+     *
+     * Pour AVIF, validateSignature() transmet avif et avis : mif1 reste valable uniquement si l'une de
+     * ces marques compatibles est présente. Pour MP4, elle transmet mp41, mp42 et avc1 : isom et les
+     * versions ISO génériques ne suffisent pas seules, pas plus que les marques HEIF, 3GP ou QuickTime.
+     */
     private static function hasIsoBaseMediaBrand(string $path, array $allowedBrands): bool
     {
-        // validateSignature() parses the first ISO-BMFF box so AVIF brands are checked on four-byte boundaries.
         $handle = fopen($path, "rb");
 
         if ($handle === false) {
@@ -262,9 +285,13 @@ final class MediaUploadValidator
         }
     }
 
+    /**
+     * Lit exactement le nombre d'octets demandé depuis un fichier binaire déjà ouvert.
+     * Les parseurs ftyp et EBML l'utilisent pour rejeter un en-tête tronqué
+     * comme une tentative de masquer un format non autorisé derrière une signature partiel "correct"
+     */
     private static function readBytes($handle, int $length): ?string
     {
-        // Binary parsers use exact-length reads because fread() may return fewer bytes than requested.
         $contents = "";
 
         while (strlen($contents) < $length && !feof($handle)) {
@@ -278,6 +305,166 @@ final class MediaUploadValidator
         }
 
         return strlen($contents) === $length ? $contents : null;
+    }
+
+    /**
+     * Analyse l'en-tête EBML afin de distinguer WebM des autres formats fondés sur EBML.
+     * WebM et Matroska partagent la signature 1A 45 DF A3 : cette signature seule ne permet donc pas
+     * de garantir qu'un fichier envoyé comme .webm correspond réellement au MIME video/webm.
+     *
+     * Seul un élément DocType unique égal à webm est accepté. DocType=matroska est rejeté pour éviter
+     * de stocker un MKV renommé dans MinIO puis de le servir avec un type MIME incorrect. La taille de
+     * l'en-tête est bornée et chaque élément doit rester dans les limites déclarées du fichier.
+     */
+    private static function hasEbmlDocumentType(string $path, string $allowedDocumentType): bool
+    {
+        $handle = fopen($path, "rb");
+
+        if ($handle === false) {
+            return false;
+        }
+
+        try {
+            if (self::readBytes($handle, 4) !== "\x1A\x45\xDF\xA3") {
+                return false;
+            }
+
+            $headerSize = self::readEbmlVariableInteger($handle);
+
+            if ($headerSize === null
+                || $headerSize["unknown"]
+                || $headerSize["value"] > self::EBML_HEADER_MAX_BYTES
+            ) {
+                return false;
+            }
+
+            $headerStart = ftell($handle);
+            $statistics = fstat($handle);
+
+            if ($headerStart === false
+                || !is_array($statistics)
+                || !isset($statistics["size"])
+                || $headerStart + $headerSize["value"] > $statistics["size"]
+            ) {
+                return false;
+            }
+
+            $headerEnd = $headerStart + $headerSize["value"];
+            $documentType = null;
+
+            while (($position = ftell($handle)) !== false && $position < $headerEnd) {
+                $elementId = self::readEbmlElementId($handle);
+                $elementSize = self::readEbmlVariableInteger($handle);
+                $dataStart = ftell($handle);
+
+                if ($elementId === null
+                    || $elementSize === null
+                    || $elementSize["unknown"]
+                    || $dataStart === false
+                    || $dataStart + $elementSize["value"] > $headerEnd
+                ) {
+                    return false;
+                }
+
+                if ($elementId === "\x42\x82") {
+                    if ($documentType !== null || $elementSize["value"] < 1) {
+                        return false;
+                    }
+
+                    $documentType = self::readBytes($handle, $elementSize["value"]);
+
+                    if ($documentType === null) {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                if (fseek($handle, $elementSize["value"], SEEK_CUR) !== 0) {
+                    return false;
+                }
+            }
+
+            return ftell($handle) === $headerEnd && $documentType === $allowedDocumentType;
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    /**
+     * Lit l'identifiant de longueur variable d'un élément contenu dans l'en-tête EBML.
+     * Les identifiants supérieurs à quatre octets sont rejetés conformément aux limites de cet en-tête.
+     */
+    private static function readEbmlElementId($handle): ?string
+    {
+        $firstByte = self::readBytes($handle, 1);
+
+        if ($firstByte === null) {
+            return null;
+        }
+
+        $length = self::ebmlVariableIntegerLength(ord($firstByte));
+
+        if ($length === null || $length > 4) {
+            return null;
+        }
+
+        $remainingBytes = self::readBytes($handle, $length - 1);
+
+        return $remainingBytes === null ? null : $firstByte . $remainingBytes;
+    }
+
+    /**
+     * Décode un entier EBML de longueur variable utilisé pour déclarer la taille d'un élément.
+     * La valeur décodée et l'indicateur de taille inconnue sont retournés séparément afin que le parseur
+     * refuse les tailles inconnues dans l'en-tête contrôlé au lieu de lire au-delà de ses limites.
+     */
+    private static function readEbmlVariableInteger($handle): ?array
+    {
+        $firstByte = self::readBytes($handle, 1);
+
+        if ($firstByte === null) {
+            return null;
+        }
+
+        $firstValue = ord($firstByte);
+        $length = self::ebmlVariableIntegerLength($firstValue);
+
+        if ($length === null) {
+            return null;
+        }
+
+        $value = $firstValue & (0xFF >> $length);
+        $unknown = $value === (0xFF >> $length);
+
+        for ($index = 1; $index < $length; $index++) {
+            $byte = self::readBytes($handle, 1);
+
+            if ($byte === null) {
+                return null;
+            }
+
+            $byteValue = ord($byte);
+            $value = ($value << 8) | $byteValue;
+            $unknown = $unknown && $byteValue === 0xFF;
+        }
+
+        return ["value" => $value, "unknown" => $unknown];
+    }
+
+    /**
+     * Détermine la longueur d'un entier EBML grâce au premier bit actif de son premier octet.
+     * Une valeur sans bit marqueur ou dépassant les huit octets autorisés est considérée invalide.
+     */
+    private static function ebmlVariableIntegerLength(int $firstByte): ?int
+    {
+        for ($length = 1, $mask = 0x80; $length <= 8; $length++, $mask >>= 1) {
+            if (($firstByte & $mask) !== 0) {
+                return $length;
+            }
+        }
+
+        return null;
     }
 
     private static function sanitizeImage(string $source, string $mime, string $extension): array
