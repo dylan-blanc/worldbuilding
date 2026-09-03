@@ -164,7 +164,7 @@ final class MediaUploadValidator
         }
     }
 
-    /**
+    /*
      * Vérifie que les octets du fichier correspondent au type MIME détecté par Fileinfo.
      * validate() appelle cette méthode après la validation prioritaire de l'upload PHP, de la taille,
      * du nom, du MIME et de l'extension pour POST /pages/{id}/media, les images de page et de profil.
@@ -187,7 +187,13 @@ final class MediaUploadValidator
         if (!is_string($header)) {
             throw new DomainException("Signature du fichier illisible");
         }
-
+        /*
+         * Les signatures binaires sont vérifiées pour éviter les attaques par double extension et les fichiers renommés
+         * Les extensions et les types MIME sont déjà validés par validate() avant l'appel de cette méthode
+         * 
+         * fonctionne par liste blanche inversée : si les octets du fichier ne correspondent pas à la signature attendue pour le type MIME détecté, le fichier est rejeté
+         * avif et mp4 sont dans des conteneurs ftyp et ISO-BMFF et nécessitent une analyse plus approfondie pour distinguer les marques autorisées des marques génériques ou incompatibles
+         */
         $valid = match ($mime) {
             "image/jpeg" => str_starts_with($header, "\xFF\xD8\xFF"),
             "image/png" => str_starts_with($header, "\x89PNG\r\n\x1A\n"),
@@ -207,11 +213,7 @@ final class MediaUploadValidator
         }
     }
 
-    // verfie que le fichier est bien un fichier ISO-BMFF (MP4, AVIF...) et qu'il contient une marque de type autorisée
-    // dans ce cas "avif" et "avis" pour les fichiers AVIF. Cette vérification est nécessaire car certains fichiers peuvent avoir une extension .avif mais ne pas être de vrais fichiers AVIF
-    // car 
-
-    /**
+    /*
      * Analyse le contenu du type ftyp d'un fichier ISO-BMFF et compare ses marques à une liste blanche.
      * rejette les extensions de fichiers qui ne correspondent pas à leur contenu réel
      *  même si elles ont été renommées pour correspondre à un type MIME autorisé.
@@ -287,7 +289,7 @@ final class MediaUploadValidator
         }
     }
 
-    /**
+    /*
      * Lit exactement le nombre d'octets demandé depuis un fichier binaire déjà ouvert.
      * Les parseurs ftyp et EBML l'utilisent pour rejeter un en-tête tronqué
      * comme une tentative de masquer un format non autorisé derrière une signature partiel "correct"
@@ -309,9 +311,9 @@ final class MediaUploadValidator
         return strlen($contents) === $length ? $contents : null;
     }
 
-    /**
+    /*
      * Analyse l'en-tête EBML afin de distinguer WebM des autres formats fondés sur EBML.
-     * WebM et Matroska partagent la signature 1A 45 DF A3 : cette signature seule ne permet donc pas
+     * WebM et Matroska(MKV) partagent la signature 1A 45 DF A3 : cette signature seule ne permet donc pas
      * de garantir qu'un fichier envoyé comme .webm correspond réellement au MIME video/webm.
      *
      * Seul un élément DocType unique égal à webm est accepté. DocType=matroska est rejeté pour éviter
@@ -393,10 +395,11 @@ final class MediaUploadValidator
         }
     }
 
-    /**
+    /*
      * Lit l'identifiant de longueur variable d'un élément contenu dans l'en-tête EBML.
      * Les identifiants supérieurs à quatre octets sont rejetés conformément aux limites de cet en-tête.
      */
+
     private static function readEbmlElementId($handle): ?string
     {
         $firstByte = self::readBytes($handle, 1);
@@ -416,7 +419,7 @@ final class MediaUploadValidator
         return $remainingBytes === null ? null : $firstByte . $remainingBytes;
     }
 
-    /**
+    /*
      * Décode un entier EBML de longueur variable utilisé pour déclarer la taille d'un élément.
      * La valeur décodée et l'indicateur de taille inconnue sont retournés séparément afin que le parseur
      * refuse les tailles inconnues dans l'en-tête contrôlé au lieu de lire au-delà de ses limites.
@@ -454,7 +457,7 @@ final class MediaUploadValidator
         return ["value" => $value, "unknown" => $unknown];
     }
 
-    /**
+    /*
      * Détermine la longueur d'un entier EBML grâce au premier bit actif de son premier octet.
      * Une valeur sans bit marqueur ou dépassant les huit octets autorisés est considérée invalide.
      */
@@ -468,7 +471,12 @@ final class MediaUploadValidator
 
         return null;
     }
-
+    /*
+    * verifie la validité de l'image (taille, dimensions, mime)
+    * recréer l'image et la nettoie pour éviter les attaques par 
+    * injection de code dans les métadonnées
+    * puis appele re-appel validateSignature() pour vérifier que l'image re-encodée est valide
+    */
     private static function sanitizeImage(string $source, string $mime, string $extension): array
     {
         $dimensions = @getimagesize($source);
