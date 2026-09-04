@@ -16,7 +16,6 @@ import StarterKit from "@tiptap/starter-kit"
 import { EditorContent, useEditor } from "@tiptap/vue-3"
 import { BubbleMenu } from "@tiptap/vue-3/menus"
 import type { Editor, JSONContent } from "@tiptap/core"
-import type { SafeLinkInspection } from "~/composables/link-validation/useSafeLink"
 import type { CmsJsonValue } from "~/types/cms/cms"
 
 const props = defineProps<{
@@ -40,7 +39,6 @@ const isLinkDialogOpen = ref(false)
 const isInspectingLink = ref(false)
 const linkValue = ref("")
 const linkError = ref("")
-const linkInspection = ref<SafeLinkInspection | null>(null)
 const linkSelection = ref<{ from: number, to: number } | null>(null)
 const { inspect: inspectLink } = useSafeLink()
 const fontFamilies = [
@@ -211,6 +209,10 @@ const applyBlockFormat = (level?: HeadingLevel) => {
     .run()
 }
 
+/*
+ * Enregistre les positions from/to de la sélection Tiptap puis ouvre la fenêtre de lien.
+ * La sélection enregistrée reste la cible de applyLink() après l'inspection asynchrone.
+ */
 const openLinkDialog = async () => {
   if (!editor.value) return
 
@@ -220,13 +222,16 @@ const openLinkDialog = async () => {
   }
   linkValue.value = String(editor.value.getAttributes("link").href || "")
   linkError.value = ""
-  linkInspection.value = null
   isLinkDialogOpen.value = true
   await nextTick()
   linkDialog.value?.focus()
   linkInput.value?.select()
 }
 
+/*
+ * Ferme la fenêtre hors inspection en cours et restaure la sélection Tiptap enregistrée.
+ * Une sélection devenue invalide place simplement le focus dans l'éditeur.
+ */
 const closeLinkDialog = () => {
   if (isInspectingLink.value) return
 
@@ -243,11 +248,19 @@ const closeLinkDialog = () => {
   linkSelection.value = null
 }
 
+/*
+ * Réinitialise l'erreur de validation lors d'une modification du champ URL.
+ */
 const resetLinkFeedback = () => {
   linkError.value = ""
-  linkInspection.value = null
 }
 
+/*
+ * Entrée : URL du formulaire et sélection Tiptap enregistrée.
+ * URL vide : suppression du mark link. URL non vide : attente de inspectLink(), puis création du mark uniquement avec
+ * safe=true. Les routes internes utilisent _self ; les URL externes utilisent _blank et rel=noopener noreferrer nofollow.
+ * Un rejet conserve la fenêtre ouverte avec le message retourné par PHP.
+ */
 const applyLink = async () => {
   const currentEditor = editor.value
 
@@ -255,7 +268,6 @@ const applyLink = async () => {
 
   const href = linkValue.value.trim()
   linkError.value = ""
-  linkInspection.value = null
 
   if (linkSelection.value && linkSelection.value.to <= currentEditor.state.doc.content.size) {
     currentEditor.commands.setTextSelection(linkSelection.value)
@@ -272,7 +284,6 @@ const applyLink = async () => {
 
   try {
     const inspection = await inspectLink(href)
-    linkInspection.value = inspection
 
     if (!inspection.safe) {
       linkError.value = inspection.message
@@ -539,24 +550,6 @@ onBeforeUnmount(() => {
                 @input="resetLinkFeedback"
               >
             </label>
-
-            <section
-              v-if="linkInspection"
-              class="secondary-background primary-border rounded-md border p-3 text-sm"
-            >
-              <dl class="grid gap-2 sm:grid-cols-[auto_1fr]">
-                <dt class="secondary-color">MIME déclaré</dt>
-                <dd class="break-all">{{ linkInspection.declared_mime || "Non disponible" }}</dd>
-                <dt class="secondary-color">Signature détectée</dt>
-                <dd>{{ linkInspection.detected_signature }}</dd>
-                <!-- <dt v-if="linkInspection.signature_hex" class="secondary-color">Premiers octets</dt>
-                <dd v-if="linkInspection.signature_hex" class="break-all font-mono text-xs">
-                  {{ linkInspection.signature_hex }}
-                </dd> -->
-                <!-- <dt class="secondary-color">Redirections</dt> -->
-                <!-- <dd>{{ linkInspection.redirects.length }}/3</dd> -->
-              </dl>
-            </section>
 
             <p v-if="linkError" class="error-color text-sm font-medium" role="alert">
               {{ linkError }}

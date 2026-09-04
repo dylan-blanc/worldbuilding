@@ -1,5 +1,5 @@
 <!--
-  This statically generated page warns users before they leave Worldbuilding for an external HTTP site.
+  This statically generated page warns users before they leave Worldbuilding for an external HTTPS site.
   The global external-links plugin opens it with destination, return URL and scroll position parameters.
   Continuing replaces this warning tab; returning closes it or restores the original internal route as a fallback.
 -->
@@ -12,6 +12,10 @@ useHead({
   meta: [{ name: "referrer", content: "no-referrer" }],
 })
 
+/*
+ * Lit destination, return et scroll depuis route.query à l'exécution dans le navigateur.
+ * L'absence de données pendant nuxt generate conserve /external-link compatible avec le SSG.
+ */
 const destination = computed(() => typeof route.query.destination === "string" ? route.query.destination : "")
 const returnUrl = computed(() => typeof route.query.return === "string" ? route.query.return : "")
 const returnScroll = computed(() => {
@@ -19,6 +23,10 @@ const returnScroll = computed(() => {
 
   return Number.isFinite(value) && value >= 0 ? value : 0
 })
+/*
+ * Analyse destination avec URL et retourne null pour tout protocole différent de HTTP(S).
+ * HTTP reste affichable dans l'avertissement ; isSecureDestination réserve la poursuite à HTTPS.
+ */
 const parsedDestination = computed(() => {
   try {
     const url = new URL(destination.value)
@@ -29,11 +37,20 @@ const parsedDestination = computed(() => {
   }
 })
 const destinationHost = computed(() => parsedDestination.value?.hostname || "Destination invalide")
+const isSecureDestination = computed(() => parsedDestination.value?.protocol === "https:")
+/*
+ * Retourne true uniquement pour une destination HTTPS dont l'origine diffère de window.location.origin.
+ * Résultat utilisé par l'état disabled du bouton Poursuivre.
+ */
 const canContinue = computed(() => (
-  Boolean(parsedDestination.value)
+  isSecureDestination.value
   && (!import.meta.client || parsedDestination.value?.origin !== window.location.origin)
 ))
 
+/*
+ * Normalise return par rapport à window.location.origin.
+ * Sortie : chemin interne avec query/hash lorsque l'origine correspond, sinon /.
+ */
 const internalReturnUrl = () => {
   try {
     const url = new URL(returnUrl.value, window.location.origin)
@@ -44,12 +61,22 @@ const internalReturnUrl = () => {
   }
 }
 
+/*
+ * Vérifie une seconde fois protocole HTTPS et origine externe au clic sur Poursuivre.
+ * location.replace charge ensuite la destination sans conserver l'avertissement dans l'historique de cet onglet.
+ */
 const continueToDestination = () => {
-  if (!parsedDestination.value || parsedDestination.value.origin === window.location.origin) return
+  const target = parsedDestination.value
 
-  window.location.replace(parsedDestination.value.href)
+  if (!target || target.protocol !== "https:" || target.origin === window.location.origin) return
+
+  window.location.replace(target.href)
 }
 
+/*
+ * Ferme l'onglet d'avertissement lorsqu'il a été créé par le plugin.
+ * Si window.close échoue, charge internalReturnUrl() puis restaure la position scroll enregistrée.
+ */
 const returnToSite = () => {
   window.close()
 
@@ -85,6 +112,9 @@ const returnToSite = () => {
 
       <p v-if="!parsedDestination" class="error-color mt-5 text-center" role="alert">
         Cette destination est invalide et ne peut pas être ouverte.
+      </p>
+      <p v-else-if="!isSecureDestination" class="error-color mt-5 text-center" role="alert">
+        Les destinations HTTP non chiffrées sont interdites.
       </p>
 
       <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

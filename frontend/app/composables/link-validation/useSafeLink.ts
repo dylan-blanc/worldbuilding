@@ -6,11 +6,6 @@
 export type SafeLinkInspection = {
   safe: boolean
   url: string
-  final_url: string
-  declared_mime: string | null
-  detected_signature: string
-  signature_hex: string | null
-  redirects: string[]
   message: string
 }
 
@@ -22,6 +17,11 @@ export const useSafeLink = () => {
   const config = useRuntimeConfig()
   const apiFetch = useApi()
 
+  /*
+   * Entrée : URL saisie dans CmsTextBlockEditor.
+   * Requête asynchrone authentifiée vers POST /api/links/inspect.
+   * Sortie : SafeLinkInspection contenant la décision, l'URL contrôlée et le message associé.
+  */
   const inspect = async (url: string) => {
     const response = await apiFetch<InspectionResponse>(`${config.public.apiBase}/links/inspect`, {
       method: "POST",

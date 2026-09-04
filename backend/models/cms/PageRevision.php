@@ -55,6 +55,12 @@ final class PageRevision
         });
     }
 
+    /*
+     * Publie la révision brouillon courante.
+     * Avant transaction : lecture du JSON et CmsContentValidator avec inspection distante des liens.
+     * Dans la transaction : verrouillage de la page, nouvelle lecture du brouillon et comparaison avec le contenu inspecté.
+     * Un contenu modifié annule l'opération ; un contenu identique archive l'ancienne révision et alimente pages.pagecontent.
+     */
     public function publishDraft(
         int $pageId,
         int $ownerUserId,

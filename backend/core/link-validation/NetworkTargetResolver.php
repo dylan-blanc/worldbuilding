@@ -8,5 +8,9 @@ declare(strict_types=1);
  */
 interface NetworkTargetResolver
 {
+    /*
+     * Résout le host d'un LinkTarget externe et retourne une IP publique contrôlée.
+     * Le contrat impose la validation de toutes les réponses DNS avant le retour de l'adresse épinglée par Guzzle.
+     */
     public function resolvePublicIp(LinkTarget $target): string;
 }

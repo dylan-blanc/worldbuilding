@@ -8,6 +8,11 @@ declare(strict_types=1);
  */
 final class NetworkTargetValidator implements NetworkTargetResolver
 {
+    private const MAX_RESOLVED_IPS = 16;
+    /*
+     * Liste des réseaux IPv4/IPv6 interdits aux requêtes sortantes : local, privé, réservé, documentation,
+     * transition et multicast. La comparaison s'effectue sur les IP obtenues après DNS, et non sur le texte de l'URL.
+     */
     private const BLOCKED_CIDRS = [
         "0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16",
         "172.16.0.0/12", "192.0.0.0/24", "192.0.2.0/24", "192.88.99.0/24", "192.168.0.0/16",
@@ -17,6 +22,12 @@ final class NetworkTargetValidator implements NetworkTargetResolver
         "fc00::/7", "fe80::/10", "fec0::/10", "ff00::/8",
     ];
 
+    /*
+     * Entrée : LinkTarget HTTPS externe.
+     * Traitement : rejet de d'adresse locale, résolution du domaine si nécessaire, puis validation de chaque IP obtenue.
+     * Rejet : présence d'au moins une IP privée, réservée ou spéciale.
+     * Sortie : première IP publique, utilisée par CURLOPT_RESOLVE dans la requête Guzzle.
+     */
     public function resolvePublicIp(LinkTarget $target): string
     {
         if ($target->isInternal() || $target->host === "") {
@@ -40,6 +51,11 @@ final class NetworkTargetValidator implements NetworkTargetResolver
         return $ips[0];
     }
 
+    /*
+     * Résout les enregistrements IPv4 A et IPv6 AAAA, puis supprime les doublons.
+     * Rejette un domaine sans adresse ou comportant plus de seize adresses.
+     * Sortie transmise intégralement à resolvePublicIp() pour le contrôle SSRF.
+     */
     private function resolveHost(string $host): array
     {
         $records = dns_get_record($host, DNS_A | DNS_AAAA);
@@ -50,16 +66,23 @@ final class NetworkTargetValidator implements NetworkTargetResolver
             isset($record["ipv6"]) && $ips[] = (string) $record["ipv6"];
         }
 
-        if ($ips === []) {
+        $ips = array_values(array_unique($ips));
+
+        if ($ips === [] || count($ips) > self::MAX_RESOLVED_IPS) {
             throw new DomainException("Le nom de domaine ne peut pas etre resolu");
         }
 
-        return array_values(array_unique($ips));
+        return $ips;
     }
 
+    /*
+     * Retourne true uniquement pour une adresse appartenant à une plage Internet publique.
+     * FILTER_FLAG_GLOBAL_RANGE applique la classification PHP ; BLOCKED_CIDRS ajoute les réseaux spéciaux et de
+     * transition explicitement interdits par l'application.
+     */
     private function isPublicIp(string $ip): bool
     {
-        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_GLOBAL_RANGE) === false) {
             return false;
         }
 
@@ -72,6 +95,11 @@ final class NetworkTargetValidator implements NetworkTargetResolver
         return true;
     }
 
+    /*
+     * Compare une IP à un préfixe CIDR après conversion binaire avec inet_pton.
+     * Les octets complets puis les bits restants du préfixe sont comparés. Des familles différentes IPv4/IPv6
+     * retournent false.
+     */
     private function matchesCidr(string $ip, string $cidr): bool
     {
         [$network, $prefixLength] = explode("/", $cidr, 2);

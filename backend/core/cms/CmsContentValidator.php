@@ -5,7 +5,8 @@ declare(strict_types=1);
 /**
  * Validates CMS JSON before PageRevision writes it to page_revision or publishes it to pages.pagecontent.
  * PageController passes PUT /pages/{id}/draft and POST /pages/{id}/publish data through this allow-list.
- * PageController and PageRevision request remote link checks for draft saves and publication before JSON reaches SQL.
+ * Draft saves apply local URL and path rules, while Tiptap insertion and PageRevision publication check remote
+ * DNS, redirects and forced-download headers before public content reaches SQL.
  */
 final class CmsContentValidator
 {
@@ -44,6 +45,12 @@ final class CmsContentValidator
         ];
     }
 
+    /*
+     * Entrée : document CMS, propriétaire, page et indicateur inspectExternalLinks.
+     * Le parcours document → blocs → propriétés dirige href, url et link vers SafeLinkValidator.
+     * false sélectionne LOCAL pour un brouillon sans réseau ; true limite d'abord le document à 25 URL externes uniques,
+     * puis sélectionne REMOTE avant publication. Sortie : document inchangé après validation complète.
+     */
     public static function validate(
         array $document,
         int $ownerUserId,
@@ -145,6 +152,11 @@ final class CmsContentValidator
         );
     }
 
+    /*
+     * Parcourt récursivement les propriétés d'un bloc avec une profondeur maximale de douze.
+     * Routage par clé normalisée : href/url/link vers validateLink(), objectKey vers la validation MinIO et attributs
+     * de texte vers validateTextFormattingAttribute(). Les balises exécutables et les attributs on* sont rejetés.
+     */
     private static function validateProperties(
         array $properties,
         int $ownerUserId,
@@ -207,6 +219,11 @@ final class CmsContentValidator
         }
     }
 
+    /*
+     * Entrée : valeur href/url/link et mode choisi par validate().
+     * inspectedLinks supprime les inspections en double dans un même document. SafeLinkValidator utilise LOCAL pour le
+     * brouillon et REMOTE pour la publication. safe=false produit une DomainException avec le message de validation.
+     */
     private static function validateLink(
         mixed $value,
         bool $inspectExternalLinks,
@@ -232,6 +249,10 @@ final class CmsContentValidator
         $inspectedLinks[$value] = true;
     }
 
+    /*
+     * Calcule le nombre d'URL HTTPS externes uniques avant toute inspection réseau de publication.
+     * Rejet au-delà de MAX_REMOTE_LINK_INSPECTIONS. Les routes internes ne sont pas comptabilisées.
+     */
     private static function assertRemoteLinkBudget(array $blocks): void
     {
         $externalLinks = [];
@@ -247,6 +268,10 @@ final class CmsContentValidator
         }
     }
 
+    /*
+     * Collecte récursivement les valeurs HTTPS associées aux clés href, url et link.
+     * Les URL servent de clés pour supprimer les doublons. Profondeur maximale identique à validateProperties() : douze.
+     */
     private static function collectExternalLinks(mixed $value, int $depth, array &$externalLinks): void
     {
         if (!is_array($value) || $depth > 12) {
@@ -279,6 +304,11 @@ final class CmsContentValidator
         }
     }
 
+    /*
+     * Valide les attributs de texte et de lien persistés par Tiptap.
+     * Règles liées aux liens : target limité à _blank/_self ; rel limité à noopener, noreferrer et nofollow.
+     * Les valeurs hors liste produisent une DomainException avant l'écriture du JSON CMS.
+     */
     private static function validateTextFormattingAttribute(string $key, mixed $value): void
     {
         if (in_array($key, ["color", "backgroundcolor"], true)
@@ -336,7 +366,6 @@ final class CmsContentValidator
         }
     }
 
-    // Font sizes are persisted by Tiptap as canonical integer pixel strings shared with CmsTextBlockEditor.
     private static function isValidFontSize(mixed $value): bool
     {
         if (!is_string($value)

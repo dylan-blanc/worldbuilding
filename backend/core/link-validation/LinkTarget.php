@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-/**
- * Carries the normalized components of one CMS navigation target.
- * LinkTargetParser creates it before policies, network resolution and remote content inspection consume it.
- */
 final readonly class LinkTarget
 {
+    /*
+     * récupère les données et les stock dans un objet JSON 
+     * pour les utiliser dans LinkNavigationPolicy et NetworkTargetValidator.
+     */
     public function __construct(
         public string $originalUrl,
         public bool $internal,
@@ -18,6 +18,10 @@ final readonly class LinkTarget
     ) {
     }
 
+    /*
+     * Retourne true pour une route relative appartenant à l'application.
+     * Cette valeur empêche le passage de la route dans NetworkTargetValidator et Guzzle.
+     */
     public function isInternal(): bool
     {
         return $this->internal;

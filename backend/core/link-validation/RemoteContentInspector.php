@@ -3,42 +3,52 @@
 declare(strict_types=1);
 
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Psr7\UriResolver;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamInterface;
 
 /**
- * Fetches a bounded sample of an external link after SSRF-safe DNS resolution.
- * SafeLinkValidator delegates REMOTE validation here for HTTP/HTML redirects, headers, MIME and HTML signatures.
+ * Inspects external HTTPS navigation without downloading or classifying the linked file.
+ * SafeLinkValidator delegates redirects, SSRF checks and forced-download headers here before CMS insertion or publication.
  */
 final class RemoteContentInspector
 {
     private const MAX_REDIRECTS = 3;
-    private const MAX_INSPECTION_BYTES = 65536;
-    private const ALLOWED_MIME_TYPES = ["text/html", "application/xhtml+xml"];
+    private const FORCED_DOWNLOAD_MIME_TYPE = "application/octet-stream";
 
+    /*
+     * Dépendances du contrôle distant : Guzzle pour les en-têtes HTTP, LinkTargetParser pour les redirections,
+     * LinkNavigationPolicy pour les extensions interdites et NetworkTargetResolver pour la protection SSRF.
+     */
     public function __construct(
         private ClientInterface $client,
         private LinkTargetParser $parser,
         private LinkNavigationPolicy $navigationPolicy,
         private NetworkTargetResolver $networkValidator,
-        private FileSignatureDetector $signatureDetector,
     ) {
     }
 
+    /*
+     * Entrée : URL HTTPS externe produite par SafeLinkValidator.
+     * Chaque destination passe par les règles d'extension, la résolution DNS et le contrôle des IP publiques avant
+     * la requête Guzzle. Une redirection Location est analysée comme une nouvelle URL et la limite totale est de trois.
+     * Une réponse finale 2xx transmet uniquement Content-Type et Content-Disposition à inspectFinalResponse().
+     */
     public function inspect(LinkTarget $initialTarget): LinkValidationResult
     {
         $currentTarget = $initialTarget;
-        $redirects = [];
-        $directDownloadDetected = false;
 
         try {
             for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
-                $directDownloadDetected = $directDownloadDetected
-                    || $this->navigationPolicy->isDirectDownload($currentTarget);
+                $this->navigationPolicy->assertAllowed($currentTarget);
                 $ip = $this->networkValidator->resolvePublicIp($currentTarget);
-                $response = $this->request($currentTarget, $ip);
+                $response = $this->requestAsync($currentTarget, $ip)->wait();
+
+                if (!$response instanceof ResponseInterface) {
+                    throw new RuntimeException("La reponse HTTP distante est invalide");
+                }
+
                 $status = $response->getStatusCode();
 
                 if ($status >= 300 && $status < 400) {
@@ -59,48 +69,22 @@ final class RemoteContentInspector
                         throw new DomainException("Une redirection externe ne peut pas cibler une route interne");
                     }
 
-                    $redirects[] = $redirectUrl;
                     continue;
                 }
 
                 if ($status < 200 || $status >= 300) {
                     $response->getBody()->close();
-                    throw new DomainException("Un ou plusieurs liens sont invalide");
+                    throw new DomainException("Un ou plusieurs liens sont invalides");
                 }
 
                 $declaredMime = strtolower(trim(explode(";", $response->getHeaderLine("Content-Type"))[0]));
-                $contentDisposition = strtolower($response->getHeaderLine("Content-Disposition"));
-                $refreshHeader = trim($response->getHeaderLine("Refresh"));
-                $bytes = $this->readBytes($response->getBody());
-                $refreshLocation = $this->refreshLocation($refreshHeader, $declaredMime, $bytes);
-
-                if ($refreshLocation !== null) {
-                    if ($hop === self::MAX_REDIRECTS) {
-                        throw new DomainException("La limite de 3 redirections a ete depassee");
-                    }
-
-                    $redirectUrl = (string) UriResolver::resolve(
-                        new Uri($currentTarget->originalUrl),
-                        new Uri($refreshLocation),
-                    );
-                    $currentTarget = $this->parser->parse($redirectUrl);
-
-                    if ($currentTarget->isInternal()) {
-                        throw new DomainException("Une redirection externe ne peut pas cibler une route interne");
-                    }
-
-                    $redirects[] = $redirectUrl;
-                    continue;
-                }
+                $contentDisposition = $response->getHeaderLine("Content-Disposition");
+                $response->getBody()->close();
 
                 return $this->inspectFinalResponse(
                     $initialTarget,
-                    $currentTarget,
                     $declaredMime,
                     $contentDisposition,
-                    $bytes,
-                    $redirects,
-                    $directDownloadDetected,
                 );
             }
         } catch (Throwable $exception) {
@@ -109,98 +93,63 @@ final class RemoteContentInspector
                 $exception instanceof DomainException
                     ? $exception->getMessage()
                     : "La verification du lien externe a echoue",
-                $currentTarget->originalUrl,
-                redirects: $redirects,
             );
         }
 
         throw new LogicException("Inspection de lien incomplete");
     }
 
+    /*
+     * Bloque une réponse dont Content-Disposition impose un téléchargement ou dont le MIME vaut application/octet-stream.
+     * Toute autre réponse 2xx est autorisée sans lecture, détection ni conservation de son contenu.
+     */
     private function inspectFinalResponse(
         LinkTarget $initialTarget,
-        LinkTarget $currentTarget,
         string $declaredMime,
         string $contentDisposition,
-        string $bytes,
-        array $redirects,
-        bool $directDownloadDetected,
     ): LinkValidationResult {
-        $signature = $this->signatureDetector->detect($bytes);
-        $forcedDownload = str_contains($contentDisposition, "attachment");
-        $allowedMime = in_array($declaredMime, self::ALLOWED_MIME_TYPES, true);
-
-        if ($directDownloadDetected || $forcedDownload || !$allowedMime || !$signature->html || $signature->forbidden) {
+        if ($this->forcesDownload($contentDisposition)) {
             return LinkValidationResult::rejected(
                 $initialTarget->originalUrl,
-                "Les liens directs vers des fichiers telechargeables sont interdits",
-                $currentTarget->originalUrl,
-                $declaredMime !== "" ? $declaredMime : null,
-                $signature->label,
-                $signature->hex,
-                $redirects,
+                "Le site distant impose le telechargement de cette ressource",
+            );
+        }
+
+        if ($declaredMime === self::FORCED_DOWNLOAD_MIME_TYPE) {
+            return LinkValidationResult::rejected(
+                $initialTarget->originalUrl,
+                "Le site distant retourne un fichier a telecharger",
             );
         }
 
         return new LinkValidationResult(
             true,
             $initialTarget->originalUrl,
-            $currentTarget->originalUrl,
-            $declaredMime,
-            $signature->label,
-            $signature->hex,
-            $redirects,
-            "Navigation HTML autorisee",
+            "Navigation externe autorisee",
         );
     }
 
-    private function refreshLocation(string $refreshHeader, string $declaredMime, string $bytes): ?string
+    /*
+     * Retourne true lorsque Content-Disposition est présent et ne commence pas par inline.
+     * Les paramètres placés après ;, comme filename, sont exclus de la comparaison.
+     */
+    private function forcesDownload(string $header): bool
     {
-        if ($refreshHeader !== "") {
-            return $this->parseRefreshValue($refreshHeader);
+        if (trim($header) === "") {
+            return false;
         }
 
-        if (!in_array($declaredMime, self::ALLOWED_MIME_TYPES, true)) {
-            return null;
-        }
+        $type = strtolower(trim(explode(";", $header, 2)[0]));
 
-        $document = new DOMDocument();
-        $loaded = @$document->loadHTML($bytes, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
-
-        if (!$loaded) {
-            return null;
-        }
-
-        foreach ($document->getElementsByTagName("meta") as $meta) {
-            if (strtolower(trim($meta->getAttribute("http-equiv"))) === "refresh") {
-                return $this->parseRefreshValue($meta->getAttribute("content"));
-            }
-        }
-
-        return null;
+        return $type !== "inline";
     }
 
-    private function parseRefreshValue(string $value): string
-    {
-        if (preg_match("/^\\s*\\d+(?:\\.\\d+)?\\s*;\\s*(?:url\\s*=\\s*)?(.+)$/is", $value, $matches) !== 1) {
-            throw new DomainException("Une redirection automatique invalide a ete detectee");
-        }
-
-        $location = trim($matches[1]);
-        $quote = $location[0] ?? "";
-
-        if (($quote === "\"" || $quote === "'") && str_ends_with($location, $quote)) {
-            $location = trim(substr($location, 1, -1));
-        }
-
-        if ($location === "") {
-            throw new DomainException("Une redirection automatique invalide a ete detectee");
-        }
-
-        return $location;
-    }
-
-    private function request(LinkTarget $target, string $ip): ResponseInterface
+    /*
+     * Démarre un GET HTTPS asynchrone sans télécharger le corps dans la mémoire de l'application.
+     * CURLOPT_RESOLVE épingle l'IP contrôlée, Guzzle ne suit aucune redirection et Range limite la réponse demandée
+     * au premier octet. Le flux retourné est fermé par inspect() immédiatement après la lecture des en-têtes.
+     */
+    private function requestAsync(LinkTarget $target, string $ip): PromiseInterface
     {
         if (!defined("CURLOPT_RESOLVE")) {
             throw new RuntimeException("Le transport HTTP securise est indisponible");
@@ -209,7 +158,7 @@ final class RemoteContentInspector
         $resolvedIp = str_contains($ip, ":") ? "[" . $ip . "]" : $ip;
         $resolvedHost = str_contains($target->host, ":") ? "[" . $target->host . "]" : $target->host;
 
-        return $this->client->request("GET", $target->originalUrl, [
+        return $this->client->requestAsync("GET", $target->originalUrl, [
             "allow_redirects" => false,
             "http_errors" => false,
             "connect_timeout" => 3,
@@ -217,8 +166,9 @@ final class RemoteContentInspector
             "verify" => true,
             "proxy" => "",
             "headers" => [
-                "Accept" => "text/html,application/xhtml+xml",
-                "Range" => "bytes=0-" . (self::MAX_INSPECTION_BYTES - 1),
+                "Accept" => "*/*",
+                "Accept-Encoding" => "identity",
+                "Range" => "bytes=0-0",
                 "User-Agent" => "Worldbuilding-SafeLink/1.0",
             ],
             "stream" => true,
@@ -230,14 +180,5 @@ final class RemoteContentInspector
                 CURLOPT_MAXREDIRS => 0,
             ],
         ]);
-    }
-
-    private function readBytes(StreamInterface $body): string
-    {
-        try {
-            return $body->read(self::MAX_INSPECTION_BYTES);
-        } finally {
-            $body->close();
-        }
     }
 }

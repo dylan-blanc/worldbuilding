@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Handles page metadata, CMS drafts and publication for routes declared in routes/cms/pages.php.
  * GET /me/pages and POST /me/pages/{id}/settings read and update the authenticated owner's page cards and filters.
  * GET /pages/{id} reads pages.pagecontent and applies PageReadAccess using the SQL user role.
- * PUT /pages/{id}/draft validates frontend JSON and remote links, then writes page_revision through PageRevision.
+ * PUT /pages/{id}/draft validates frontend JSON and link syntax locally, then writes page_revision through PageRevision.
  * POST /pages/{id}/publish validates metadata and remote links, then promotes JSON and publishes the page.
  * PUT /pages/{id}/metadata writes the owner-selected title and page_filters without changing CMS JSON.
  */
@@ -182,6 +182,11 @@ final class PageController
         ]);
     }
 
+    /*
+     * Endpoint PUT /api/pages/{id}/draft.
+     * CmsContentValidator reçoit inspectExternalLinks=false : contrôle local des URL et absence de requête distante.
+     * Le document validé est encodé puis transmis à PageRevision::saveDraft() pour écriture dans page_revision.
+     */
     public function saveDraft(int $id): void
     {
         Request::requireSameOrigin();
@@ -194,7 +199,7 @@ final class PageController
         }
 
         try {
-            $document = CmsContentValidator::validate($body["pagecontent"], $userId, $id, true);
+            $document = CmsContentValidator::validate($body["pagecontent"], $userId, $id, false);
             $content = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
             $revision = $this->revisions->saveDraft($id, $userId, $content);
         } catch (DomainException $exception) {
@@ -207,6 +212,11 @@ final class PageController
         ]);
     }
 
+    /*
+     * Endpoint POST /api/pages/{id}/publish.
+     * Après validation de la requête et des métadonnées, PageRevision::publishDraft() recharge le brouillon,
+     * inspecte ses liens en mode REMOTE puis effectue la publication transactionnelle.
+     */
     public function publish(int $id): void
     {
         Request::requireSameOrigin();
