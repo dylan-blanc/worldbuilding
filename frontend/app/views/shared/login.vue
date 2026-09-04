@@ -64,18 +64,18 @@ const handleLogin = async () => {
     <Header />
 
     <main class="mx-auto flex w-full max-w-6xl flex-1 items-center justify-center px-4 py-12">
-      <section class="secondary-background primary-border w-full max-w-md rounded-2xl border p-6 shadow-xl sm:p-8">
+      <section class="first-background primary-border w-full max-w-md rounded-2xl border-2 p-6 shadow-xl sm:p-8">
         <h1 class="text-center text-3xl font-semibold">Connexion</h1>
         <p class="secondary-color mt-2 text-center text-sm">Retrouvez vos univers et poursuivez leur création.</p>
 
         <form method="post" action="/api/login" class="mt-6 flex flex-col gap-4" @submit.prevent="handleLogin">
           <div>
             <label for="email" class="secondary-color block text-sm font-medium">Email</label>
-            <input id="email" v-model="email" type="email" name="email" required autocomplete="email" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="email" v-model="email" type="email" name="email" required autocomplete="email" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
           </div>
           <div>
             <label for="password" class="secondary-color block text-sm font-medium">Mot de passe</label>
-            <input id="password" v-model="password" :type="revealPassword ? 'text' : 'password'" name="password" required autocomplete="current-password" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="password" v-model="password" :type="revealPassword ? 'text' : 'password'" name="password" required autocomplete="current-password" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
             <button type="button" class="secondary-color mt-2 text-sm underline" @click="revealPassword = !revealPassword">
               {{ revealPassword ? "Masquer le mot de passe" : "Afficher le mot de passe" }}
             </button>

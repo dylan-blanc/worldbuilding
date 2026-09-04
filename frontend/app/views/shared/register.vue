@@ -101,30 +101,30 @@ const handleRegister = async () => {
     <Header />
 
     <main class="mx-auto flex w-full max-w-6xl flex-1 items-center justify-center px-4 py-12">
-      <section class="secondary-background primary-border w-full max-w-md rounded-2xl border p-6 shadow-xl sm:p-8">
+      <section class="first-background primary-border w-full max-w-md rounded-2xl border-2 p-6 shadow-xl sm:p-8">
         <h1 class="text-center text-3xl font-semibold">Inscription</h1>
         <p class="secondary-color mt-2 text-center text-sm">Créez votre compte pour donner vie à vos univers.</p>
 
         <form method="post" action="/api/register" class="mt-6 flex flex-col gap-4" novalidate @submit.prevent="handleRegister">
           <div>
             <label for="username" class="secondary-color block text-sm font-medium">Nom d'utilisateur</label>
-            <input id="username" v-model="username" type="text" name="username" required autocomplete="username" :aria-invalid="Boolean(usernameError)" aria-describedby="username-error" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="username" v-model="username" type="text" name="username" required autocomplete="username" :aria-invalid="Boolean(usernameError)" aria-describedby="username-error" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
             <p v-if="usernameError" id="username-error" class="error-color mt-1 text-sm" aria-live="polite">{{ usernameError }}</p>
           </div>
           <div>
             <label for="register-email" class="secondary-color block text-sm font-medium">Email</label>
-            <input id="register-email" v-model="email" type="email" name="email" required autocomplete="email" :aria-invalid="Boolean(emailError)" aria-describedby="register-email-error" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="register-email" v-model="email" type="email" name="email" required autocomplete="email" :aria-invalid="Boolean(emailError)" aria-describedby="register-email-error" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
             <p v-if="emailError" id="register-email-error" class="error-color mt-1 text-sm" aria-live="polite">{{ emailError }}</p>
           </div>
 
           <div>
             <label for="register-password" class="secondary-color block text-sm font-medium">Mot de passe</label>
-            <input id="register-password" v-model="password" :type="revealPasswords ? 'text' : 'password'" name="password" required autocomplete="new-password" :aria-invalid="Boolean(passwordError)" aria-describedby="register-password-error" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="register-password" v-model="password" :type="revealPasswords ? 'text' : 'password'" name="password" required autocomplete="new-password" :aria-invalid="Boolean(passwordError)" aria-describedby="register-password-error" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
             <p v-if="passwordError" id="register-password-error" class="error-color mt-1 text-sm" aria-live="polite">{{ passwordError }}</p>
           </div>
           <div>
             <label for="confirm-password" class="secondary-color block text-sm font-medium">Confirmer le mot de passe</label>
-            <input id="confirm-password" v-model="confirmPassword" :type="revealPasswords ? 'text' : 'password'" name="confirm-password" required autocomplete="new-password" :aria-invalid="Boolean(confirmPasswordError)" aria-describedby="confirm-password-error" class="form-control mt-1 block w-full rounded-md border px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="confirm-password" v-model="confirmPassword" :type="revealPasswords ? 'text' : 'password'" name="confirm-password" required autocomplete="new-password" :aria-invalid="Boolean(confirmPasswordError)" aria-describedby="confirm-password-error" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
             <p v-if="confirmPasswordError" id="confirm-password-error" class="error-color mt-1 text-sm" aria-live="polite">{{ confirmPasswordError }}</p>
           </div>
 

@@ -7,7 +7,7 @@
   --third-color: #6d7f99;
   --primary-background: #ffffff;
   --secondary-background: #e4edf8;
-  --third-background: #cbd9ea;
+  --third-background: linear-gradient(to bottom, #42474b, #2f3337);
   --primary-border: #000000;
   --accent-color: #0b3b75;
   --accent-hover-color: #072d5a;
@@ -29,7 +29,8 @@ html.theme-dark {
   --third-color: #8ea2bf;
   --primary-background: #07101f;
   --secondary-background: #10233d;
-  --third-background: #19314f;
+  --third-background: linear-gradient(to bottom, #2f3337, #42474b);
+  --third-background-color: #2f3337;
   --primary-border: #385779;
   --button-primary-background: #fff;
   --accent-color: #4c8fdc;
@@ -60,7 +61,8 @@ body {
 .notification-contrast-color { color: var(--notification-contrast-color); }
 .primary-background { background-color: var(--primary-background); }
 .secondary-background { background-color: var(--secondary-background); }
-.third-background { background-color: var(--third-background); }
+.third-background { background: var(--third-background); }
+.third-background-hover:hover { background: var(--third-background); }
 .primary-border { border-color: var(--primary-border); }
 
 .form-control {
@@ -81,4 +83,4 @@ body {
 
 .button-primary:hover { background-color: var(--accent-hover-color); }
 .button-primary:focus { --tw-ring-color: var(--focus-color); }
-.button-primary:disabled { background-color: var(--third-background); }
+.button-primary:disabled { background: var(--third-background); }

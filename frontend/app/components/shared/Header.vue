@@ -116,7 +116,7 @@ onBeforeUnmount(() => removeSystemThemeListener?.())
           id="site-search"
           type="search"
           name="search"
-          placeholder="Recherche partiel, mot, titre, pays, theme etc etc etc...."
+          placeholder="Rechercher...."
           class="header-search h-12 w-full border px-4 text-lg outline-none focus:ring-2 md:h-11"
         />
       </form>
