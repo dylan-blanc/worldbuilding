@@ -14,14 +14,14 @@ final class LinkTargetParser
             || strlen($url) > 2048
             || preg_match("/[\\x00-\\x20\\x7F\\\\]/", $url) === 1
         ) {
-            throw new DomainException("Lien hypertexte invalide");
+            throw new DomainException("Lien invalide");
         }
 
         if (str_starts_with($url, "/") && !str_starts_with($url, "//")) {
             $parts = parse_url($url);
 
             if (!is_array($parts) || isset($parts["host"]) || isset($parts["scheme"])) {
-                throw new DomainException("Lien hypertexte invalide");
+                throw new DomainException("Lien invalide");
             }
 
             return new LinkTarget(
@@ -44,7 +44,7 @@ final class LinkTargetParser
             || isset($parts["pass"])
             || (isset($parts["port"]) && (int) $parts["port"] !== 443)
         ) {
-            throw new DomainException("Seuls les liens internes et HTTPS sont autorises");
+            throw new DomainException("Seuls les liens HTTPS sont autorises");
         }
 
         return new LinkTarget(
