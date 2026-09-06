@@ -6,6 +6,11 @@
 -->
 <script setup lang="ts">
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const USERNAME_MIN_LENGTH = 3
+const USERNAME_MAX_LENGTH = 50
+const EMAIL_MAX_LENGTH = 254
+const PASSWORD_MIN_LENGTH = 15
+const PASSWORD_MAX_LENGTH = 64
 const config = useRuntimeConfig()
 const apiFetch = useApi()
 const authenticated = useState<boolean | null>("auth-status", () => null)
@@ -22,13 +27,24 @@ const pending = ref(false)
 const submitted = ref(false)
 
 const usernameError = computed(() => {
-  return submitted.value && username.value.trim() === "" ? "Le nom d'utilisateur est requis" : ""
+  const value = username.value.trim()
+
+  if (value === "") return submitted.value ? "Le nom d'utilisateur est requis" : ""
+
+  const length = Array.from(value.normalize("NFC")).length
+
+  return length >= USERNAME_MIN_LENGTH && length <= USERNAME_MAX_LENGTH
+    ? ""
+    : "Utilisez entre 3 et 50 caractères"
 })
 
 const emailError = computed(() => {
-  if (email.value === "") return submitted.value ? "L'email est requis" : ""
+  const value = email.value.trim()
 
-  return EMAIL_PATTERN.test(email.value) ? "" : "Saisissez une adresse email valide"
+  if (value === "") return submitted.value ? "L'email est requis" : ""
+  if (Array.from(value).length > EMAIL_MAX_LENGTH) return "L'email ne peut pas dépasser 254 caractères"
+
+  return EMAIL_PATTERN.test(value) ? "" : "Saisissez une adresse email valide"
 })
 
 const passwordError = computed(() => {
@@ -36,7 +52,7 @@ const passwordError = computed(() => {
 
   const length = Array.from(password.value.normalize("NFC")).length
 
-  return length >= 15 && length <= 64
+  return length >= PASSWORD_MIN_LENGTH && length <= PASSWORD_MAX_LENGTH
     ? ""
     : "Utilisez entre 15 et 64 caractères"
 })

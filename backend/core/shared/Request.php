@@ -9,9 +9,27 @@ declare(strict_types=1);
  */
 final class Request
 {
-    public static function body(): array
+    public static function body(?int $maxBytes = null): array
     {
-        $rawBody = file_get_contents("php://input");
+        $contentLength = (int) ($_SERVER["CONTENT_LENGTH"] ?? 0);
+
+        if ($maxBytes !== null && $contentLength > $maxBytes) {
+            Response::error("Corps de requete trop volumineux", 413, "request_body_too_large");
+        }
+
+        $stream = fopen("php://input", "rb");
+
+        if ($stream === false) {
+            Response::error("Corps de requete illisible", 400, "invalid_request_body");
+        }
+
+        $rawBody = stream_get_contents($stream, $maxBytes === null ? -1 : $maxBytes + 1);
+        fclose($stream);
+
+        if ($maxBytes !== null && is_string($rawBody) && strlen($rawBody) > $maxBytes) {
+            Response::error("Corps de requete trop volumineux", 413, "request_body_too_large");
+        }
+
         $contentType = $_SERVER["CONTENT_TYPE"] ?? "";
 
         if ($rawBody === false || trim($rawBody) === "" || str_contains($contentType, "application/x-www-form-urlencoded") || str_contains($contentType, "multipart/form-data")) {

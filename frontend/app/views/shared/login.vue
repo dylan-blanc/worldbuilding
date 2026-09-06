@@ -1,10 +1,14 @@
 <!--
   This view renders the login form used by app/pages/login.vue.
+  Local email and password limits provide immediate feedback before submission.
   The submitted credentials follow frontend -> POST /api/login -> AuthController::login()
   -> User::findByEmail() -> SQL lookup -> PHP session cookie -> in-memory Nuxt authentication state.
   User-facing API errors are read from the JSON response and displayed inside the form.
 -->
 <script setup lang="ts">
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_MAX_LENGTH = 254
+const PASSWORD_MAX_LENGTH = 64
 const config = useRuntimeConfig()
 const route = useRoute()
 const apiFetch = useApi()
@@ -16,6 +20,24 @@ const password = ref("")
 const revealPassword = ref(false)
 const error = ref("")
 const pending = ref(false)
+const submitted = ref(false)
+
+const emailError = computed(() => {
+  const value = email.value.trim()
+
+  if (value === "") return submitted.value ? "L'email est requis" : ""
+  if (Array.from(value).length > EMAIL_MAX_LENGTH) return "L'email ne peut pas dépasser 254 caractères"
+
+  return EMAIL_PATTERN.test(value) ? "" : "Saisissez une adresse email valide"
+})
+
+const passwordError = computed(() => {
+  if (password.value === "") return submitted.value ? "Le mot de passe est requis" : ""
+
+  return Array.from(password.value.normalize("NFC")).length <= PASSWORD_MAX_LENGTH
+    ? ""
+    : "Le mot de passe ne peut pas dépasser 64 caractères"
+})
 
 const errorText = (exception: unknown): string => {
   if (typeof exception !== "object" || exception === null) return "Connexion impossible"
@@ -24,7 +46,11 @@ const errorText = (exception: unknown): string => {
 }
 
 const handleLogin = async () => {
+  submitted.value = true
   error.value = ""
+
+  if (emailError.value || passwordError.value) return
+
   pending.value = true
 
   try {
@@ -68,14 +94,16 @@ const handleLogin = async () => {
         <h1 class="text-center text-3xl font-semibold">Connexion</h1>
         <p class="secondary-color mt-2 text-center text-sm">Retrouvez vos univers et poursuivez leur création.</p>
 
-        <form method="post" action="/api/login" class="mt-6 flex flex-col gap-4" @submit.prevent="handleLogin">
+        <form method="post" action="/api/login" class="mt-6 flex flex-col gap-4" novalidate @submit.prevent="handleLogin">
           <div>
             <label for="email" class="secondary-color block text-sm font-medium">Email</label>
-            <input id="email" v-model="email" type="email" name="email" required autocomplete="email" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="email" v-model="email" type="email" name="email" required autocomplete="email" :aria-invalid="Boolean(emailError)" aria-describedby="login-email-error" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <p v-if="emailError" id="login-email-error" class="error-color mt-1 text-sm" aria-live="polite">{{ emailError }}</p>
           </div>
           <div>
             <label for="password" class="secondary-color block text-sm font-medium">Mot de passe</label>
-            <input id="password" v-model="password" :type="revealPassword ? 'text' : 'password'" name="password" required autocomplete="current-password" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <input id="password" v-model="password" :type="revealPassword ? 'text' : 'password'" name="password" required autocomplete="current-password" :aria-invalid="Boolean(passwordError)" aria-describedby="login-password-error" class="form-control mt-1 block w-full rounded-md border-2 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 sm:text-sm" />
+            <p v-if="passwordError" id="login-password-error" class="error-color mt-1 text-sm" aria-live="polite">{{ passwordError }}</p>
             <button type="button" class="secondary-color mt-2 text-sm underline" @click="revealPassword = !revealPassword">
               {{ revealPassword ? "Masquer le mot de passe" : "Afficher le mot de passe" }}
             </button>

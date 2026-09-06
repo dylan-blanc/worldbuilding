@@ -17,7 +17,10 @@ final class AuthController
     private const USERNAME_KEYS = ["username"];
     private const EMAIL_KEYS = ["useremail", "mail", "email"];
     private const PASSWORD_KEYS = ["userpassword", "password"];
-    private const MAX_FIELD_LENGTH = 255;
+    private const AUTH_BODY_MAX_BYTES = 32 * 1024;
+    private const USERNAME_MIN_LENGTH = 3;
+    private const USERNAME_MAX_LENGTH = 50;
+    private const EMAIL_MAX_LENGTH = 254;
     // used to simulate a password verification delay for non-existent users to mitigate timing attacks
     // usefull for login attempts with non-existent emails to avoid revealing valid emails through timing differences
     private const DUMMY_PASSWORD_HASH = "\$argon2id\$v=19\$m=19456,t=2,p=1\$ZkVLdDJLQ3ZxUGEwLm5vVg\$+n+Pd0tdKGMA/lId8b1TB6Y9EBhleo82i0+D+jthsks";
@@ -34,13 +37,14 @@ final class AuthController
     public function register(): void
     {
         // recupère les données du corps de la requête (POST) et les stocke dans des variables
-        $body = Request::body();
+        $body = Request::body(self::AUTH_BODY_MAX_BYTES);
         $username = Request::field($body, self::USERNAME_KEYS);
         // convertit l'email en minuscules pour éviter les problèmes de casse lors de la vérification
         $email = strtolower(Request::field($body, self::EMAIL_KEYS));
-        $password = PasswordPolicy::normalize(Request::field($body, self::PASSWORD_KEYS, false));
+        $password = Request::field($body, self::PASSWORD_KEYS, false);
 
         $this->validateRegister($username, $email, $password);
+        $password = PasswordPolicy::normalize($password);
         // verifie si le nom d'utilisateur ou l'email existe déjà dans la base de données
         if ($this->users->existsByUsernameOrEmail($username, $email)) {
             Response::error("Nom utilisateur ou email deja utilise", 409);
@@ -64,7 +68,7 @@ final class AuthController
 
     public function login(): void
     {
-        $body = Request::body();
+        $body = Request::body(self::AUTH_BODY_MAX_BYTES);
         $email = strtolower(Request::field($body, self::EMAIL_KEYS));
         $rawPassword = Request::field($body, self::PASSWORD_KEYS, false);
 
@@ -76,8 +80,17 @@ final class AuthController
             Response::error("Email invalide", 422);
         }
 
-        $user = $this->users->findByEmail($email);
+        if (mb_strlen($email, "UTF-8") > self::EMAIL_MAX_LENGTH) {
+            Response::error("Email trop long", 422, "invalid_email_length");
+        }
+
         $normalizedPassword = PasswordPolicy::normalizeForVerification($rawPassword);
+
+        if (mb_strlen($normalizedPassword, "UTF-8") > PasswordPolicy::MAX_LENGTH) {
+            Response::error("Mot de passe trop long", 422, "invalid_password_length");
+        }
+
+        $user = $this->users->findByEmail($email);
 
         $storedHash = (string) ($user["userpassword"] ?? self::DUMMY_PASSWORD_HASH);
         $passwordValid = password_verify($normalizedPassword, $storedHash);
@@ -140,8 +153,14 @@ final class AuthController
             Response::error("Nom utilisateur, email et mot de passe requis", 422);
         }
 
-        if (strlen($username) > self::MAX_FIELD_LENGTH || strlen($email) > self::MAX_FIELD_LENGTH) {
-            Response::error("Nom utilisateur ou email trop long", 422);
+        $usernameLength = mb_strlen($username, "UTF-8");
+
+        if ($usernameLength < self::USERNAME_MIN_LENGTH || $usernameLength > self::USERNAME_MAX_LENGTH) {
+            Response::error("Le nom utilisateur doit contenir entre 3 et 50 caracteres", 422, "invalid_username_length");
+        }
+
+        if (mb_strlen($email, "UTF-8") > self::EMAIL_MAX_LENGTH) {
+            Response::error("Email trop long", 422, "invalid_email_length");
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
