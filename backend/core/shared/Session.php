@@ -10,8 +10,8 @@ declare(strict_types=1);
 final class Session
 {
     private const NAME = "worldbuilding_session";
-    private const IDLE_LIFETIME = 86400;
-    private const ABSOLUTE_LIFETIME = 604800;
+    private const IDLE_LIFETIME = 604800; // = 7 days
+    private const ABSOLUTE_LIFETIME = 2592000; // = 30 days
 
     public static function start(): void
     {
@@ -168,8 +168,11 @@ final class Session
     {
         return [
             "path" => "/",
+            //limite le cookie aux requêtes HTTPS en production
             "secure" => self::isHttps(),
+            // empêche l'accès au cookie via JavaScript
             "httponly" => true,
+            // empêche l'envoi du cookie pour les requêtes cross-site
             "samesite" => "Lax",
         ];
     }
