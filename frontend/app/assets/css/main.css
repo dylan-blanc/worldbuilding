@@ -7,13 +7,19 @@
   --third-color: #6d7f99;
   --primary-background: #ffffff;
   --secondary-background: #e4edf8;
-  --third-background: #cbd9ea;
-  --primary-border: #9eb2ca;
+  --third-background: linear-gradient(to bottom, #42474b, #2f3337);
+  --primary-border: #000000;
   --accent-color: #0b3b75;
   --accent-hover-color: #072d5a;
-  --focus-color: #2563eb;
+  --focus-color: #000000;
   --error-color: #b42318;
   --success-color: #067647;
+  --warning-color: #ff0000;
+  --notification-color: #facc15;
+  --notification-contrast-color: #1c1917;
+  --button-primary-background: #000000;
+  --button-primary-color: #ffffff;
+
 }
 
 html.theme-dark {
@@ -23,13 +29,20 @@ html.theme-dark {
   --third-color: #8ea2bf;
   --primary-background: #07101f;
   --secondary-background: #10233d;
-  --third-background: #19314f;
+  --third-background: linear-gradient(to bottom, #2f3337, #42474b);
+  --third-background-color: #2f3337;
   --primary-border: #385779;
+  --button-primary-background: #fff;
   --accent-color: #4c8fdc;
+  --accent-colorblack: #000000;
   --accent-hover-color: #77adf0;
-  --focus-color: #93c5fd;
+  --focus-color: #fff;
   --error-color: #fda29b;
   --success-color: #6ce9a6;
+  --notification-color: #fde047;
+  --notification-contrast-color: #1c1917;
+  --button-primary-color: #000000;
+
 }
 
 body {
@@ -43,9 +56,13 @@ body {
 .third-color { color: var(--third-color); }
 .error-color { color: var(--error-color); }
 .success-color { color: var(--success-color); }
+.warning-color { color: var(--warning-color); }
+.notification-background { background-color: var(--notification-color); }
+.notification-contrast-color { color: var(--notification-contrast-color); }
 .primary-background { background-color: var(--primary-background); }
 .secondary-background { background-color: var(--secondary-background); }
-.third-background { background-color: var(--third-background); }
+.third-background { background: var(--third-background); }
+.third-background-hover:hover { background: var(--third-background); }
 .primary-border { border-color: var(--primary-border); }
 
 .form-control {
@@ -60,10 +77,10 @@ body {
 }
 
 .button-primary {
-  background-color: var(--accent-color);
-  color: var(--primary-background);
+  background-color: var(--button-primary-background);
+  color: var(--button-primary-color);
 }
 
 .button-primary:hover { background-color: var(--accent-hover-color); }
 .button-primary:focus { --tw-ring-color: var(--focus-color); }
-.button-primary:disabled { background-color: var(--third-background); }
+.button-primary:disabled { background: var(--third-background); }

@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS filters (
     id INT AUTO_INCREMENT PRIMARY KEY,
     filter_name VARCHAR(255) NOT NULL UNIQUE,
-    filter_type ENUM('theme', 'category', 'subcategory') NOT NULL,
+    filter_type ENUM('theme', 'category', 'subcategory', 'moderation') NOT NULL,
     belong_to VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -41,6 +41,125 @@ CREATE TABLE IF NOT EXISTS pages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS moderation_cases (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    reported_page_id INT NOT NULL UNIQUE,
+    reported_page_snapshot JSON NOT NULL,
+    moderation_status ENUM('pending', 'reviewed', 'dismissed') NOT NULL DEFAULT 'pending',
+    reviewed_by_user_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX moderation_case_status_created (moderation_status, created_at),
+    FOREIGN KEY (reported_page_id) REFERENCES pages(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS moderation (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    moderation_case_id BIGINT UNSIGNED NOT NULL,
+    reporter_user_id INT NOT NULL,
+    reported_page_id INT NOT NULL,
+    reported_filter_content INT NULL,
+    reported_filter_name VARCHAR(255) NOT NULL,
+    reported_user_message TEXT NULL,
+    reported_media_url VARCHAR(2048) NULL,
+    reported_content_type ENUM('page_display', 'page_content') NOT NULL DEFAULT 'page_display',
+    reported_block_id VARCHAR(255) NOT NULL DEFAULT '',
+    reported_block_type VARCHAR(50) NULL,
+    reported_content_snapshot JSON NULL,
+    moderation_status ENUM('pending', 'reviewed', 'dismissed') NOT NULL DEFAULT 'pending',
+    reviewed_by_user_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP NULL DEFAULT NULL,
+    UNIQUE KEY unique_reporter_page_content_block (
+        reporter_user_id,
+        reported_page_id,
+        reported_content_type,
+        reported_block_id
+    ),
+    INDEX moderation_status_created (moderation_status, created_at),
+    INDEX moderation_case_status (moderation_case_id, moderation_status),
+    INDEX moderation_page_content_block (reported_page_id, reported_content_type, reported_block_id),
+    CONSTRAINT valid_reported_block CHECK (
+        (
+            reported_content_type = 'page_display'
+            AND reported_block_id = ''
+            AND reported_block_type IS NULL
+        )
+        OR (
+            reported_content_type = 'page_content'
+            AND reported_block_id <> ''
+            AND reported_block_type IN ('text', 'image', 'banner', 'gallery', 'video')
+        )
+    ),
+    FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (moderation_case_id) REFERENCES moderation_cases(id) ON DELETE CASCADE,
+    FOREIGN KEY (reported_page_id) REFERENCES pages(id) ON DELETE CASCADE,
+    FOREIGN KEY (reported_filter_content) REFERENCES filters(id) ON DELETE SET NULL,
+    FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS page_revision (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    page_id INT NOT NULL,
+    created_by_user_id INT,
+    revision_number INT UNSIGNED NOT NULL,
+    revision_status ENUM('draft', 'published', 'archived') NOT NULL DEFAULT 'draft',
+    is_current BOOLEAN NOT NULL DEFAULT TRUE,
+    pagecontent JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    published_at TIMESTAMP NULL DEFAULT NULL,
+    current_draft_page_id INT,
+    current_published_page_id INT,
+    UNIQUE KEY unique_page_revision_number (page_id, revision_number),
+    UNIQUE KEY unique_current_page_draft (current_draft_page_id),
+    UNIQUE KEY unique_current_page_publication (current_published_page_id),
+    INDEX page_revision_lookup (page_id, revision_status, is_current),
+    CONSTRAINT valid_current_page_revision CHECK (
+        (is_current = FALSE AND current_draft_page_id IS NULL AND current_published_page_id IS NULL)
+        OR (is_current = TRUE AND revision_status = 'draft' AND current_draft_page_id IS NOT NULL
+            AND current_draft_page_id = page_id AND current_published_page_id IS NULL)
+        OR (is_current = TRUE AND revision_status = 'published' AND current_published_page_id IS NOT NULL
+            AND current_published_page_id = page_id AND current_draft_page_id IS NULL)
+    ),
+    FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    page_id INT NULL,
+    notification_type ENUM('moderation_content_removed', 'moderation_page_picture_removed') NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    details JSON NOT NULL,
+    read_at TIMESTAMP NULL DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX user_notification_list (user_id, read_at, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS storage_deletion_outbox (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    page_id INT NULL,
+    object_key VARCHAR(512) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+    deletion_status ENUM('pending', 'processing', 'deleted', 'failed') NOT NULL DEFAULT 'pending',
+    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    available_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    locked_at TIMESTAMP NULL DEFAULT NULL,
+    processed_at TIMESTAMP NULL DEFAULT NULL,
+    last_error_code VARCHAR(64) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX storage_outbox_schedule (deletion_status, available_at, id),
+    FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS subpages (
@@ -99,7 +218,11 @@ INSERT INTO filters (id, filter_name, filter_type, belong_to) VALUES
     (5, 'Colonies spatiales', 'category', 2),
     (6, 'Cites marchandes', 'subcategory', 3),
     (7, 'Ecoles arcaniques', 'subcategory', 3),
-    (8, 'Stations orbitales', 'subcategory', 5);
+    (8, 'Stations orbitales', 'subcategory', 5),
+    (9, 'Mature content', 'moderation', NULL),
+    (10, 'Spam', 'moderation', NULL),
+    (11, 'Violent or shocking content', 'moderation', NULL),
+    (12, 'Other', 'moderation', NULL);
 
 INSERT INTO pages (
     id,
@@ -297,6 +420,35 @@ INSERT INTO pages (
         '2026-06-25 15:45:00',
         '2026-07-14 08:55:00'
     );
+
+-- temporaire, pour le dev, a supprimer plus tard
+INSERT INTO page_revision (
+    page_id,
+    created_by_user_id,
+    revision_number,
+    revision_status,
+    is_current,
+    current_draft_page_id,
+    current_published_page_id,
+    pagecontent,
+    created_at,
+    updated_at,
+    published_at
+)
+SELECT
+    id,
+    owner_user_id,
+    1,
+    CASE WHEN page_status = 'public' THEN 'published' ELSE 'draft' END,
+    TRUE,
+    CASE WHEN page_status = 'public' THEN NULL ELSE id END,
+    CASE WHEN page_status = 'public' THEN id ELSE NULL END,
+    pagecontent,
+    created_at,
+    updated_at,
+    CASE WHEN page_status = 'public' THEN updated_at ELSE NULL END
+FROM pages
+ON DUPLICATE KEY UPDATE page_id = VALUES(page_id);
 
 INSERT INTO page_filters (id, page_id, filter_id) VALUES
     (1, 4, 1),

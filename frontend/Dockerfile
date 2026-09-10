@@ -13,6 +13,10 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
 
 FROM deps AS build
 ENV NODE_ENV=production
+ARG PROD_API_BASE="/api"
+ARG PROD_FRONTEND_URL="http://localhost:8080"
+ENV PROD_API_BASE="${PROD_API_BASE}"
+ENV PROD_FRONTEND_URL="${PROD_FRONTEND_URL}"
 COPY . .
 RUN npm run generate
 

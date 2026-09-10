@@ -1,0 +1,46 @@
+<!--
+  Provides the fixed welcome-email body consumed by the backend EmailTemplateProvider.
+  PHP reads this local asset after registration, then Brevo relays it unchanged to the
+  recipient; no frontend service or user-specific template variable participates.
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bienvenue sur WorldBuilding !</title>
+</head>
+<body style="margin: 0; padding: 0; background: #e4edf8;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width: 100%; border-collapse: collapse; background: #e4edf8; color: #071a33; font-family: Arial, Helvetica, sans-serif;">
+    <tbody>
+      <tr>
+        <td align="center" style="padding: 40px 16px;">
+          <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width: 100%; max-width: 600px; border: 1px solid #9eb2ca; border-collapse: separate; border-radius: 16px; background: #ffffff;">
+            <tbody>
+              <tr>
+                <td style="padding: 40px 32px; text-align: center;">
+                  <p style="margin: 0 0 12px; color: #3a5274; font-size: 14px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">
+                    WorldBuilding
+                  </p>
+                  <h1 style="margin: 0; color: #071a33; font-size: 30px; line-height: 1.25;">
+                    Bienvenue sur WorldBuilding !
+                  </h1>
+                  <p style="margin: 20px 0 0; color: #3a5274; font-size: 16px; line-height: 1.6;">
+                    Votre inscription a bien été prise en compte. Vous pouvez maintenant vous connecter et commencer à construire vos univers.
+                  </p>
+                  <p style="margin: 28px 0 0;">
+                    <a href="https://worldbuilding.molternate.com/login" style="display: inline-block; border-radius: 8px; background: #0b3b75; color: #ffffff; font-size: 16px; font-weight: 700; line-height: 1; padding: 14px 22px; text-decoration: none;">
+                      Se connecter
+                    </a>
+                  </p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
+

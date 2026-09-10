@@ -1,5 +1,6 @@
 {
     "name": "seidan/backend",
+    "description": "PHP API pour le projet Worldbuilding",
     "type": "project",
     "license": "proprietary",
     "autoload": {
@@ -11,10 +12,12 @@
         "files": [
             "config/env.php",
             "config/database.php",
-            "routes/auth.php",
-            "routes/filters.php",
-            "routes/owned-pages.php",
-            "routes/pages.php"
+            "routes/admin/admin.php",
+            "routes/admin/moderation.php",
+            "routes/cms/pages.php",
+            "routes/index/filters.php",
+            "routes/link-validation/links.php",
+            "routes/shared/auth.php"
         ]
     },
     "authors": [
@@ -24,5 +27,14 @@
         }
     ],
     "minimum-stability": "stable",
-    "require": {}
+    "require": {
+        "aws/aws-sdk-php": "^3.0",
+        "getbrevo/brevo-php": "^5.0",
+        "guzzlehttp/guzzle": "^7.15"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
 }

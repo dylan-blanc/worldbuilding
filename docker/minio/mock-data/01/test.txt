@@ -1,0 +1,1 @@
+mock data used to verify if minio work correctly

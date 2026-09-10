@@ -1,11 +1,16 @@
+<!--
+  This page loads and updates every page owned by the authenticated user at /personnalpage.
+  Its form data flows through /me/pages routes to PageController, then pages and page_filters SQL.
+  Presentation images flow through POST /pages/{id}/picture with optional detected-type normalization before MinIO storage.
+-->
 <script setup lang="ts">
-import Firstcreation from "~/views/firstcreation.vue"
-import Ownedpage from "~/views/ownedpage.vue"
+import Firstcreation from "~/views/cms/firstcreation.vue"
+import Ownedpage from "~/views/cms/ownedpage.vue"
 import type {
   OwnedPage,
   OwnedPageMessage,
   OwnedPageStatus,
-} from "~/types/owned-page"
+} from "~/types/cms/owned-page"
 
 type OwnedPagesResponse = {
   pages: OwnedPage[]
@@ -16,6 +21,7 @@ type OwnedPageResponse = {
 }
 
 const config = useRuntimeConfig()
+const apiFetch = useApi()
 const pages = ref<OwnedPage[]>([])
 const pending = ref(true)
 const loaded = ref(false)
@@ -39,9 +45,9 @@ function errorText(error: unknown): string {
   return candidate.data?.error || "Enregistrement impossible"
 }
 
-// Send an asynchronous request with the session cookie to the /me/owned-pages route.
-// The route calls OwnedPageController::index(), which gets the authenticated user's ID
-// from the session and passes it to OwnedPage::findByOwnerId(). The model selects that
+// Send an asynchronous request with the session cookie to the /me/pages route.
+// The route calls PageController::mine(), which gets the authenticated user's ID
+// from the session and passes it to Page::findCardsByOwnerId(). The model selects that
 // user's pages from the database, including their identity, status, visibility, metrics,
 // description, picture, and timestamps, then the result and request state are exposed to the UI.
 async function loadOwnedPages(): Promise<void> {
@@ -51,7 +57,7 @@ async function loadOwnedPages(): Promise<void> {
   errorMessage.value = ""
 
   try {
-    const response = await $fetch<OwnedPagesResponse>(`${config.public.apiBase}/me/owned-pages`, {
+    const response = await $fetch<OwnedPagesResponse>(`${config.public.apiBase}/me/pages`, {
       credentials: "include",
     })
 
@@ -74,19 +80,23 @@ async function saveOwnedPageSettings(
   id: number,
   pageStatus: Exclude<OwnedPageStatus, "banned">,
   isAnonymous: boolean,
+  pageTitle: string,
+  filterIds: number[],
 ): Promise<void> {
   savingPageId.value = id
   delete pageMessages[id]
 
   try {
-    const response = await $fetch<OwnedPageResponse>(
-      `${config.public.apiBase}/me/owned-pages/${id}/settings`,
+    const response = await apiFetch<OwnedPageResponse>(
+      `${config.public.apiBase}/me/pages/${id}/settings`,
       {
         method: "POST",
         credentials: "include",
         body: {
           page_status: pageStatus,
           is_anonymous: isAnonymous,
+          page_title: pageTitle.trim(),
+          filter_ids: filterIds,
         },
       },
     )
@@ -105,6 +115,36 @@ async function saveOwnedPageSettings(
     }
   } finally {
     savingPageId.value = null
+  }
+}
+
+async function uploadPagePicture(payload: { pageId: number, event: Event, normalizeImageType: boolean }): Promise<void> {
+  const { pageId, event, normalizeImageType } = payload
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  if (!file || savingPageId.value !== null) return
+
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("normalize_image_type", normalizeImageType ? "1" : "0")
+  savingPageId.value = pageId
+  delete pageMessages[pageId]
+
+  try {
+    const response = await apiFetch<OwnedPageResponse>(`${config.public.apiBase}/pages/${pageId}/picture`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    })
+    const index = pages.value.findIndex(page => page.id === pageId)
+    index !== -1 && (pages.value[index] = response.page)
+    pageMessages[pageId] = { type: "success", text: "Image de présentation enregistrée" }
+  } catch (error) {
+    pageMessages[pageId] = { type: "error", text: errorText(error) }
+  } finally {
+    savingPageId.value = null
+    input.value = ""
   }
 }
 
@@ -145,6 +185,7 @@ onMounted(loadOwnedPages)
     :saving-page-id="savingPageId"
     :page-messages="pageMessages"
     @save="saveOwnedPageSettings"
+    @upload-picture="uploadPagePicture"
   />
   <Firstcreation v-else />
 </template>

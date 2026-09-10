@@ -1,30 +1,50 @@
+# Orchestrates production services with file-backed Docker secrets and persistent data.
+# MinIO remains internal to the application network while its console is bound to localhost.
+# Builds and runs the production SSG frontend, PHP API, TLS proxy, MySQL and private object storage services.
+name: "${PROD_COMPOSE_PROJECT_NAME:-worldbuilding-prod}"
+
 services:
   backend:
-    container_name: backend
     build:
       context: ./backend
       target: prod
     environment:
+      APP_ENV: "production"
       DB_HOST: db
       DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE:-worldbuilding}
+      DB_NAME: "${PROD_MYSQL_DATABASE:-${MYSQL_DATABASE:-worldbuilding}}"
       DB_USER_FILE: /run/secrets/mysql_user
       DB_PASSWORD_FILE: /run/secrets/mysql_password
-      FRONTEND_URL: ${PROD_FRONTEND_URL}
-      API_TOKEN_FILE: /run/secrets/api_token
-      JWT_TOKEN_FILE: /run/secrets/jwt_token
-      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+      FRONTEND_URL: "${PROD_FRONTEND_URL:-${FRONTEND_URL:-http://localhost:8080}}"
+      FRONTEND_FALLBACK_URL: "${PROD_FRONTEND_HTTP_URL:-${FRONTEND_URL:-http://localhost:8080}}"
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_REGION: "us-east-1"
+      MINIO_BUCKET: "${BUCKET}"
+      MINIO_ACCESS_KEY_FILE: /run/secrets/minio_access_key
+      MINIO_SECRET_KEY_FILE: /run/secrets/minio_secret_key
+      MINIO_PATH_STYLE: "true"
+      MINIO_SSE_MODE: "${MINIO_SSE_MODE:-}"
+      MINIO_SSE_KMS_KEY_ID: "${MINIO_SSE_KMS_KEY_ID:-}"
+      BREVO_API_KEY_FILE: /run/secrets/brevo_api_key
+      BREVO_SENDER_EMAIL: "no-reply-worldbuilding@molternate.com"
+      BREVO_SENDER_NAME: "WorldBuilding"
+      BREVO_TIMEOUT: "10"
+      BREVO_MAX_RETRIES: "2"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     secrets:
-      - api_token
-      - jwt_token
       - mysql_user
       - mysql_password
+      - minio_access_key
+      - minio_secret_key
+      - brevo_api_key
     expose:
       - "80"
     healthcheck:
-      test: ["CMD", "php", "-r", "require \"/var/www/html/config/database.php\";"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents(\"http://127.0.0.1/api\") === false ? 1 : 0);"]
       interval: "10s"
       timeout: "5s"
       retries: 5
@@ -32,36 +52,58 @@ services:
     restart: unless-stopped
 
   frontend:
-    container_name: frontend
     build:
       context: ./frontend
       target: prod
-    depends_on:
-      - backend
+      args:
+        PROD_API_BASE: "${PROD_API_BASE:-${BASE_URL:-/api}}"
+        PROD_FRONTEND_URL: "${PROD_FRONTEND_URL:-${FRONTEND_URL:-http://localhost:8080}}"
     expose:
       - "80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: "5s"
+      timeout: "3s"
+      retries: 10
+      start_period: "10s"
+    depends_on:
+      backend:
+        condition: "service_healthy"
     restart: unless-stopped
 
   nginx:
-    container_name: nginx
     image: nginx:1.30-alpine
+    environment:
+      PROD_DOMAIN: "${PROD_DOMAIN:-worldbuilding.molternate.com}"
     ports:
-      - "${PROD_WEB_PORT:-80}:80"
-      - "${PROD_WEB_SSL_PORT:-443}:443"
+      - "${PROD_WEB_BIND:-127.0.0.1}:${PROD_WEB_PORT:-${WEB_PORT:-8082}}:80"
+      - "${PROD_WEB_BIND:-127.0.0.1}:${PROD_WEB_SSL_PORT:-8444}:443"
     volumes:
-      - ./frontend/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./frontend/nginx/prod-http.conf:/etc/nginx/prod/http.conf:ro
+      - ./frontend/nginx/prod.conf:/etc/nginx/prod/https.conf:ro
+      - ./frontend/nginx/prod-locations.conf:/etc/nginx/prod/locations.conf:ro
+      - ./frontend/nginx/start-production.sh:/usr/local/bin/start-production:ro
+      - "${LETSENCRYPT_DIR:-/etc/letsencrypt}:/etc/letsencrypt:ro"
+      - "${CERTBOT_WEBROOT:-/var/www/certbot}:/var/www/certbot:ro"
+    command: ["/bin/sh", "/usr/local/bin/start-production"]
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: "service_healthy"
+      backend:
+        condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: "10s"
+      timeout: "5s"
+      retries: 5
+      start_period: "5s"
     restart: unless-stopped
 
   db:
-    container_name: db
     image: mysql:8
     environment:
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-worldbuilding}
+      MYSQL_DATABASE: "${PROD_MYSQL_DATABASE:-${MYSQL_DATABASE:-worldbuilding}}"
       MYSQL_USER_FILE: /run/secrets/mysql_user
       MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
     secrets:
@@ -71,10 +113,15 @@ services:
     volumes:
       - db_data:/var/lib/mysql
       - ./backend/db/db.sql:/docker-entrypoint-initdb.d/01-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root --password=\"$$(cat /run/secrets/mysql_root_password)\" --silent"]
+      interval: "10s"
+      timeout: "5s"
+      retries: 10
+      start_period: "30s"
     restart: unless-stopped
 
   phpmyadmin:
-    container_name: phpmyadmin
     image: phpmyadmin:5.2-apache
     profiles:
       - "admin"
@@ -82,7 +129,7 @@ services:
       PMA_HOST: db
       PMA_PORT: 3306
     ports:
-      - "127.0.0.1:${PHPMYADMIN_PROD_PORT}:80"
+      - "127.0.0.1:${PHPMYADMIN_PROD_PORT:-${PHPMYADMIN_PORT:-8081}}:80"
     depends_on:
       - db
     restart: unless-stopped
@@ -92,18 +139,79 @@ services:
     # pour l'arreter :
     # docker compose -f docker-compose.prod.yml stop phpmyadmin
 
+  minio:
+    image: "pgsty/minio:RELEASE.2026-06-18T00-00-00Z"
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER_FILE: "/run/secrets/minio_root_user"
+      MINIO_ROOT_PASSWORD_FILE: "/run/secrets/minio_root_password"
+    secrets:
+      - minio_root_user
+      - minio_root_password
+    volumes:
+      - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
+    ports:
+      - "127.0.0.1:${PROD_MINIO_CONSOLE_PORT:-${MINIO_CONSOLE_PORT:-9001}}:9001"
+    restart: "unless-stopped"
+
+  # Creates the private CMS bucket, service account and bucket-scoped policy without exposing MinIO publicly.
+  minio-init:
+    image: "pgsty/mc:RELEASE.2026-04-17T00-00-00Z"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        export MINIO_ROOT_USER="$$(cat /run/secrets/minio_root_user)"
+        export MINIO_ROOT_PASSWORD="$$(cat /run/secrets/minio_root_password)"
+        export MINIO_ACCESS_KEY="$$(cat /run/secrets/minio_access_key)"
+        export MINIO_SECRET_KEY="$$(cat /run/secrets/minio_secret_key)"
+        attempt=0
+        until mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" --api S3v4 --path on; do
+          attempt=$$((attempt + 1))
+          if [ "$${attempt}" -ge 60 ]; then
+            echo "MinIO did not become ready within 120 seconds"
+            exit 1
+          fi
+          sleep 2
+        done
+        mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+        mc admin user add local "$${MINIO_ACCESS_KEY}" "$${MINIO_SECRET_KEY}" || true
+        mc admin policy create local cms-media /policies/cms-policy.json
+        mc admin policy attach local cms-media --user "$${MINIO_ACCESS_KEY}"
+    environment:
+      MINIO_BUCKET: "${BUCKET:-users-data}"
+    secrets:
+      - minio_root_user
+      - minio_root_password
+      - minio_access_key
+      - minio_secret_key
+    volumes:
+      - ./docker/minio/cms-policy.json:/policies/cms-policy.json:ro
+    depends_on:
+      - minio
+    restart: "no"
+
 
 volumes:
   db_data:
+  minio_data:
 
 secrets:
-  api_token:
-    file: ./secrets/api_token
-  jwt_token:
-    file: ./secrets/jwt_token
   mysql_root_password:
     file: ./secrets/mysql_root_password
   mysql_user:
     file: ./secrets/mysql_user
   mysql_password:
     file: ./secrets/mysql_password
+  minio_root_user:
+    file: ./secrets/minio_root_user
+  minio_root_password:
+    file: ./secrets/minio_root_password
+  minio_access_key:
+    file: ./secrets/minio_access_key
+  minio_secret_key:
+    file: ./secrets/minio_secret_key
+  brevo_api_key:
+    file: ./secrets/brevo_api_key

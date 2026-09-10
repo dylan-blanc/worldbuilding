@@ -1,0 +1,164 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Reads, creates and updates SQL users for authentication and profile flows.
+ * AuthController and UserProfileController expose roles from these prepared queries,
+ * while page/admin controllers call isAdmin() before allowing privileged operations.
+ */
+final class User
+{
+    public function __construct(private PDO $pdo)
+    {
+    }
+
+    public function findById(int $id): ?array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT id, username, useremail, userpassword, profil_picture, roles, created_at
+            FROM users
+            WHERE id = :id
+            LIMIT 1"
+        );
+        $statement->bindValue(":id", $id, PDO::PARAM_INT);
+        $statement->execute();
+
+        $user = $statement->fetch();
+
+        return is_array($user) ? $user : null;
+    }
+
+    public function findByEmail(string $email): ?array
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT id, username, useremail, userpassword, profil_picture, roles, created_at
+            FROM users
+            WHERE useremail = :useremail
+            LIMIT 1"
+        );
+        $statement->execute([
+            "useremail" => $email,
+        ]);
+
+        $user = $statement->fetch();
+
+        return is_array($user) ? $user : null;
+    }
+
+    public function existsByUsernameOrEmail(string $username, string $email): bool
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT id
+            FROM users
+            WHERE username = :username OR useremail = :useremail
+            LIMIT 1"
+        );
+        $statement->execute([
+            "username" => $username,
+            "useremail" => $email,
+        ]);
+
+        return $statement->fetch() !== false;
+    }
+
+    public function existsByUsernameOrEmailExceptId(string $username, string $email, int $excludedId): bool
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT id
+            FROM users
+            WHERE (username = :username OR useremail = :useremail)
+                AND id <> :excluded_id
+            LIMIT 1"
+        );
+        $statement->execute([
+            ":username" => $username,
+            ":useremail" => $email,
+            ":excluded_id" => $excludedId,
+        ]);
+
+        return $statement->fetch() !== false;
+    }
+
+    public function isAdmin(int $id): bool
+    {
+        $statement = $this->pdo->prepare(
+            "SELECT 1
+            FROM users
+            WHERE id = :id AND roles = :role
+            LIMIT 1"
+        );
+        $statement->execute([
+            ":id" => $id,
+            ":role" => "admin",
+        ]);
+
+        return $statement->fetchColumn() !== false;
+    }
+
+    public function create(string $username, string $email, string $passwordHash): array
+    {
+        $statement = $this->pdo->prepare(
+            "INSERT INTO users (username, useremail, userpassword)
+            VALUES (:username, :useremail, :userpassword)"
+        );
+        $statement->execute([
+            "username" => $username,
+            "useremail" => $email,
+            "userpassword" => $passwordHash,
+        ]);
+
+        $user = $this->findById((int) $this->pdo->lastInsertId());
+
+        if ($user === null) {
+            throw new RuntimeException("Utilisateur introuvable apres creation");
+        }
+
+        return $user;
+    }
+
+    public function updatePasswordHash(int $id, string $passwordHash): void
+    {
+        $statement = $this->pdo->prepare(
+            "UPDATE users
+            SET userpassword = :userpassword
+            WHERE id = :id"
+        );
+        $statement->execute([
+            ":id" => $id,
+            ":userpassword" => $passwordHash,
+        ]);
+    }
+
+    public function updateProfile(
+        int $id,
+        string $username,
+        string $email,
+        ?string $passwordHash,
+        ?string $profilePicture
+    ): array {
+        $statement = $this->pdo->prepare(
+            "UPDATE users
+            SET username = :username,
+                useremail = :useremail,
+                userpassword = COALESCE(:userpassword, userpassword),
+                profil_picture = :profil_picture
+            WHERE id = :id"
+        );
+        $statement->execute([
+            ":id" => $id,
+            ":username" => $username,
+            ":useremail" => $email,
+            ":userpassword" => $passwordHash,
+            ":profil_picture" => $profilePicture,
+        ]);
+
+        $user = $this->findById($id);
+
+        if ($user === null) {
+            throw new RuntimeException("Utilisateur introuvable apres modification");
+        }
+
+        return $user;
+    }
+}
