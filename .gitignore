@@ -43,6 +43,7 @@ TODO.md
 
 # Test
 backend/tests/*.php
+artifacts
 
 # bdd
 backend/db/dbseed.sql
@@ -66,3 +67,7 @@ tutoPreCommit.md
 backend/db/migrations/20260722_create_page_revision.sql
 
 backend/tests/
+
+
+### tututu
+createuser.md

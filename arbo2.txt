@@ -1,0 +1,4994 @@
+Structure du dossier pour le volume OS
+Le numéro de série du volume est 000000DB 824C:A2B4
+C:.
++---.agents
++---.idea
++---backend
+|   +---config
+|   +---controllers
+|   |   +---admin
+|   |   +---cms
+|   |   +---index
+|   |   +---link-validation
+|   |   +---minio
+|   |   \---shared
+|   +---core
+|   |   +---brevo
+|   |   +---cms
+|   |   +---link-validation
+|   |   +---minio
+|   |   \---shared
+|   +---db
+|   |   \---migration
+|   +---models
+|   |   +---admin
+|   |   +---cms
+|   |   +---index
+|   |   +---minio
+|   |   \---shared
+|   +---php
+|   +---public
+|   +---routes
+|   |   +---admin
+|   |   +---cms
+|   |   +---index
+|   |   +---link-validation
+|   |   \---shared
+|   +---scripts
+|   |   \---minio
+|   +---templates
+|   |   \---brevo
+|   |       \---emails
+|   +---tests
+|   |   +---cms
+|   |   +---link-validation
+|   |   \---minio
+|   |       \---fixtures
+|   \---vendor
+|       +---aws
+|       |   +---aws-crt-php
+|       |   |   \---src
+|       |   |       \---AWS
+|       |   |           \---CRT
+|       |   |               +---Auth
+|       |   |               +---HTTP
+|       |   |               +---Internal
+|       |   |               \---IO
+|       |   \---aws-sdk-php
+|       |       \---src
+|       |           +---AccessAnalyzer
+|       |           |   \---Exception
+|       |           +---Account
+|       |           |   \---Exception
+|       |           +---Acm
+|       |           |   \---Exception
+|       |           +---ACMPCA
+|       |           |   \---Exception
+|       |           +---AIOps
+|       |           |   \---Exception
+|       |           +---Amplify
+|       |           |   \---Exception
+|       |           +---AmplifyBackend
+|       |           |   \---Exception
+|       |           +---AmplifyUIBuilder
+|       |           |   \---Exception
+|       |           +---Api
+|       |           |   +---Cbor
+|       |           |   |   \---Exception
+|       |           |   +---ErrorParser
+|       |           |   +---Exception
+|       |           |   +---Parser
+|       |           |   |   \---Exception
+|       |           |   \---Serializer
+|       |           +---ApiGateway
+|       |           |   \---Exception
+|       |           +---ApiGatewayManagementApi
+|       |           |   \---Exception
+|       |           +---ApiGatewayV2
+|       |           |   \---Exception
+|       |           +---AppConfig
+|       |           |   \---Exception
+|       |           +---AppConfigData
+|       |           |   \---Exception
+|       |           +---AppFabric
+|       |           |   \---Exception
+|       |           +---Appflow
+|       |           |   \---Exception
+|       |           +---AppIntegrationsService
+|       |           |   \---Exception
+|       |           +---ApplicationAutoScaling
+|       |           |   \---Exception
+|       |           +---ApplicationCostProfiler
+|       |           |   \---Exception
+|       |           +---ApplicationDiscoveryService
+|       |           |   \---Exception
+|       |           +---ApplicationInsights
+|       |           |   \---Exception
+|       |           +---ApplicationSignals
+|       |           |   \---Exception
+|       |           +---AppMesh
+|       |           |   \---Exception
+|       |           +---AppRegistry
+|       |           |   \---Exception
+|       |           +---AppRunner
+|       |           |   \---Exception
+|       |           +---Appstream
+|       |           |   \---Exception
+|       |           +---AppSync
+|       |           |   \---Exception
+|       |           +---ARCRegionSwitch
+|       |           |   \---Exception
+|       |           +---ARCZonalShift
+|       |           |   \---Exception
+|       |           +---Arn
+|       |           |   +---Exception
+|       |           |   \---S3
+|       |           +---Artifact
+|       |           |   \---Exception
+|       |           +---Athena
+|       |           |   \---Exception
+|       |           +---AuditManager
+|       |           |   \---Exception
+|       |           +---AugmentedAIRuntime
+|       |           |   \---Exception
+|       |           +---Auth
+|       |           |   \---Exception
+|       |           +---AutoScaling
+|       |           |   \---Exception
+|       |           +---AutoScalingPlans
+|       |           |   \---Exception
+|       |           +---B2bi
+|       |           |   \---Exception
+|       |           +---Backup
+|       |           |   \---Exception
+|       |           +---BackupGateway
+|       |           |   \---Exception
+|       |           +---BackupSearch
+|       |           |   \---Exception
+|       |           +---Batch
+|       |           |   \---Exception
+|       |           +---BCMDashboards
+|       |           |   \---Exception
+|       |           +---BCMDataExports
+|       |           |   \---Exception
+|       |           +---BCMPricingCalculator
+|       |           |   \---Exception
+|       |           +---BCMRecommendedActions
+|       |           |   \---Exception
+|       |           +---Bedrock
+|       |           |   \---Exception
+|       |           +---BedrockAgent
+|       |           |   \---Exception
+|       |           +---BedrockAgentCore
+|       |           |   \---Exception
+|       |           +---BedrockAgentCoreControl
+|       |           |   \---Exception
+|       |           +---BedrockAgentRuntime
+|       |           |   \---Exception
+|       |           +---BedrockDataAutomation
+|       |           |   \---Exception
+|       |           +---BedrockDataAutomationRuntime
+|       |           |   \---Exception
+|       |           +---BedrockRuntime
+|       |           |   \---Exception
+|       |           +---Billing
+|       |           |   \---Exception
+|       |           +---BillingConductor
+|       |           |   \---Exception
+|       |           +---Braket
+|       |           |   \---Exception
+|       |           +---Budgets
+|       |           |   \---Exception
+|       |           +---Cbor
+|       |           |   \---Exception
+|       |           +---Chatbot
+|       |           |   \---Exception
+|       |           +---Chime
+|       |           |   \---Exception
+|       |           +---ChimeSDKIdentity
+|       |           |   \---Exception
+|       |           +---ChimeSDKMediaPipelines
+|       |           |   \---Exception
+|       |           +---ChimeSDKMeetings
+|       |           |   \---Exception
+|       |           +---ChimeSDKMessaging
+|       |           |   \---Exception
+|       |           +---ChimeSDKVoice
+|       |           |   \---Exception
+|       |           +---CleanRooms
+|       |           |   \---Exception
+|       |           +---CleanRoomsML
+|       |           |   \---Exception
+|       |           +---ClientSideMonitoring
+|       |           |   \---Exception
+|       |           +---Cloud9
+|       |           |   \---Exception
+|       |           +---CloudControlApi
+|       |           |   \---Exception
+|       |           +---CloudDirectory
+|       |           |   \---Exception
+|       |           +---CloudFormation
+|       |           |   \---Exception
+|       |           +---CloudFront
+|       |           |   \---Exception
+|       |           +---CloudFrontKeyValueStore
+|       |           |   \---Exception
+|       |           +---CloudHsm
+|       |           |   \---Exception
+|       |           +---CloudHSMV2
+|       |           |   \---Exception
+|       |           +---CloudSearch
+|       |           |   \---Exception
+|       |           +---CloudSearchDomain
+|       |           |   \---Exception
+|       |           +---CloudTrail
+|       |           |   \---Exception
+|       |           +---CloudTrailData
+|       |           |   \---Exception
+|       |           +---CloudWatch
+|       |           |   \---Exception
+|       |           +---CloudWatchEvents
+|       |           |   \---Exception
+|       |           +---CloudWatchLogs
+|       |           |   \---Exception
+|       |           +---CloudWatchRUM
+|       |           |   \---Exception
+|       |           +---CodeArtifact
+|       |           |   \---Exception
+|       |           +---CodeBuild
+|       |           |   \---Exception
+|       |           +---CodeCatalyst
+|       |           |   \---Exception
+|       |           +---CodeCommit
+|       |           |   \---Exception
+|       |           +---CodeConnections
+|       |           |   \---Exception
+|       |           +---CodeDeploy
+|       |           |   \---Exception
+|       |           +---CodeGuruProfiler
+|       |           |   \---Exception
+|       |           +---CodeGuruReviewer
+|       |           |   \---Exception
+|       |           +---CodeGuruSecurity
+|       |           |   \---Exception
+|       |           +---CodePipeline
+|       |           |   \---Exception
+|       |           +---CodeStarconnections
+|       |           |   \---Exception
+|       |           +---CodeStarNotifications
+|       |           |   \---Exception
+|       |           +---CognitoIdentity
+|       |           |   \---Exception
+|       |           +---CognitoIdentityProvider
+|       |           |   \---Exception
+|       |           +---CognitoSync
+|       |           |   \---Exception
+|       |           +---Comprehend
+|       |           |   \---Exception
+|       |           +---ComprehendMedical
+|       |           |   \---Exception
+|       |           +---ComputeOptimizer
+|       |           |   \---Exception
+|       |           +---ComputeOptimizerAutomation
+|       |           |   \---Exception
+|       |           +---ConfigService
+|       |           |   \---Exception
+|       |           +---Configuration
+|       |           +---Connect
+|       |           |   \---Exception
+|       |           +---ConnectCampaignService
+|       |           |   \---Exception
+|       |           +---ConnectCampaignsV2
+|       |           |   \---Exception
+|       |           +---ConnectCases
+|       |           |   \---Exception
+|       |           +---ConnectContactLens
+|       |           |   \---Exception
+|       |           +---ConnectHealth
+|       |           |   \---Exception
+|       |           +---ConnectParticipant
+|       |           |   \---Exception
+|       |           +---ConnectWisdomService
+|       |           |   \---Exception
+|       |           +---ControlCatalog
+|       |           |   \---Exception
+|       |           +---ControlTower
+|       |           |   \---Exception
+|       |           +---CostandUsageReportService
+|       |           |   \---Exception
+|       |           +---CostExplorer
+|       |           |   \---Exception
+|       |           +---CostOptimizationHub
+|       |           |   \---Exception
+|       |           +---Credentials
+|       |           +---Crypto
+|       |           |   \---Cipher
+|       |           +---CustomerProfiles
+|       |           |   \---Exception
+|       |           +---data
+|       |           |   +---accessanalyzer
+|       |           |   |   \---2019-11-01
+|       |           |   +---account
+|       |           |   |   \---2021-02-01
+|       |           |   +---acm
+|       |           |   |   \---2015-12-08
+|       |           |   +---acm-pca
+|       |           |   |   \---2017-08-22
+|       |           |   +---aiops
+|       |           |   |   \---2018-05-10
+|       |           |   +---amp
+|       |           |   |   \---2020-08-01
+|       |           |   +---amplify
+|       |           |   |   \---2017-07-25
+|       |           |   +---amplifybackend
+|       |           |   |   \---2020-08-11
+|       |           |   +---amplifyuibuilder
+|       |           |   |   \---2021-08-11
+|       |           |   +---apigateway
+|       |           |   |   \---2015-07-09
+|       |           |   +---apigatewaymanagementapi
+|       |           |   |   \---2018-11-29
+|       |           |   +---apigatewayv2
+|       |           |   |   \---2018-11-29
+|       |           |   +---appconfig
+|       |           |   |   \---2019-10-09
+|       |           |   +---appconfigdata
+|       |           |   |   \---2021-11-11
+|       |           |   +---appfabric
+|       |           |   |   \---2023-05-19
+|       |           |   +---appflow
+|       |           |   |   \---2020-08-23
+|       |           |   +---appintegrations
+|       |           |   |   \---2020-07-29
+|       |           |   +---application-autoscaling
+|       |           |   |   \---2016-02-06
+|       |           |   +---application-insights
+|       |           |   |   \---2018-11-25
+|       |           |   +---application-signals
+|       |           |   |   \---2024-04-15
+|       |           |   +---applicationcostprofiler
+|       |           |   |   \---2020-09-10
+|       |           |   +---appmesh
+|       |           |   |   +---2018-10-01
+|       |           |   |   \---2019-01-25
+|       |           |   +---apprunner
+|       |           |   |   \---2020-05-15
+|       |           |   +---appstream
+|       |           |   |   \---2016-12-01
+|       |           |   +---appsync
+|       |           |   |   \---2017-07-25
+|       |           |   +---arc-region-switch
+|       |           |   |   \---2022-07-26
+|       |           |   +---arc-zonal-shift
+|       |           |   |   \---2022-10-30
+|       |           |   +---artifact
+|       |           |   |   \---2018-05-10
+|       |           |   +---athena
+|       |           |   |   \---2017-05-18
+|       |           |   +---auditmanager
+|       |           |   |   \---2017-07-25
+|       |           |   +---autoscaling
+|       |           |   |   \---2011-01-01
+|       |           |   +---autoscaling-plans
+|       |           |   |   \---2018-01-06
+|       |           |   +---b2bi
+|       |           |   |   \---2022-06-23
+|       |           |   +---backup
+|       |           |   |   \---2018-11-15
+|       |           |   +---backup-gateway
+|       |           |   |   \---2021-01-01
+|       |           |   +---backupsearch
+|       |           |   |   \---2018-05-10
+|       |           |   +---batch
+|       |           |   |   \---2016-08-10
+|       |           |   +---bcm-dashboards
+|       |           |   |   \---2025-08-18
+|       |           |   +---bcm-data-exports
+|       |           |   |   \---2023-11-26
+|       |           |   +---bcm-pricing-calculator
+|       |           |   |   \---2024-06-19
+|       |           |   +---bcm-recommended-actions
+|       |           |   |   \---2024-11-14
+|       |           |   +---bedrock
+|       |           |   |   \---2023-04-20
+|       |           |   +---bedrock-agent
+|       |           |   |   \---2023-06-05
+|       |           |   +---bedrock-agent-runtime
+|       |           |   |   \---2023-07-26
+|       |           |   +---bedrock-agentcore
+|       |           |   |   \---2024-02-28
+|       |           |   +---bedrock-agentcore-control
+|       |           |   |   \---2023-06-05
+|       |           |   +---bedrock-data-automation
+|       |           |   |   \---2023-07-26
+|       |           |   +---bedrock-data-automation-runtime
+|       |           |   |   \---2024-06-13
+|       |           |   +---bedrock-runtime
+|       |           |   |   \---2023-09-30
+|       |           |   +---billing
+|       |           |   |   \---2023-09-07
+|       |           |   +---billingconductor
+|       |           |   |   \---2021-07-30
+|       |           |   +---braket
+|       |           |   |   \---2019-09-01
+|       |           |   +---budgets
+|       |           |   |   \---2016-10-20
+|       |           |   +---ce
+|       |           |   |   \---2017-10-25
+|       |           |   +---chatbot
+|       |           |   |   \---2017-10-11
+|       |           |   +---chime
+|       |           |   |   \---2018-05-01
+|       |           |   +---chime-sdk-identity
+|       |           |   |   \---2021-04-20
+|       |           |   +---chime-sdk-media-pipelines
+|       |           |   |   \---2021-07-15
+|       |           |   +---chime-sdk-meetings
+|       |           |   |   \---2021-07-15
+|       |           |   +---chime-sdk-messaging
+|       |           |   |   \---2021-05-15
+|       |           |   +---chime-sdk-voice
+|       |           |   |   \---2022-08-03
+|       |           |   +---cleanrooms
+|       |           |   |   \---2022-02-17
+|       |           |   +---cleanroomsml
+|       |           |   |   \---2023-09-06
+|       |           |   +---cloud9
+|       |           |   |   \---2017-09-23
+|       |           |   +---cloudcontrol
+|       |           |   |   \---2021-09-30
+|       |           |   +---clouddirectory
+|       |           |   |   +---2016-05-10
+|       |           |   |   \---2017-01-11
+|       |           |   +---cloudformation
+|       |           |   |   \---2010-05-15
+|       |           |   +---cloudfront
+|       |           |   |   +---2015-07-27
+|       |           |   |   +---2016-01-28
+|       |           |   |   +---2016-08-01
+|       |           |   |   +---2016-08-20
+|       |           |   |   +---2016-09-07
+|       |           |   |   +---2016-09-29
+|       |           |   |   +---2016-11-25
+|       |           |   |   +---2017-03-25
+|       |           |   |   +---2017-10-30
+|       |           |   |   +---2018-06-18
+|       |           |   |   +---2018-11-05
+|       |           |   |   +---2019-03-26
+|       |           |   |   \---2020-05-31
+|       |           |   +---cloudfront-keyvaluestore
+|       |           |   |   \---2022-07-26
+|       |           |   +---cloudhsm
+|       |           |   |   \---2014-05-30
+|       |           |   +---cloudhsmv2
+|       |           |   |   \---2017-04-28
+|       |           |   +---cloudsearch
+|       |           |   |   \---2013-01-01
+|       |           |   +---cloudsearchdomain
+|       |           |   |   \---2013-01-01
+|       |           |   +---cloudtrail
+|       |           |   |   \---2013-11-01
+|       |           |   +---cloudtrail-data
+|       |           |   |   \---2021-08-11
+|       |           |   +---codeartifact
+|       |           |   |   \---2018-09-22
+|       |           |   +---codebuild
+|       |           |   |   \---2016-10-06
+|       |           |   +---codecatalyst
+|       |           |   |   \---2022-09-28
+|       |           |   +---codecommit
+|       |           |   |   \---2015-04-13
+|       |           |   +---codeconnections
+|       |           |   |   \---2023-12-01
+|       |           |   +---codedeploy
+|       |           |   |   \---2014-10-06
+|       |           |   +---codeguru-reviewer
+|       |           |   |   \---2019-09-19
+|       |           |   +---codeguru-security
+|       |           |   |   \---2018-05-10
+|       |           |   +---codeguruprofiler
+|       |           |   |   \---2019-07-18
+|       |           |   +---codepipeline
+|       |           |   |   \---2015-07-09
+|       |           |   +---codestar-connections
+|       |           |   |   \---2019-12-01
+|       |           |   +---codestar-notifications
+|       |           |   |   \---2019-10-15
+|       |           |   +---cognito-identity
+|       |           |   |   \---2014-06-30
+|       |           |   +---cognito-idp
+|       |           |   |   \---2016-04-18
+|       |           |   +---cognito-sync
+|       |           |   |   \---2014-06-30
+|       |           |   +---comprehend
+|       |           |   |   \---2017-11-27
+|       |           |   +---comprehendmedical
+|       |           |   |   \---2018-10-30
+|       |           |   +---compute-optimizer
+|       |           |   |   \---2019-11-01
+|       |           |   +---compute-optimizer-automation
+|       |           |   |   \---2025-09-22
+|       |           |   +---config
+|       |           |   |   \---2014-11-12
+|       |           |   +---connect
+|       |           |   |   \---2017-08-08
+|       |           |   +---connect-contact-lens
+|       |           |   |   \---2020-08-21
+|       |           |   +---connectcampaigns
+|       |           |   |   \---2021-01-30
+|       |           |   +---connectcampaignsv2
+|       |           |   |   \---2024-04-23
+|       |           |   +---connectcases
+|       |           |   |   \---2022-10-03
+|       |           |   +---connecthealth
+|       |           |   |   \---2025-01-29
+|       |           |   +---connectparticipant
+|       |           |   |   \---2018-09-07
+|       |           |   +---controlcatalog
+|       |           |   |   \---2018-05-10
+|       |           |   +---controltower
+|       |           |   |   \---2018-05-10
+|       |           |   +---cost-optimization-hub
+|       |           |   |   \---2022-07-26
+|       |           |   +---cur
+|       |           |   |   \---2017-01-06
+|       |           |   +---customer-profiles
+|       |           |   |   \---2020-08-15
+|       |           |   +---data.iot
+|       |           |   |   \---2015-05-28
+|       |           |   +---databrew
+|       |           |   |   \---2017-07-25
+|       |           |   +---dataexchange
+|       |           |   |   \---2017-07-25
+|       |           |   +---datapipeline
+|       |           |   |   \---2012-10-29
+|       |           |   +---datasync
+|       |           |   |   \---2018-11-09
+|       |           |   +---datazone
+|       |           |   |   \---2018-05-10
+|       |           |   +---dax
+|       |           |   |   \---2017-04-19
+|       |           |   +---deadline
+|       |           |   |   \---2023-10-12
+|       |           |   +---detective
+|       |           |   |   \---2018-10-26
+|       |           |   +---devicefarm
+|       |           |   |   \---2015-06-23
+|       |           |   +---devops-agent
+|       |           |   |   \---2026-01-01
+|       |           |   +---devops-guru
+|       |           |   |   \---2020-12-01
+|       |           |   +---directconnect
+|       |           |   |   \---2012-10-25
+|       |           |   +---directory-service-data
+|       |           |   |   \---2023-05-31
+|       |           |   +---discovery
+|       |           |   |   \---2015-11-01
+|       |           |   +---dlm
+|       |           |   |   \---2018-01-12
+|       |           |   +---dms
+|       |           |   |   \---2016-01-01
+|       |           |   +---docdb
+|       |           |   |   \---2014-10-31
+|       |           |   +---docdb-elastic
+|       |           |   |   \---2022-11-28
+|       |           |   +---drs
+|       |           |   |   \---2020-02-26
+|       |           |   +---ds
+|       |           |   |   \---2015-04-16
+|       |           |   +---dsql
+|       |           |   |   \---2018-05-10
+|       |           |   +---dynamodb
+|       |           |   |   +---2011-12-05
+|       |           |   |   \---2012-08-10
+|       |           |   +---ebs
+|       |           |   |   \---2019-11-02
+|       |           |   +---ec2
+|       |           |   |   +---2015-10-01
+|       |           |   |   +---2016-04-01
+|       |           |   |   +---2016-09-15
+|       |           |   |   \---2016-11-15
+|       |           |   +---ec2-instance-connect
+|       |           |   |   \---2018-04-02
+|       |           |   +---ecr
+|       |           |   |   \---2015-09-21
+|       |           |   +---ecr-public
+|       |           |   |   \---2020-10-30
+|       |           |   +---ecs
+|       |           |   |   \---2014-11-13
+|       |           |   +---eks
+|       |           |   |   \---2017-11-01
+|       |           |   +---eks-auth
+|       |           |   |   \---2023-11-26
+|       |           |   +---elasticache
+|       |           |   |   \---2015-02-02
+|       |           |   +---elasticbeanstalk
+|       |           |   |   \---2010-12-01
+|       |           |   +---elasticfilesystem
+|       |           |   |   \---2015-02-01
+|       |           |   +---elasticloadbalancing
+|       |           |   |   \---2012-06-01
+|       |           |   +---elasticloadbalancingv2
+|       |           |   |   \---2015-12-01
+|       |           |   +---elasticmapreduce
+|       |           |   |   \---2009-03-31
+|       |           |   +---elementalinference
+|       |           |   |   \---2018-11-14
+|       |           |   +---email
+|       |           |   |   \---2010-12-01
+|       |           |   +---emr-containers
+|       |           |   |   \---2020-10-01
+|       |           |   +---emr-serverless
+|       |           |   |   \---2021-07-13
+|       |           |   +---entitlement.marketplace
+|       |           |   |   \---2017-01-11
+|       |           |   +---entityresolution
+|       |           |   |   \---2018-05-10
+|       |           |   +---es
+|       |           |   |   \---2015-01-01
+|       |           |   +---eventbridge
+|       |           |   |   \---2015-10-07
+|       |           |   +---events
+|       |           |   |   \---2015-10-07
+|       |           |   +---evs
+|       |           |   |   \---2023-07-27
+|       |           |   +---finspace
+|       |           |   |   \---2021-03-12
+|       |           |   +---finspace-data
+|       |           |   |   \---2020-07-13
+|       |           |   +---firehose
+|       |           |   |   \---2015-08-04
+|       |           |   +---fis
+|       |           |   |   \---2020-12-01
+|       |           |   +---fms
+|       |           |   |   \---2018-01-01
+|       |           |   +---forecast
+|       |           |   |   \---2018-06-26
+|       |           |   +---forecastquery
+|       |           |   |   \---2018-06-26
+|       |           |   +---frauddetector
+|       |           |   |   \---2019-11-15
+|       |           |   +---freetier
+|       |           |   |   \---2023-09-07
+|       |           |   +---fsx
+|       |           |   |   \---2018-03-01
+|       |           |   +---gamelift
+|       |           |   |   \---2015-10-01
+|       |           |   +---gameliftstreams
+|       |           |   |   \---2018-05-10
+|       |           |   +---geo-maps
+|       |           |   |   \---2020-11-19
+|       |           |   +---geo-places
+|       |           |   |   \---2020-11-19
+|       |           |   +---geo-routes
+|       |           |   |   \---2020-11-19
+|       |           |   +---glacier
+|       |           |   |   \---2012-06-01
+|       |           |   +---globalaccelerator
+|       |           |   |   \---2018-08-08
+|       |           |   +---glue
+|       |           |   |   \---2017-03-31
+|       |           |   +---grafana
+|       |           |   |   \---2020-08-18
+|       |           |   +---greengrass
+|       |           |   |   \---2017-06-07
+|       |           |   +---greengrassv2
+|       |           |   |   \---2020-11-30
+|       |           |   +---groundstation
+|       |           |   |   \---2019-05-23
+|       |           |   +---guardduty
+|       |           |   |   \---2017-11-28
+|       |           |   +---health
+|       |           |   |   \---2016-08-04
+|       |           |   +---healthlake
+|       |           |   |   \---2017-07-01
+|       |           |   +---iam
+|       |           |   |   \---2010-05-08
+|       |           |   +---identitystore
+|       |           |   |   \---2020-06-15
+|       |           |   +---imagebuilder
+|       |           |   |   \---2019-12-02
+|       |           |   +---importexport
+|       |           |   |   \---2010-06-01
+|       |           |   +---inspector
+|       |           |   |   \---2016-02-16
+|       |           |   +---inspector-scan
+|       |           |   |   \---2023-08-08
+|       |           |   +---inspector2
+|       |           |   |   \---2020-06-08
+|       |           |   +---interconnect
+|       |           |   |   \---2022-07-26
+|       |           |   +---internetmonitor
+|       |           |   |   \---2021-06-03
+|       |           |   +---invoicing
+|       |           |   |   \---2024-12-01
+|       |           |   +---iot
+|       |           |   |   \---2015-05-28
+|       |           |   +---iot-jobs-data
+|       |           |   |   \---2017-09-29
+|       |           |   +---iot-managed-integrations
+|       |           |   |   \---2025-03-03
+|       |           |   +---iotdeviceadvisor
+|       |           |   |   \---2020-09-18
+|       |           |   +---iotfleetwise
+|       |           |   |   \---2021-06-17
+|       |           |   +---iotsecuretunneling
+|       |           |   |   \---2018-10-05
+|       |           |   +---iotsitewise
+|       |           |   |   \---2019-12-02
+|       |           |   +---iotthingsgraph
+|       |           |   |   \---2018-09-06
+|       |           |   +---iottwinmaker
+|       |           |   |   \---2021-11-29
+|       |           |   +---iotwireless
+|       |           |   |   \---2020-11-22
+|       |           |   +---ivs
+|       |           |   |   \---2020-07-14
+|       |           |   +---ivs-realtime
+|       |           |   |   \---2020-07-14
+|       |           |   +---ivschat
+|       |           |   |   \---2020-07-14
+|       |           |   +---kafka
+|       |           |   |   \---2018-11-14
+|       |           |   +---kafkaconnect
+|       |           |   |   \---2021-09-14
+|       |           |   +---kendra
+|       |           |   |   \---2019-02-03
+|       |           |   +---kendra-ranking
+|       |           |   |   \---2022-10-19
+|       |           |   +---keyspaces
+|       |           |   |   \---2022-02-10
+|       |           |   +---keyspacesstreams
+|       |           |   |   \---2024-09-09
+|       |           |   +---kinesis
+|       |           |   |   \---2013-12-02
+|       |           |   +---kinesis-video-archived-media
+|       |           |   |   \---2017-09-30
+|       |           |   +---kinesis-video-media
+|       |           |   |   \---2017-09-30
+|       |           |   +---kinesis-video-signaling
+|       |           |   |   \---2019-12-04
+|       |           |   +---kinesis-video-webrtc-storage
+|       |           |   |   \---2018-05-10
+|       |           |   +---kinesisanalytics
+|       |           |   |   \---2015-08-14
+|       |           |   +---kinesisanalyticsv2
+|       |           |   |   \---2018-05-23
+|       |           |   +---kinesisvideo
+|       |           |   |   \---2017-09-30
+|       |           |   +---kms
+|       |           |   |   \---2014-11-01
+|       |           |   +---lakeformation
+|       |           |   |   \---2017-03-31
+|       |           |   +---lambda
+|       |           |   |   \---2015-03-31
+|       |           |   +---lambda-core
+|       |           |   |   \---2026-04-30
+|       |           |   +---lambda-microvms
+|       |           |   |   \---2025-09-09
+|       |           |   +---launch-wizard
+|       |           |   |   \---2018-05-10
+|       |           |   +---lex-models
+|       |           |   |   \---2017-04-19
+|       |           |   +---license-manager
+|       |           |   |   \---2018-08-01
+|       |           |   +---license-manager-linux-subscriptions
+|       |           |   |   \---2018-05-10
+|       |           |   +---license-manager-user-subscriptions
+|       |           |   |   \---2018-05-10
+|       |           |   +---lightsail
+|       |           |   |   \---2016-11-28
+|       |           |   +---location
+|       |           |   |   \---2020-11-19
+|       |           |   +---logs
+|       |           |   |   \---2014-03-28
+|       |           |   +---lookoutequipment
+|       |           |   |   \---2020-12-15
+|       |           |   +---m2
+|       |           |   |   \---2021-04-28
+|       |           |   +---machinelearning
+|       |           |   |   \---2014-12-12
+|       |           |   +---macie2
+|       |           |   |   \---2020-01-01
+|       |           |   +---mailmanager
+|       |           |   |   \---2023-10-17
+|       |           |   +---managedblockchain
+|       |           |   |   \---2018-09-24
+|       |           |   +---managedblockchain-query
+|       |           |   |   \---2023-05-04
+|       |           |   +---marketplace-agreement
+|       |           |   |   \---2020-03-01
+|       |           |   +---marketplace-catalog
+|       |           |   |   \---2018-09-17
+|       |           |   +---marketplace-deployment
+|       |           |   |   \---2023-01-25
+|       |           |   +---marketplace-discovery
+|       |           |   |   \---2026-02-05
+|       |           |   +---marketplace-reporting
+|       |           |   |   \---2018-05-10
+|       |           |   +---marketplacecommerceanalytics
+|       |           |   |   \---2015-07-01
+|       |           |   +---mediaconnect
+|       |           |   |   \---2018-11-14
+|       |           |   +---mediaconvert
+|       |           |   |   \---2017-08-29
+|       |           |   +---medialive
+|       |           |   |   \---2017-10-14
+|       |           |   +---mediapackage
+|       |           |   |   \---2017-10-12
+|       |           |   +---mediapackage-vod
+|       |           |   |   \---2018-11-07
+|       |           |   +---mediapackagev2
+|       |           |   |   \---2022-12-25
+|       |           |   +---mediastore
+|       |           |   |   \---2017-09-01
+|       |           |   +---mediastore-data
+|       |           |   |   \---2017-09-01
+|       |           |   +---mediatailor
+|       |           |   |   \---2018-04-23
+|       |           |   +---medical-imaging
+|       |           |   |   \---2023-07-19
+|       |           |   +---memorydb
+|       |           |   |   \---2021-01-01
+|       |           |   +---metering.marketplace
+|       |           |   |   \---2016-01-14
+|       |           |   +---mgh
+|       |           |   |   \---2017-05-31
+|       |           |   +---mgn
+|       |           |   |   \---2020-02-26
+|       |           |   +---migration-hub-refactor-spaces
+|       |           |   |   \---2021-10-26
+|       |           |   +---migrationhub-config
+|       |           |   |   \---2019-06-30
+|       |           |   +---migrationhuborchestrator
+|       |           |   |   \---2021-08-28
+|       |           |   +---migrationhubstrategy
+|       |           |   |   \---2020-02-19
+|       |           |   +---models.lex.v2
+|       |           |   |   \---2020-08-07
+|       |           |   +---monitoring
+|       |           |   |   \---2010-08-01
+|       |           |   +---mpa
+|       |           |   |   \---2022-07-26
+|       |           |   +---mq
+|       |           |   |   \---2017-11-27
+|       |           |   +---mturk-requester
+|       |           |   |   \---2017-01-17
+|       |           |   +---mwaa
+|       |           |   |   \---2020-07-01
+|       |           |   +---mwaa-serverless
+|       |           |   |   \---2024-07-26
+|       |           |   +---neptune
+|       |           |   |   \---2014-10-31
+|       |           |   +---neptune-graph
+|       |           |   |   \---2023-11-29
+|       |           |   +---neptunedata
+|       |           |   |   \---2023-08-01
+|       |           |   +---network-firewall
+|       |           |   |   \---2020-11-12
+|       |           |   +---networkflowmonitor
+|       |           |   |   \---2023-04-19
+|       |           |   +---networkmanager
+|       |           |   |   \---2019-07-05
+|       |           |   +---networkmonitor
+|       |           |   |   \---2023-08-01
+|       |           |   +---notifications
+|       |           |   |   \---2018-05-10
+|       |           |   +---notificationscontacts
+|       |           |   |   \---2018-05-10
+|       |           |   +---nova-act
+|       |           |   |   \---2025-08-22
+|       |           |   +---oam
+|       |           |   |   \---2022-06-10
+|       |           |   +---observabilityadmin
+|       |           |   |   \---2018-05-10
+|       |           |   +---odb
+|       |           |   |   \---2024-08-20
+|       |           |   +---omics
+|       |           |   |   \---2022-11-28
+|       |           |   +---opensearch
+|       |           |   |   \---2021-01-01
+|       |           |   +---opensearchserverless
+|       |           |   |   \---2021-11-01
+|       |           |   +---organizations
+|       |           |   |   \---2016-11-28
+|       |           |   +---osis
+|       |           |   |   \---2022-01-01
+|       |           |   +---outposts
+|       |           |   |   \---2019-12-03
+|       |           |   +---partnercentral-account
+|       |           |   |   \---2025-04-04
+|       |           |   +---partnercentral-benefits
+|       |           |   |   \---2018-05-10
+|       |           |   +---partnercentral-channel
+|       |           |   |   \---2024-03-18
+|       |           |   +---partnercentral-revenue-measurement
+|       |           |   |   \---2022-07-26
+|       |           |   +---partnercentral-selling
+|       |           |   |   \---2022-07-26
+|       |           |   +---payment-cryptography
+|       |           |   |   \---2021-09-14
+|       |           |   +---payment-cryptography-data
+|       |           |   |   \---2022-02-03
+|       |           |   +---pca-connector-ad
+|       |           |   |   \---2018-05-10
+|       |           |   +---pca-connector-scep
+|       |           |   |   \---2018-05-10
+|       |           |   +---pcs
+|       |           |   |   \---2023-02-10
+|       |           |   +---personalize
+|       |           |   |   \---2018-05-22
+|       |           |   +---personalize-events
+|       |           |   |   \---2018-03-22
+|       |           |   +---personalize-runtime
+|       |           |   |   \---2018-05-22
+|       |           |   +---pi
+|       |           |   |   \---2018-02-27
+|       |           |   +---pinpoint
+|       |           |   |   \---2016-12-01
+|       |           |   +---pinpoint-email
+|       |           |   |   \---2018-07-26
+|       |           |   +---pinpoint-sms-voice-v2
+|       |           |   |   \---2022-03-31
+|       |           |   +---pipes
+|       |           |   |   \---2015-10-07
+|       |           |   +---polly
+|       |           |   |   \---2016-06-10
+|       |           |   +---pricing
+|       |           |   |   \---2017-10-15
+|       |           |   +---proton
+|       |           |   |   \---2020-07-20
+|       |           |   +---qapps
+|       |           |   |   \---2023-11-27
+|       |           |   +---qbusiness
+|       |           |   |   \---2023-11-27
+|       |           |   +---qconnect
+|       |           |   |   \---2020-10-19
+|       |           |   +---quicksight
+|       |           |   |   \---2018-04-01
+|       |           |   +---ram
+|       |           |   |   \---2018-01-04
+|       |           |   +---rbin
+|       |           |   |   \---2021-06-15
+|       |           |   +---rds
+|       |           |   |   +---2014-09-01
+|       |           |   |   \---2014-10-31
+|       |           |   +---rds-data
+|       |           |   |   \---2018-08-01
+|       |           |   +---redshift
+|       |           |   |   \---2012-12-01
+|       |           |   +---redshift-data
+|       |           |   |   \---2019-12-20
+|       |           |   +---redshift-serverless
+|       |           |   |   \---2021-04-21
+|       |           |   +---rekognition
+|       |           |   |   \---2016-06-27
+|       |           |   +---repostspace
+|       |           |   |   \---2022-05-13
+|       |           |   +---resiliencehub
+|       |           |   |   \---2020-04-30
+|       |           |   +---resiliencehubv2
+|       |           |   |   \---2026-02-17
+|       |           |   +---resource-explorer-2
+|       |           |   |   \---2022-07-28
+|       |           |   +---resource-groups
+|       |           |   |   \---2017-11-27
+|       |           |   +---resourcegroupstaggingapi
+|       |           |   |   \---2017-01-26
+|       |           |   +---rolesanywhere
+|       |           |   |   \---2018-05-10
+|       |           |   +---route53
+|       |           |   |   \---2013-04-01
+|       |           |   +---route53-recovery-cluster
+|       |           |   |   \---2019-12-02
+|       |           |   +---route53-recovery-control-config
+|       |           |   |   \---2020-11-02
+|       |           |   +---route53-recovery-readiness
+|       |           |   |   \---2019-12-02
+|       |           |   +---route53domains
+|       |           |   |   \---2014-05-15
+|       |           |   +---route53globalresolver
+|       |           |   |   \---2022-09-27
+|       |           |   +---route53profiles
+|       |           |   |   \---2018-05-10
+|       |           |   +---route53resolver
+|       |           |   |   \---2018-04-01
+|       |           |   +---rtbfabric
+|       |           |   |   \---2023-05-15
+|       |           |   +---rum
+|       |           |   |   \---2018-05-10
+|       |           |   +---runtime.lex
+|       |           |   |   \---2016-11-28
+|       |           |   +---runtime.lex.v2
+|       |           |   |   \---2020-08-07
+|       |           |   +---runtime.sagemaker
+|       |           |   |   \---2017-05-13
+|       |           |   +---s3
+|       |           |   |   \---2006-03-01
+|       |           |   +---s3control
+|       |           |   |   \---2018-08-20
+|       |           |   +---s3files
+|       |           |   |   \---2025-05-05
+|       |           |   +---s3outposts
+|       |           |   |   \---2017-07-25
+|       |           |   +---s3tables
+|       |           |   |   \---2018-05-10
+|       |           |   +---s3vectors
+|       |           |   |   \---2025-07-15
+|       |           |   +---sagemaker
+|       |           |   |   \---2017-07-24
+|       |           |   +---sagemaker-a2i-runtime
+|       |           |   |   \---2019-11-07
+|       |           |   +---sagemaker-edge
+|       |           |   |   \---2020-09-23
+|       |           |   +---sagemaker-featurestore-runtime
+|       |           |   |   \---2020-07-01
+|       |           |   +---sagemaker-geospatial
+|       |           |   |   \---2020-05-27
+|       |           |   +---sagemaker-metrics
+|       |           |   |   \---2022-09-30
+|       |           |   +---sagemakerjobruntime
+|       |           |   |   \---2026-02-01
+|       |           |   +---savingsplans
+|       |           |   |   \---2019-06-28
+|       |           |   +---scheduler
+|       |           |   |   \---2021-06-30
+|       |           |   +---schemas
+|       |           |   |   \---2019-12-02
+|       |           |   +---secretsmanager
+|       |           |   |   \---2017-10-17
+|       |           |   +---security-ir
+|       |           |   |   \---2018-05-10
+|       |           |   +---securityagent
+|       |           |   |   \---2025-09-06
+|       |           |   +---securityhub
+|       |           |   |   \---2018-10-26
+|       |           |   +---securitylake
+|       |           |   |   \---2018-05-10
+|       |           |   +---serverlessrepo
+|       |           |   |   \---2017-09-08
+|       |           |   +---service-quotas
+|       |           |   |   \---2019-06-24
+|       |           |   +---servicecatalog
+|       |           |   |   \---2015-12-10
+|       |           |   +---servicecatalog-appregistry
+|       |           |   |   \---2020-06-24
+|       |           |   +---servicediscovery
+|       |           |   |   \---2017-03-14
+|       |           |   +---sesv2
+|       |           |   |   \---2019-09-27
+|       |           |   +---shield
+|       |           |   |   \---2016-06-02
+|       |           |   +---signer
+|       |           |   |   \---2017-08-25
+|       |           |   +---signer-data
+|       |           |   |   \---2017-08-25
+|       |           |   +---signin
+|       |           |   |   \---2023-01-01
+|       |           |   +---simpledbv2
+|       |           |   |   \---2025-09-26
+|       |           |   +---sms-voice
+|       |           |   |   \---2018-09-05
+|       |           |   +---snow-device-management
+|       |           |   |   \---2021-08-04
+|       |           |   +---snowball
+|       |           |   |   \---2016-06-30
+|       |           |   +---sns
+|       |           |   |   \---2010-03-31
+|       |           |   +---socialmessaging
+|       |           |   |   \---2024-01-01
+|       |           |   +---sqs
+|       |           |   |   \---2012-11-05
+|       |           |   +---ssm
+|       |           |   |   \---2014-11-06
+|       |           |   +---ssm-contacts
+|       |           |   |   \---2021-05-03
+|       |           |   +---ssm-guiconnect
+|       |           |   |   \---2021-05-01
+|       |           |   +---ssm-incidents
+|       |           |   |   \---2018-05-10
+|       |           |   +---ssm-quicksetup
+|       |           |   |   \---2018-05-10
+|       |           |   +---ssm-sap
+|       |           |   |   \---2018-05-10
+|       |           |   +---sso
+|       |           |   |   \---2019-06-10
+|       |           |   +---sso-admin
+|       |           |   |   \---2020-07-20
+|       |           |   +---sso-oidc
+|       |           |   |   \---2019-06-10
+|       |           |   +---states
+|       |           |   |   \---2016-11-23
+|       |           |   +---storagegateway
+|       |           |   |   \---2013-06-30
+|       |           |   +---streams.dynamodb
+|       |           |   |   \---2012-08-10
+|       |           |   +---sts
+|       |           |   |   \---2011-06-15
+|       |           |   +---supplychain
+|       |           |   |   \---2024-01-01
+|       |           |   +---support
+|       |           |   |   \---2013-04-15
+|       |           |   +---support-app
+|       |           |   |   \---2021-08-20
+|       |           |   +---supportauthz
+|       |           |   |   \---2026-06-30
+|       |           |   +---sustainability
+|       |           |   |   \---2018-05-10
+|       |           |   +---swf
+|       |           |   |   \---2012-01-25
+|       |           |   +---synthetics
+|       |           |   |   \---2017-10-11
+|       |           |   +---taxsettings
+|       |           |   |   \---2018-05-10
+|       |           |   +---textract
+|       |           |   |   \---2018-06-27
+|       |           |   +---timestream-influxdb
+|       |           |   |   \---2023-01-27
+|       |           |   +---timestream-query
+|       |           |   |   \---2018-11-01
+|       |           |   +---timestream-write
+|       |           |   |   \---2018-11-01
+|       |           |   +---tnb
+|       |           |   |   \---2008-10-21
+|       |           |   +---transcribe
+|       |           |   |   \---2017-10-26
+|       |           |   +---transfer
+|       |           |   |   \---2018-11-05
+|       |           |   +---translate
+|       |           |   |   \---2017-07-01
+|       |           |   +---trustedadvisor
+|       |           |   |   \---2022-09-15
+|       |           |   +---uxc
+|       |           |   |   \---2024-07-01
+|       |           |   +---verifiedpermissions
+|       |           |   |   \---2021-12-01
+|       |           |   +---voice-id
+|       |           |   |   \---2021-09-27
+|       |           |   +---vpc-lattice
+|       |           |   |   \---2022-11-30
+|       |           |   +---waf
+|       |           |   |   \---2015-08-24
+|       |           |   +---waf-regional
+|       |           |   |   \---2016-11-28
+|       |           |   +---wafv2
+|       |           |   |   \---2019-07-29
+|       |           |   +---wellarchitected
+|       |           |   |   \---2020-03-31
+|       |           |   +---wickr
+|       |           |   |   \---2024-02-01
+|       |           |   +---wisdom
+|       |           |   |   \---2020-10-19
+|       |           |   +---workdocs
+|       |           |   |   \---2016-05-01
+|       |           |   +---workmail
+|       |           |   |   \---2017-10-01
+|       |           |   +---workmailmessageflow
+|       |           |   |   \---2019-05-01
+|       |           |   +---workspaces
+|       |           |   |   \---2015-04-08
+|       |           |   +---workspaces-instances
+|       |           |   |   \---2022-07-26
+|       |           |   +---workspaces-thin-client
+|       |           |   |   \---2023-08-22
+|       |           |   +---workspaces-web
+|       |           |   |   \---2020-07-08
+|       |           |   \---xray
+|       |           |       \---2016-04-12
+|       |           +---DatabaseMigrationService
+|       |           |   \---Exception
+|       |           +---DataExchange
+|       |           |   \---Exception
+|       |           +---DataPipeline
+|       |           |   \---Exception
+|       |           +---DataSync
+|       |           |   \---Exception
+|       |           +---DataZone
+|       |           |   \---Exception
+|       |           +---DAX
+|       |           |   \---Exception
+|       |           +---Deadline
+|       |           |   \---Exception
+|       |           +---DefaultsMode
+|       |           |   \---Exception
+|       |           +---Detective
+|       |           |   \---Exception
+|       |           +---DeviceFarm
+|       |           |   \---Exception
+|       |           +---DevOpsAgent
+|       |           |   \---Exception
+|       |           +---DevOpsGuru
+|       |           |   \---Exception
+|       |           +---DirectConnect
+|       |           |   \---Exception
+|       |           +---DirectoryService
+|       |           |   \---Exception
+|       |           +---DirectoryServiceData
+|       |           |   \---Exception
+|       |           +---DLM
+|       |           |   \---Exception
+|       |           +---DocDB
+|       |           |   \---Exception
+|       |           +---DocDBElastic
+|       |           |   \---Exception
+|       |           +---drs
+|       |           |   \---Exception
+|       |           +---DSQL
+|       |           |   \---Exception
+|       |           +---DynamoDb
+|       |           |   \---Exception
+|       |           +---DynamoDbStreams
+|       |           |   \---Exception
+|       |           +---EBS
+|       |           |   \---Exception
+|       |           +---Ec2
+|       |           |   \---Exception
+|       |           +---EC2InstanceConnect
+|       |           |   \---Exception
+|       |           +---Ecr
+|       |           |   \---Exception
+|       |           +---ECRPublic
+|       |           |   \---Exception
+|       |           +---Ecs
+|       |           |   \---Exception
+|       |           +---Efs
+|       |           |   \---Exception
+|       |           +---EKS
+|       |           |   \---Exception
+|       |           +---EKSAuth
+|       |           |   \---Exception
+|       |           +---ElastiCache
+|       |           |   \---Exception
+|       |           +---ElasticBeanstalk
+|       |           |   \---Exception
+|       |           +---ElasticLoadBalancing
+|       |           |   \---Exception
+|       |           +---ElasticLoadBalancingV2
+|       |           |   \---Exception
+|       |           +---ElasticsearchService
+|       |           |   \---Exception
+|       |           +---ElementalInference
+|       |           |   \---Exception
+|       |           +---Emr
+|       |           |   \---Exception
+|       |           +---EMRContainers
+|       |           |   \---Exception
+|       |           +---EMRServerless
+|       |           |   \---Exception
+|       |           +---Endpoint
+|       |           |   +---UseDualstackEndpoint
+|       |           |   |   \---Exception
+|       |           |   \---UseFipsEndpoint
+|       |           |       \---Exception
+|       |           +---EndpointDiscovery
+|       |           |   \---Exception
+|       |           +---EndpointV2
+|       |           |   +---Bdd
+|       |           |   +---Rule
+|       |           |   \---Ruleset
+|       |           +---EntityResolution
+|       |           |   \---Exception
+|       |           +---EventBridge
+|       |           |   \---Exception
+|       |           +---Evs
+|       |           |   \---Exception
+|       |           +---Exception
+|       |           +---finspace
+|       |           |   \---Exception
+|       |           +---FinSpaceData
+|       |           |   \---Exception
+|       |           +---Firehose
+|       |           |   \---Exception
+|       |           +---FIS
+|       |           |   \---Exception
+|       |           +---FMS
+|       |           |   \---Exception
+|       |           +---ForecastQueryService
+|       |           |   \---Exception
+|       |           +---ForecastService
+|       |           |   \---Exception
+|       |           +---FraudDetector
+|       |           |   \---Exception
+|       |           +---FreeTier
+|       |           |   \---Exception
+|       |           +---FSx
+|       |           |   \---Exception
+|       |           +---GameLift
+|       |           |   \---Exception
+|       |           +---GameLiftStreams
+|       |           |   \---Exception
+|       |           +---GeoMaps
+|       |           |   \---Exception
+|       |           +---GeoPlaces
+|       |           |   \---Exception
+|       |           +---GeoRoutes
+|       |           |   \---Exception
+|       |           +---Glacier
+|       |           |   \---Exception
+|       |           +---GlobalAccelerator
+|       |           |   \---Exception
+|       |           +---Glue
+|       |           |   \---Exception
+|       |           +---GlueDataBrew
+|       |           |   \---Exception
+|       |           +---Greengrass
+|       |           |   \---Exception
+|       |           +---GreengrassV2
+|       |           |   \---Exception
+|       |           +---GroundStation
+|       |           |   \---Exception
+|       |           +---GuardDuty
+|       |           |   \---Exception
+|       |           +---Handler
+|       |           |   +---Guzzle
+|       |           |   \---GuzzleV6
+|       |           +---Health
+|       |           |   \---Exception
+|       |           +---HealthLake
+|       |           |   \---Exception
+|       |           +---Iam
+|       |           |   \---Exception
+|       |           +---Identity
+|       |           |   \---S3
+|       |           +---IdentityStore
+|       |           |   \---Exception
+|       |           +---imagebuilder
+|       |           |   \---Exception
+|       |           +---ImportExport
+|       |           |   \---Exception
+|       |           +---Inspector
+|       |           |   \---Exception
+|       |           +---Inspector2
+|       |           |   \---Exception
+|       |           +---InspectorScan
+|       |           |   \---Exception
+|       |           +---Interconnect
+|       |           |   \---Exception
+|       |           +---InternetMonitor
+|       |           |   \---Exception
+|       |           +---Invoicing
+|       |           |   \---Exception
+|       |           +---Iot
+|       |           |   \---Exception
+|       |           +---IotDataPlane
+|       |           |   \---Exception
+|       |           +---IoTDeviceAdvisor
+|       |           |   \---Exception
+|       |           +---IoTFleetWise
+|       |           |   \---Exception
+|       |           +---IoTJobsDataPlane
+|       |           |   \---Exception
+|       |           +---IoTManagedIntegrations
+|       |           |   \---Exception
+|       |           +---IoTSecureTunneling
+|       |           |   \---Exception
+|       |           +---IoTSiteWise
+|       |           |   \---Exception
+|       |           +---IoTThingsGraph
+|       |           |   \---Exception
+|       |           +---IoTTwinMaker
+|       |           |   \---Exception
+|       |           +---IoTWireless
+|       |           |   \---Exception
+|       |           +---IVS
+|       |           |   \---Exception
+|       |           +---ivschat
+|       |           |   \---Exception
+|       |           +---IVSRealTime
+|       |           |   \---Exception
+|       |           +---Kafka
+|       |           |   \---Exception
+|       |           +---KafkaConnect
+|       |           |   \---Exception
+|       |           +---kendra
+|       |           |   \---Exception
+|       |           +---KendraRanking
+|       |           |   \---Exception
+|       |           +---Keyspaces
+|       |           |   \---Exception
+|       |           +---KeyspacesStreams
+|       |           |   \---Exception
+|       |           +---Kinesis
+|       |           |   \---Exception
+|       |           +---KinesisAnalytics
+|       |           |   \---Exception
+|       |           +---KinesisAnalyticsV2
+|       |           |   \---Exception
+|       |           +---KinesisVideo
+|       |           |   \---Exception
+|       |           +---KinesisVideoArchivedMedia
+|       |           |   \---Exception
+|       |           +---KinesisVideoMedia
+|       |           |   \---Exception
+|       |           +---KinesisVideoSignalingChannels
+|       |           |   \---Exception
+|       |           +---KinesisVideoWebRTCStorage
+|       |           |   \---Exception
+|       |           +---Kms
+|       |           |   \---Exception
+|       |           +---LakeFormation
+|       |           |   \---Exception
+|       |           +---Lambda
+|       |           |   \---Exception
+|       |           +---LambdaCore
+|       |           |   \---Exception
+|       |           +---LambdaMicrovms
+|       |           |   \---Exception
+|       |           +---LaunchWizard
+|       |           |   \---Exception
+|       |           +---LexModelBuildingService
+|       |           |   \---Exception
+|       |           +---LexModelsV2
+|       |           |   \---Exception
+|       |           +---LexRuntimeService
+|       |           |   \---Exception
+|       |           +---LexRuntimeV2
+|       |           |   \---Exception
+|       |           +---LicenseManager
+|       |           |   \---Exception
+|       |           +---LicenseManagerLinuxSubscriptions
+|       |           |   \---Exception
+|       |           +---LicenseManagerUserSubscriptions
+|       |           |   \---Exception
+|       |           +---Lightsail
+|       |           |   \---Exception
+|       |           +---LocationService
+|       |           |   \---Exception
+|       |           +---LookoutEquipment
+|       |           |   \---Exception
+|       |           +---MachineLearning
+|       |           |   \---Exception
+|       |           +---Macie2
+|       |           |   \---Exception
+|       |           +---MailManager
+|       |           |   \---Exception
+|       |           +---MainframeModernization
+|       |           |   \---Exception
+|       |           +---ManagedBlockchain
+|       |           |   \---Exception
+|       |           +---ManagedBlockchainQuery
+|       |           |   \---Exception
+|       |           +---ManagedGrafana
+|       |           |   \---Exception
+|       |           +---MarketplaceAgreement
+|       |           |   \---Exception
+|       |           +---MarketplaceCatalog
+|       |           |   \---Exception
+|       |           +---MarketplaceCommerceAnalytics
+|       |           |   \---Exception
+|       |           +---MarketplaceDeployment
+|       |           |   \---Exception
+|       |           +---MarketplaceDiscovery
+|       |           |   \---Exception
+|       |           +---MarketplaceEntitlementService
+|       |           |   \---Exception
+|       |           +---MarketplaceMetering
+|       |           |   \---Exception
+|       |           +---MarketplaceReporting
+|       |           |   \---Exception
+|       |           +---MediaConnect
+|       |           |   \---Exception
+|       |           +---MediaConvert
+|       |           |   \---Exception
+|       |           +---MediaLive
+|       |           |   \---Exception
+|       |           +---MediaPackage
+|       |           |   \---Exception
+|       |           +---MediaPackageV2
+|       |           |   \---Exception
+|       |           +---MediaPackageVod
+|       |           |   \---Exception
+|       |           +---MediaStore
+|       |           |   \---Exception
+|       |           +---MediaStoreData
+|       |           |   \---Exception
+|       |           +---MediaTailor
+|       |           |   \---Exception
+|       |           +---MedicalImaging
+|       |           |   \---Exception
+|       |           +---MemoryDB
+|       |           |   \---Exception
+|       |           +---mgn
+|       |           |   \---Exception
+|       |           +---MigrationHub
+|       |           |   \---Exception
+|       |           +---MigrationHubConfig
+|       |           |   \---Exception
+|       |           +---MigrationHubOrchestrator
+|       |           |   \---Exception
+|       |           +---MigrationHubRefactorSpaces
+|       |           |   \---Exception
+|       |           +---MigrationHubStrategyRecommendations
+|       |           |   \---Exception
+|       |           +---MPA
+|       |           |   \---Exception
+|       |           +---MQ
+|       |           |   \---Exception
+|       |           +---MTurk
+|       |           |   \---Exception
+|       |           +---Multipart
+|       |           +---MWAA
+|       |           |   \---Exception
+|       |           +---MWAAServerless
+|       |           |   \---Exception
+|       |           +---Neptune
+|       |           |   \---Exception
+|       |           +---Neptunedata
+|       |           |   \---Exception
+|       |           +---NeptuneGraph
+|       |           |   \---Exception
+|       |           +---NetworkFirewall
+|       |           |   \---Exception
+|       |           +---NetworkFlowMonitor
+|       |           |   \---Exception
+|       |           +---NetworkManager
+|       |           |   \---Exception
+|       |           +---NetworkMonitor
+|       |           |   \---Exception
+|       |           +---Notifications
+|       |           |   \---Exception
+|       |           +---NotificationsContacts
+|       |           |   \---Exception
+|       |           +---NovaAct
+|       |           |   \---Exception
+|       |           +---OAM
+|       |           |   \---Exception
+|       |           +---ObservabilityAdmin
+|       |           |   \---Exception
+|       |           +---Odb
+|       |           |   \---Exception
+|       |           +---Omics
+|       |           |   \---Exception
+|       |           +---OpenSearchServerless
+|       |           |   \---Exception
+|       |           +---OpenSearchService
+|       |           |   \---Exception
+|       |           +---Organizations
+|       |           |   \---Exception
+|       |           +---OSIS
+|       |           |   \---Exception
+|       |           +---Outposts
+|       |           |   \---Exception
+|       |           +---PartnerCentralAccount
+|       |           |   \---Exception
+|       |           +---PartnerCentralBenefits
+|       |           |   \---Exception
+|       |           +---PartnerCentralChannel
+|       |           |   \---Exception
+|       |           +---PartnerCentralRevenueMeasurement
+|       |           |   \---Exception
+|       |           +---PartnerCentralSelling
+|       |           |   \---Exception
+|       |           +---PaymentCryptography
+|       |           |   \---Exception
+|       |           +---PaymentCryptographyData
+|       |           |   \---Exception
+|       |           +---PcaConnectorAd
+|       |           |   \---Exception
+|       |           +---PcaConnectorScep
+|       |           |   \---Exception
+|       |           +---PCS
+|       |           |   \---Exception
+|       |           +---Personalize
+|       |           |   \---Exception
+|       |           +---PersonalizeEvents
+|       |           |   \---Exception
+|       |           +---PersonalizeRuntime
+|       |           |   \---Exception
+|       |           +---PI
+|       |           |   \---Exception
+|       |           +---Pinpoint
+|       |           |   \---Exception
+|       |           +---PinpointEmail
+|       |           |   \---Exception
+|       |           +---PinpointSMSVoice
+|       |           |   \---Exception
+|       |           +---PinpointSMSVoiceV2
+|       |           |   \---Exception
+|       |           +---Pipes
+|       |           |   \---Exception
+|       |           +---Polly
+|       |           |   \---Exception
+|       |           +---Pricing
+|       |           |   \---Exception
+|       |           +---PrometheusService
+|       |           |   \---Exception
+|       |           +---Proton
+|       |           |   \---Exception
+|       |           +---QApps
+|       |           |   \---Exception
+|       |           +---QBusiness
+|       |           |   \---Exception
+|       |           +---QConnect
+|       |           |   \---Exception
+|       |           +---QuickSight
+|       |           |   \---Exception
+|       |           +---RAM
+|       |           |   \---Exception
+|       |           +---Rds
+|       |           |   \---Exception
+|       |           +---RDSDataService
+|       |           |   \---Exception
+|       |           +---RecycleBin
+|       |           |   \---Exception
+|       |           +---Redshift
+|       |           |   \---Exception
+|       |           +---RedshiftDataAPIService
+|       |           |   \---Exception
+|       |           +---RedshiftServerless
+|       |           |   \---Exception
+|       |           +---Rekognition
+|       |           |   \---Exception
+|       |           +---Repostspace
+|       |           |   \---Exception
+|       |           +---ResilienceHub
+|       |           |   \---Exception
+|       |           +---Resiliencehubv2
+|       |           |   \---Exception
+|       |           +---ResourceExplorer2
+|       |           |   \---Exception
+|       |           +---ResourceGroups
+|       |           |   \---Exception
+|       |           +---ResourceGroupsTaggingAPI
+|       |           |   \---Exception
+|       |           +---Retry
+|       |           |   +---Exception
+|       |           |   \---V3
+|       |           +---RolesAnywhere
+|       |           |   \---Exception
+|       |           +---Route53
+|       |           |   \---Exception
+|       |           +---Route53Domains
+|       |           |   \---Exception
+|       |           +---Route53GlobalResolver
+|       |           |   \---Exception
+|       |           +---Route53Profiles
+|       |           |   \---Exception
+|       |           +---Route53RecoveryCluster
+|       |           |   \---Exception
+|       |           +---Route53RecoveryControlConfig
+|       |           |   \---Exception
+|       |           +---Route53RecoveryReadiness
+|       |           |   \---Exception
+|       |           +---Route53Resolver
+|       |           |   \---Exception
+|       |           +---RTBFabric
+|       |           |   \---Exception
+|       |           +---S3
+|       |           |   +---Crypto
+|       |           |   +---Exception
+|       |           |   +---Parser
+|       |           |   +---RegionalEndpoint
+|       |           |   |   \---Exception
+|       |           |   +---S3Transfer
+|       |           |   |   +---Exception
+|       |           |   |   +---Models
+|       |           |   |   +---Progress
+|       |           |   |   \---Utils
+|       |           |   \---UseArnRegion
+|       |           |       \---Exception
+|       |           +---S3Control
+|       |           |   \---Exception
+|       |           +---S3Files
+|       |           |   \---Exception
+|       |           +---S3Outposts
+|       |           |   \---Exception
+|       |           +---S3Tables
+|       |           |   \---Exception
+|       |           +---S3Vectors
+|       |           |   \---Exception
+|       |           +---SageMaker
+|       |           |   \---Exception
+|       |           +---SagemakerEdgeManager
+|       |           |   \---Exception
+|       |           +---SageMakerFeatureStoreRuntime
+|       |           |   \---Exception
+|       |           +---SageMakerGeospatial
+|       |           |   \---Exception
+|       |           +---SagemakerJobRuntime
+|       |           |   \---Exception
+|       |           +---SageMakerMetrics
+|       |           |   \---Exception
+|       |           +---SageMakerRuntime
+|       |           |   \---Exception
+|       |           +---SavingsPlans
+|       |           |   \---Exception
+|       |           +---Scheduler
+|       |           |   \---Exception
+|       |           +---Schemas
+|       |           |   \---Exception
+|       |           +---Script
+|       |           |   \---Composer
+|       |           +---SecretsManager
+|       |           |   \---Exception
+|       |           +---SecurityAgent
+|       |           |   \---Exception
+|       |           +---SecurityHub
+|       |           |   \---Exception
+|       |           +---SecurityIR
+|       |           |   \---Exception
+|       |           +---SecurityLake
+|       |           |   \---Exception
+|       |           +---ServerlessApplicationRepository
+|       |           |   \---Exception
+|       |           +---ServiceCatalog
+|       |           |   \---Exception
+|       |           +---ServiceDiscovery
+|       |           |   \---Exception
+|       |           +---ServiceQuotas
+|       |           |   \---Exception
+|       |           +---Ses
+|       |           |   \---Exception
+|       |           +---SesV2
+|       |           |   \---Exception
+|       |           +---Sfn
+|       |           |   \---Exception
+|       |           +---Shield
+|       |           |   \---Exception
+|       |           +---Signature
+|       |           +---signer
+|       |           |   \---Exception
+|       |           +---SignerData
+|       |           |   \---Exception
+|       |           +---Signin
+|       |           |   \---Exception
+|       |           +---SimpleDBv2
+|       |           |   \---Exception
+|       |           +---SnowBall
+|       |           |   \---Exception
+|       |           +---SnowDeviceManagement
+|       |           |   \---Exception
+|       |           +---Sns
+|       |           |   \---Exception
+|       |           +---SocialMessaging
+|       |           |   \---Exception
+|       |           +---Sqs
+|       |           |   \---Exception
+|       |           +---Ssm
+|       |           |   \---Exception
+|       |           +---SSMContacts
+|       |           |   \---Exception
+|       |           +---SSMGuiConnect
+|       |           |   \---Exception
+|       |           +---SSMIncidents
+|       |           |   \---Exception
+|       |           +---SSMQuickSetup
+|       |           |   \---Exception
+|       |           +---SsmSap
+|       |           |   \---Exception
+|       |           +---SSO
+|       |           |   \---Exception
+|       |           +---SSOAdmin
+|       |           |   \---Exception
+|       |           +---SSOOIDC
+|       |           |   \---Exception
+|       |           +---StorageGateway
+|       |           |   \---Exception
+|       |           +---Sts
+|       |           |   +---Exception
+|       |           |   \---RegionalEndpoints
+|       |           |       \---Exception
+|       |           +---SupplyChain
+|       |           |   \---Exception
+|       |           +---Support
+|       |           |   \---Exception
+|       |           +---SupportApp
+|       |           |   \---Exception
+|       |           +---SupportAuthZ
+|       |           |   \---Exception
+|       |           +---Sustainability
+|       |           |   \---Exception
+|       |           +---Swf
+|       |           |   \---Exception
+|       |           +---Synthetics
+|       |           |   \---Exception
+|       |           +---TaxSettings
+|       |           |   \---Exception
+|       |           +---Textract
+|       |           |   \---Exception
+|       |           +---TimestreamInfluxDB
+|       |           |   \---Exception
+|       |           +---TimestreamQuery
+|       |           |   \---Exception
+|       |           +---TimestreamWrite
+|       |           |   \---Exception
+|       |           +---Tnb
+|       |           |   \---Exception
+|       |           +---Token
+|       |           +---TranscribeService
+|       |           |   \---Exception
+|       |           +---Transfer
+|       |           |   \---Exception
+|       |           +---Translate
+|       |           |   \---Exception
+|       |           +---TrustedAdvisor
+|       |           |   \---Exception
+|       |           +---Uxc
+|       |           |   \---Exception
+|       |           +---VerifiedPermissions
+|       |           |   \---Exception
+|       |           +---VoiceID
+|       |           |   \---Exception
+|       |           +---VPCLattice
+|       |           |   \---Exception
+|       |           +---Waf
+|       |           |   \---Exception
+|       |           +---WafRegional
+|       |           |   \---Exception
+|       |           +---WAFV2
+|       |           |   \---Exception
+|       |           +---WellArchitected
+|       |           |   \---Exception
+|       |           +---Wickr
+|       |           |   \---Exception
+|       |           +---WorkDocs
+|       |           |   \---Exception
+|       |           +---WorkMail
+|       |           |   \---Exception
+|       |           +---WorkMailMessageFlow
+|       |           |   \---Exception
+|       |           +---WorkSpaces
+|       |           |   \---Exception
+|       |           +---WorkspacesInstances
+|       |           |   \---Exception
+|       |           +---WorkSpacesThinClient
+|       |           |   \---Exception
+|       |           +---WorkSpacesWeb
+|       |           |   \---Exception
+|       |           \---XRay
+|       |               \---Exception
+|       +---bin
+|       +---composer
+|       +---getbrevo
+|       |   \---brevo-php
+|       |       +---.fern
+|       |       +---.github
+|       |       |   \---workflows
+|       |       +---src
+|       |       |   +---Account
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Balance
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Companies
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---ConsentGroups
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Contacts
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Conversations
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Core
+|       |       |   |   +---Client
+|       |       |   |   +---Json
+|       |       |   |   +---Multipart
+|       |       |   |   \---Types
+|       |       |   +---Coupons
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---CustomObjects
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Deals
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Domains
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Ecommerce
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---EmailCampaigns
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Event
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Exceptions
+|       |       |   +---ExternalFeeds
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Files
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---InboundParsing
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---MasterAccount
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Notes
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Payments
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Process
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Program
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Reward
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Senders
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---SmsCampaigns
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---SmsTemplates
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Tasks
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Tier
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---TransactionalEmails
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---TransactionalSms
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---TransactionalWhatsApp
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   +---Types
+|       |       |   +---User
+|       |       |   |   \---Types
+|       |       |   +---Utils
+|       |       |   +---Wallet
+|       |       |   +---Webhooks
+|       |       |   |   +---Requests
+|       |       |   |   \---Types
+|       |       |   \---WhatsAppCampaigns
+|       |       |       +---Requests
+|       |       |       \---Types
+|       |       +---tests
+|       |       |   \---Core
+|       |       |       +---Client
+|       |       |       \---Json
+|       |       \---wiremock
+|       +---guzzlehttp
+|       |   +---guzzle
+|       |   |   \---src
+|       |   |       +---Cookie
+|       |   |       +---Exception
+|       |   |       \---Handler
+|       |   +---promises
+|       |   |   \---src
+|       |   \---psr7
+|       |       \---src
+|       |           \---Exception
+|       +---mtdowling
+|       |   \---jmespath.php
+|       |       +---bin
+|       |       \---src
+|       +---php-http
+|       |   +---discovery
+|       |   |   \---src
+|       |   |       +---Composer
+|       |   |       +---Exception
+|       |   |       \---Strategy
+|       |   \---multipart-stream-builder
+|       |       \---src
+|       +---psr
+|       |   +---http-client
+|       |   |   \---src
+|       |   +---http-factory
+|       |   |   \---src
+|       |   \---http-message
+|       |       +---docs
+|       |       \---src
+|       +---ralouphie
+|       |   \---getallheaders
+|       |       \---src
+|       \---symfony
+|           +---deprecation-contracts
+|           +---filesystem
+|           |   \---Exception
+|           +---polyfill-ctype
+|           +---polyfill-mbstring
+|           |   \---Resources
+|           |       \---unidata
+|           \---polyfill-php80
+|               \---Resources
+|                   \---stubs
++---dataexam
++---docker
+|   \---minio
+|       \---mock-data
+|           \---01
++---Docs
+|   \---DossierProjet
++---frontend
+|   +---.nuxt
+|   |   +---dev
+|   |   +---dist
+|   |   +---manifest
+|   |   |   \---meta
+|   |   +---schema
+|   |   \---types
+|   +---.output
+|   |   \---public
+|   |       +---adminpanel
+|   |       +---external-link
+|   |       +---login
+|   |       +---pagecms
+|   |       +---personnalpage
+|   |       +---profil
+|   |       |   \---notification
+|   |       +---register
+|   |       \---_nuxt
+|   |           \---builds
+|   |               \---meta
+|   +---app
+|   |   +---assets
+|   |   |   +---css
+|   |   |   \---fonts
+|   |   |       +---Architects_Daughter
+|   |   |       +---Caudex
+|   |   |       +---Caveat
+|   |   |       |   \---static
+|   |   |       +---Gothic_A1
+|   |   |       +---JetBrains_Mono
+|   |   |       |   \---static
+|   |   |       \---Kalam
+|   |   +---components
+|   |   |   +---administration
+|   |   |   +---cms
+|   |   |   +---email
+|   |   |   +---index
+|   |   |   \---shared
+|   |   +---composables
+|   |   |   +---cms
+|   |   |   +---link-validation
+|   |   |   +---minio
+|   |   |   \---shared
+|   |   +---middleware
+|   |   +---pages
+|   |   |   +---pagecmsresult
+|   |   |   \---profil
+|   |   +---plugins
+|   |   +---types
+|   |   |   +---admin
+|   |   |   +---cms
+|   |   |   \---shared
+|   |   +---utils
+|   |   |   \---cms
+|   |   \---views
+|   |       +---admin
+|   |       +---cms
+|   |       +---index
+|   |       \---shared
+|   +---dist
+|   |   +---adminpanel
+|   |   +---external-link
+|   |   +---login
+|   |   +---pagecms
+|   |   +---personnalpage
+|   |   +---profil
+|   |   |   \---notification
+|   |   +---register
+|   |   \---_nuxt
+|   |       \---builds
+|   |           \---meta
+|   +---nginx
+|   +---node_modules
+|   |   +---.bin
+|   |   +---.cache
+|   |   |   +---jiti
+|   |   |   +---nuxt
+|   |   |   |   \---.nuxt
+|   |   |   |       +---cache
+|   |   |   |       |   \---nitro
+|   |   |   |       |       \---prerender
+|   |   |   |       +---dist
+|   |   |   |       |   +---client
+|   |   |   |       |   |   \---_nuxt
+|   |   |   |       |   \---server
+|   |   |   |       |       \---_nuxt
+|   |   |   |       +---manifest
+|   |   |   |       |   \---meta
+|   |   |   |       +---prerender
+|   |   |   |       |   \---chunks
+|   |   |   |       |       +---build
+|   |   |   |       |       +---virtual
+|   |   |   |       |       \---_
+|   |   |   |       +---schema
+|   |   |   |       \---types
+|   |   |   \---vite
+|   |   |       \---client
+|   |   |           \---deps
+|   |   +---.vue-global-types
+|   |   +---@alloc
+|   |   |   \---quick-lru
+|   |   +---@babel
+|   |   |   +---code-frame
+|   |   |   |   \---lib
+|   |   |   +---compat-data
+|   |   |   |   \---data
+|   |   |   +---core
+|   |   |   |   +---lib
+|   |   |   |   |   +---config
+|   |   |   |   |   |   +---files
+|   |   |   |   |   |   +---helpers
+|   |   |   |   |   |   \---validation
+|   |   |   |   |   +---errors
+|   |   |   |   |   +---gensync-utils
+|   |   |   |   |   +---parser
+|   |   |   |   |   |   \---util
+|   |   |   |   |   +---tools
+|   |   |   |   |   +---transformation
+|   |   |   |   |   |   +---file
+|   |   |   |   |   |   \---util
+|   |   |   |   |   \---vendor
+|   |   |   |   +---node_modules
+|   |   |   |   |   +---.bin
+|   |   |   |   |   \---semver
+|   |   |   |   |       \---bin
+|   |   |   |   \---src
+|   |   |   |       +---config
+|   |   |   |       |   \---files
+|   |   |   |       \---transformation
+|   |   |   +---generator
+|   |   |   |   \---lib
+|   |   |   |       +---generators
+|   |   |   |       \---node
+|   |   |   +---helper-annotate-as-pure
+|   |   |   |   \---lib
+|   |   |   +---helper-compilation-targets
+|   |   |   |   +---lib
+|   |   |   |   \---node_modules
+|   |   |   |       +---.bin
+|   |   |   |       \---semver
+|   |   |   |           \---bin
+|   |   |   +---helper-create-class-features-plugin
+|   |   |   |   +---lib
+|   |   |   |   \---node_modules
+|   |   |   |       +---.bin
+|   |   |   |       \---semver
+|   |   |   |           \---bin
+|   |   |   +---helper-globals
+|   |   |   |   \---data
+|   |   |   +---helper-member-expression-to-functions
+|   |   |   |   \---lib
+|   |   |   +---helper-module-imports
+|   |   |   |   \---lib
+|   |   |   +---helper-module-transforms
+|   |   |   |   \---lib
+|   |   |   +---helper-optimise-call-expression
+|   |   |   |   \---lib
+|   |   |   +---helper-plugin-utils
+|   |   |   |   \---lib
+|   |   |   +---helper-replace-supers
+|   |   |   |   \---lib
+|   |   |   +---helper-skip-transparent-expression-wrappers
+|   |   |   |   \---lib
+|   |   |   +---helper-string-parser
+|   |   |   |   \---lib
+|   |   |   +---helper-validator-identifier
+|   |   |   |   \---lib
+|   |   |   +---helper-validator-option
+|   |   |   |   \---lib
+|   |   |   +---helpers
+|   |   |   |   \---lib
+|   |   |   |       \---helpers
+|   |   |   +---parser
+|   |   |   |   +---bin
+|   |   |   |   +---lib
+|   |   |   |   \---typings
+|   |   |   +---plugin-syntax-jsx
+|   |   |   |   \---lib
+|   |   |   +---plugin-syntax-typescript
+|   |   |   |   \---lib
+|   |   |   +---plugin-transform-typescript
+|   |   |   |   \---lib
+|   |   |   +---template
+|   |   |   |   \---lib
+|   |   |   +---traverse
+|   |   |   |   \---lib
+|   |   |   |       +---path
+|   |   |   |       |   +---inference
+|   |   |   |       |   \---lib
+|   |   |   |       \---scope
+|   |   |   |           \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   |           +---asserts
+|   |   |           |   \---generated
+|   |   |           +---ast-types
+|   |   |           |   \---generated
+|   |   |           +---builders
+|   |   |           |   +---flow
+|   |   |           |   +---generated
+|   |   |           |   +---react
+|   |   |           |   \---typescript
+|   |   |           +---clone
+|   |   |           +---comments
+|   |   |           +---constants
+|   |   |           |   \---generated
+|   |   |           +---converters
+|   |   |           +---definitions
+|   |   |           +---modifications
+|   |   |           |   +---flow
+|   |   |           |   \---typescript
+|   |   |           +---retrievers
+|   |   |           +---traverse
+|   |   |           +---utils
+|   |   |           |   \---react
+|   |   |           \---validators
+|   |   |               +---generated
+|   |   |               \---react
+|   |   +---@bomb.sh
+|   |   |   \---tab
+|   |   |       \---dist
+|   |   |           \---bin
+|   |   +---@clack
+|   |   |   +---core
+|   |   |   |   \---dist
+|   |   |   \---prompts
+|   |   |       \---dist
+|   |   +---@cloudflare
+|   |   |   \---kv-asset-handler
+|   |   |       +---dist
+|   |   |       \---src
+|   |   +---@colordx
+|   |   |   \---core
+|   |   |       \---dist
+|   |   |           \---plugins
+|   |   +---@csstools
+|   |   |   +---selector-resolve-nested
+|   |   |   |   \---dist
+|   |   |   \---selector-specificity
+|   |   |       \---dist
+|   |   +---@dxup
+|   |   |   +---nuxt
+|   |   |   |   \---dist
+|   |   |   \---unimport
+|   |   |       \---dist
+|   |   +---@emnapi
+|   |   |   +---core
+|   |   |   |   \---dist
+|   |   |   +---runtime
+|   |   |   |   \---dist
+|   |   |   \---wasi-threads
+|   |   |       \---dist
+|   |   +---@esbuild
+|   |   |   \---win32-x64
+|   |   +---@floating-ui
+|   |   |   +---core
+|   |   |   |   \---dist
+|   |   |   +---dom
+|   |   |   |   \---dist
+|   |   |   \---utils
+|   |   |       +---dist
+|   |   |       \---dom
+|   |   +---@fortawesome
+|   |   |   +---fontawesome-common-types
+|   |   |   +---fontawesome-svg-core
+|   |   |   +---free-solid-svg-icons
+|   |   |   \---vue-fontawesome
+|   |   |       \---src
+|   |   |           \---components
+|   |   +---@heroicons
+|   |   |   \---vue
+|   |   |       +---16
+|   |   |       |   \---solid
+|   |   |       |       \---esm
+|   |   |       +---20
+|   |   |       |   \---solid
+|   |   |       |       \---esm
+|   |   |       +---24
+|   |   |       |   +---outline
+|   |   |       |   |   \---esm
+|   |   |       |   \---solid
+|   |   |       |       \---esm
+|   |   |       +---outline
+|   |   |       \---solid
+|   |   +---@icons
+|   |   +---@interactjs
+|   |   |   \---types
+|   |   +---@ioredis
+|   |   |   \---commands
+|   |   |       \---built
+|   |   +---@isaacs
+|   |   |   +---cliui
+|   |   |   |   +---build
+|   |   |   |   |   \---lib
+|   |   |   |   \---node_modules
+|   |   |   |       +---emoji-regex
+|   |   |   |       |   \---es2015
+|   |   |   |       +---string-width
+|   |   |   |       \---wrap-ansi
+|   |   |   \---fs-minipass
+|   |   |       \---dist
+|   |   |           +---commonjs
+|   |   |           \---esm
+|   |   +---@jridgewell
+|   |   |   +---gen-mapping
+|   |   |   |   +---dist
+|   |   |   |   |   \---types
+|   |   |   |   +---src
+|   |   |   |   \---types
+|   |   |   +---remapping
+|   |   |   |   +---dist
+|   |   |   |   +---src
+|   |   |   |   \---types
+|   |   |   +---resolve-uri
+|   |   |   |   \---dist
+|   |   |   |       \---types
+|   |   |   +---source-map
+|   |   |   |   +---dist
+|   |   |   |   +---src
+|   |   |   |   \---types
+|   |   |   +---sourcemap-codec
+|   |   |   |   +---dist
+|   |   |   |   +---src
+|   |   |   |   \---types
+|   |   |   \---trace-mapping
+|   |   |       +---dist
+|   |   |       +---src
+|   |   |       \---types
+|   |   +---@juggle
+|   |   |   \---resize-observer
+|   |   |       \---lib
+|   |   |           +---algorithms
+|   |   |           +---exports
+|   |   |           \---utils
+|   |   +---@koa
+|   |   |   \---router
+|   |   |       \---lib
+|   |   +---@kwsites
+|   |   |   +---file-exists
+|   |   |   |   \---dist
+|   |   |   |       +---src
+|   |   |   |       \---test
+|   |   |   |           \---__mocks__
+|   |   |   \---promise-deferred
+|   |   |       \---dist
+|   |   +---@mapbox
+|   |   |   \---node-pre-gyp
+|   |   |       +---.github
+|   |   |       |   \---workflows
+|   |   |       +---bin
+|   |   |       \---lib
+|   |   |           +---mock
+|   |   |           \---util
+|   |   |               \---nw-pre-gyp
+|   |   +---@napi-rs
+|   |   |   \---wasm-runtime
+|   |   |       \---dist
+|   |   +---@nodelib
+|   |   |   +---fs.scandir
+|   |   |   |   \---out
+|   |   |   |       +---adapters
+|   |   |   |       +---providers
+|   |   |   |       +---types
+|   |   |   |       \---utils
+|   |   |   +---fs.stat
+|   |   |   |   \---out
+|   |   |   |       +---adapters
+|   |   |   |       +---providers
+|   |   |   |       \---types
+|   |   |   \---fs.walk
+|   |   |       \---out
+|   |   |           +---providers
+|   |   |           +---readers
+|   |   |           \---types
+|   |   +---@nuxt
+|   |   |   +---cli
+|   |   |   |   +---bin
+|   |   |   |   \---dist
+|   |   |   |       \---dev
+|   |   |   +---devalue
+|   |   |   |   \---dist
+|   |   |   +---devtools
+|   |   |   |   \---dist
+|   |   |   |       +---chunks
+|   |   |   |       +---client
+|   |   |   |       |   +---discovery
+|   |   |   |       |   \---_nuxt
+|   |   |   |       |       +---builds
+|   |   |   |       |       |   \---meta
+|   |   |   |       |       \---vendor
+|   |   |   |       +---runtime
+|   |   |   |       |   +---auth
+|   |   |   |       |   +---nitro
+|   |   |   |       |   +---plugins
+|   |   |   |       |   |   \---view
+|   |   |   |       |   \---shared
+|   |   |   |       +---shared
+|   |   |   |       \---webcomponents
+|   |   |   +---devtools-kit
+|   |   |   |   \---dist
+|   |   |   |       +---runtime
+|   |   |   |       \---shared
+|   |   |   +---devtools-wizard
+|   |   |   |   \---dist
+|   |   |   |       \---chunks
+|   |   |   +---kit
+|   |   |   |   \---dist
+|   |   |   +---nitro-server
+|   |   |   |   \---dist
+|   |   |   |       \---runtime
+|   |   |   |           +---handlers
+|   |   |   |           +---middleware
+|   |   |   |           +---plugins
+|   |   |   |           +---templates
+|   |   |   |           \---utils
+|   |   |   |               \---renderer
+|   |   |   +---schema
+|   |   |   |   \---dist
+|   |   |   +---telemetry
+|   |   |   |   +---bin
+|   |   |   |   +---dist
+|   |   |   |   |   \---shared
+|   |   |   |   \---node_modules
+|   |   |   |       \---ofetch
+|   |   |   |           \---dist
+|   |   |   \---vite-builder
+|   |   |       +---dist
+|   |   |       |   \---_chunks
+|   |   |       |       \---libs
+|   |   |       |           \---@babel
+|   |   |       \---node_modules
+|   |   |           +---.bin
+|   |   |           \---vite
+|   |   |               +---bin
+|   |   |               +---dist
+|   |   |               |   +---client
+|   |   |               |   \---node
+|   |   |               |       \---chunks
+|   |   |               +---misc
+|   |   |               \---types
+|   |   |                   \---internal
+|   |   +---@nuxtjs
+|   |   |   \---tailwindcss
+|   |   |       +---dist
+|   |   |       |   +---runtime
+|   |   |       |   \---shared
+|   |   |       \---node_modules
+|   |   |           +---.bin
+|   |   |           +---@nuxt
+|   |   |           |   \---kit
+|   |   |           |       \---dist
+|   |   |           +---chokidar
+|   |   |           |   +---lib
+|   |   |           |   \---types
+|   |   |           +---commander
+|   |   |           |   \---typings
+|   |   |           +---is-docker
+|   |   |           +---is-wsl
+|   |   |           +---open
+|   |   |           +---picomatch
+|   |   |           |   \---lib
+|   |   |           +---postcss-selector-parser
+|   |   |           |   \---dist
+|   |   |           |       +---selectors
+|   |   |           |       \---util
+|   |   |           +---readdirp
+|   |   |           +---tailwind-config-viewer
+|   |   |           |   +---cli
+|   |   |           |   +---dist
+|   |   |           |   |   +---css
+|   |   |           |   |   \---js
+|   |   |           |   +---lib
+|   |   |           |   \---server
+|   |   |           \---tailwindcss
+|   |   |               +---lib
+|   |   |               |   +---cli
+|   |   |               |   |   +---build
+|   |   |               |   |   +---help
+|   |   |               |   |   \---init
+|   |   |               |   +---css
+|   |   |               |   +---lib
+|   |   |               |   +---postcss-plugins
+|   |   |               |   |   \---nesting
+|   |   |               |   +---public
+|   |   |               |   +---util
+|   |   |               |   \---value-parser
+|   |   |               +---nesting
+|   |   |               +---node_modules
+|   |   |               |   +---.bin
+|   |   |               |   +---glob-parent
+|   |   |               |   +---jiti
+|   |   |               |   |   +---bin
+|   |   |               |   |   +---dist
+|   |   |               |   |   |   \---plugins
+|   |   |               |   |   \---lib
+|   |   |               |   \---postcss-load-config
+|   |   |               |       \---src
+|   |   |               +---peers
+|   |   |               +---scripts
+|   |   |               +---src
+|   |   |               |   +---cli
+|   |   |               |   |   +---build
+|   |   |               |   |   +---help
+|   |   |               |   |   \---init
+|   |   |               |   +---css
+|   |   |               |   +---lib
+|   |   |               |   +---postcss-plugins
+|   |   |               |   |   \---nesting
+|   |   |               |   +---public
+|   |   |               |   +---util
+|   |   |               |   \---value-parser
+|   |   |               +---stubs
+|   |   |               \---types
+|   |   |                   \---generated
+|   |   +---@oxc-minify
+|   |   |   \---binding-win32-x64-msvc
+|   |   +---@oxc-parser
+|   |   |   \---binding-win32-x64-msvc
+|   |   +---@oxc-project
+|   |   |   \---types
+|   |   +---@oxc-transform
+|   |   |   \---binding-win32-x64-msvc
+|   |   +---@parcel
+|   |   |   +---watcher
+|   |   |   |   +---scripts
+|   |   |   |   \---src
+|   |   |   |       +---kqueue
+|   |   |   |       +---linux
+|   |   |   |       +---macos
+|   |   |   |       +---shared
+|   |   |   |       +---unix
+|   |   |   |       +---wasm
+|   |   |   |       +---watchman
+|   |   |   |       \---windows
+|   |   |   +---watcher-wasm
+|   |   |   |   \---node_modules
+|   |   |   |       \---napi-wasm
+|   |   |   \---watcher-win32-x64
+|   |   +---@pkgjs
+|   |   |   \---parseargs
+|   |   |       +---examples
+|   |   |       \---internal
+|   |   +---@polka
+|   |   |   \---url
+|   |   +---@poppinss
+|   |   |   +---colors
+|   |   |   |   \---build
+|   |   |   |       \---src
+|   |   |   +---dumper
+|   |   |   |   \---build
+|   |   |   |       +---formatters
+|   |   |   |       |   +---console
+|   |   |   |       |   |   \---printers
+|   |   |   |       |   \---html
+|   |   |   |       |       \---printers
+|   |   |   |       \---src
+|   |   |   |           \---tokenizers
+|   |   |   \---exception
+|   |   |       \---build
+|   |   |           \---src
+|   |   +---@rolldown
+|   |   |   +---binding-win32-x64-msvc
+|   |   |   \---pluginutils
+|   |   |       \---dist
+|   |   |           \---filter
+|   |   +---@rollup
+|   |   |   +---plugin-alias
+|   |   |   |   \---dist
+|   |   |   +---plugin-commonjs
+|   |   |   |   +---dist
+|   |   |   |   |   +---cjs
+|   |   |   |   |   \---es
+|   |   |   |   \---types
+|   |   |   +---plugin-inject
+|   |   |   |   +---dist
+|   |   |   |   |   +---cjs
+|   |   |   |   |   \---es
+|   |   |   |   \---types
+|   |   |   +---plugin-json
+|   |   |   |   +---dist
+|   |   |   |   |   +---cjs
+|   |   |   |   |   \---es
+|   |   |   |   \---types
+|   |   |   +---plugin-node-resolve
+|   |   |   |   +---dist
+|   |   |   |   |   +---cjs
+|   |   |   |   |   \---es
+|   |   |   |   \---types
+|   |   |   +---plugin-replace
+|   |   |   |   +---dist
+|   |   |   |   |   +---cjs
+|   |   |   |   |   \---es
+|   |   |   |   +---src
+|   |   |   |   \---types
+|   |   |   +---plugin-terser
+|   |   |   |   +---dist
+|   |   |   |   |   +---cjs
+|   |   |   |   |   \---es
+|   |   |   |   +---src
+|   |   |   |   \---types
+|   |   |   +---pluginutils
+|   |   |   |   +---dist
+|   |   |   |   |   +---cjs
+|   |   |   |   |   \---es
+|   |   |   |   \---types
+|   |   |   +---rollup-win32-x64-gnu
+|   |   |   \---rollup-win32-x64-msvc
+|   |   +---@simple-git
+|   |   |   +---args-pathspec
+|   |   |   |   \---dist
+|   |   |   |       \---src
+|   |   |   \---argv-parser
+|   |   |       \---dist
+|   |   |           \---src
+|   |   |               +---args
+|   |   |               +---config
+|   |   |               +---env
+|   |   |               +---flags
+|   |   |               +---tokens
+|   |   |               \---vulnerabilities
+|   |   +---@sindresorhus
+|   |   |   +---is
+|   |   |   |   \---distribution
+|   |   |   \---merge-streams
+|   |   +---@speed-highlight
+|   |   |   \---core
+|   |   |       \---dist
+|   |   |           +---languages
+|   |   |           +---node
+|   |   |           |   +---languages
+|   |   |           |   \---themes
+|   |   |           \---themes
+|   |   +---@tailwindcss
+|   |   |   +---node
+|   |   |   |   \---dist
+|   |   |   +---oxide
+|   |   |   +---oxide-win32-x64-msvc
+|   |   |   \---vite
+|   |   |       \---dist
+|   |   +---@tiptap
+|   |   |   +---core
+|   |   |   |   +---dist
+|   |   |   |   |   \---jsx-runtime
+|   |   |   |   +---jsx-dev-runtime
+|   |   |   |   +---jsx-runtime
+|   |   |   |   \---src
+|   |   |   |       +---commands
+|   |   |   |       +---extensions
+|   |   |   |       +---helpers
+|   |   |   |       +---inputRules
+|   |   |   |       +---lib
+|   |   |   |       +---pasteRules
+|   |   |   |       +---utilities
+|   |   |   |       |   \---markdown
+|   |   |   |       \---__tests__
+|   |   |   +---extension-blockquote
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-bold
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-bubble-menu
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-bullet-list
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-code
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-code-block
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-document
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-dropcursor
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-floating-menu
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-gapcursor
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-hard-break
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-heading
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-highlight
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-horizontal-rule
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-image
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-italic
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-link
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   |       \---helpers
+|   |   |   +---extension-list
+|   |   |   |   +---dist
+|   |   |   |   |   +---bullet-list
+|   |   |   |   |   +---item
+|   |   |   |   |   +---keymap
+|   |   |   |   |   +---kit
+|   |   |   |   |   +---ordered-list
+|   |   |   |   |   +---task-item
+|   |   |   |   |   \---task-list
+|   |   |   |   \---src
+|   |   |   |       +---bullet-list
+|   |   |   |       +---helpers
+|   |   |   |       +---item
+|   |   |   |       +---keymap
+|   |   |   |       |   \---listHelpers
+|   |   |   |       +---kit
+|   |   |   |       +---ordered-list
+|   |   |   |       +---task-item
+|   |   |   |       \---task-list
+|   |   |   +---extension-list-item
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-list-keymap
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-ordered-list
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-paragraph
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-placeholder
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-strike
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-subscript
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-superscript
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-text
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-text-align
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-text-style
+|   |   |   |   +---dist
+|   |   |   |   |   +---background-color
+|   |   |   |   |   +---color
+|   |   |   |   |   +---font-family
+|   |   |   |   |   +---font-size
+|   |   |   |   |   +---line-height
+|   |   |   |   |   +---text-style
+|   |   |   |   |   \---text-style-kit
+|   |   |   |   \---src
+|   |   |   |       +---background-color
+|   |   |   |       +---color
+|   |   |   |       +---font-family
+|   |   |   |       +---font-size
+|   |   |   |       +---line-height
+|   |   |   |       +---text-style
+|   |   |   |       \---text-style-kit
+|   |   |   +---extension-typography
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extension-underline
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   +---extensions
+|   |   |   |   +---dist
+|   |   |   |   |   +---character-count
+|   |   |   |   |   +---drop-cursor
+|   |   |   |   |   +---focus
+|   |   |   |   |   +---gap-cursor
+|   |   |   |   |   +---placeholder
+|   |   |   |   |   +---selection
+|   |   |   |   |   +---trailing-node
+|   |   |   |   |   \---undo-redo
+|   |   |   |   \---src
+|   |   |   |       +---character-count
+|   |   |   |       +---drop-cursor
+|   |   |   |       +---focus
+|   |   |   |       +---gap-cursor
+|   |   |   |       +---placeholder
+|   |   |   |       |   +---plugins
+|   |   |   |       |   \---utils
+|   |   |   |       +---selection
+|   |   |   |       +---trailing-node
+|   |   |   |       \---undo-redo
+|   |   |   +---pm
+|   |   |   |   +---changeset
+|   |   |   |   +---commands
+|   |   |   |   +---dist
+|   |   |   |   |   +---changeset
+|   |   |   |   |   +---commands
+|   |   |   |   |   +---dropcursor
+|   |   |   |   |   +---gapcursor
+|   |   |   |   |   +---history
+|   |   |   |   |   +---inputrules
+|   |   |   |   |   +---keymap
+|   |   |   |   |   +---model
+|   |   |   |   |   +---schema-list
+|   |   |   |   |   +---state
+|   |   |   |   |   +---tables
+|   |   |   |   |   +---transform
+|   |   |   |   |   \---view
+|   |   |   |   +---dropcursor
+|   |   |   |   +---gapcursor
+|   |   |   |   +---history
+|   |   |   |   +---inputrules
+|   |   |   |   +---keymap
+|   |   |   |   +---model
+|   |   |   |   +---schema-list
+|   |   |   |   +---state
+|   |   |   |   +---tables
+|   |   |   |   +---transform
+|   |   |   |   \---view
+|   |   |   +---starter-kit
+|   |   |   |   +---dist
+|   |   |   |   \---src
+|   |   |   \---vue-3
+|   |   |       +---dist
+|   |   |       |   \---menus
+|   |   |       \---src
+|   |   |           \---menus
+|   |   +---@tybys
+|   |   |   \---wasm-util
+|   |   |       +---dist
+|   |   |       \---lib
+|   |   |           +---cjs
+|   |   |           |   \---wasi
+|   |   |           \---mjs
+|   |   |               \---wasi
+|   |   +---@types
+|   |   |   +---estree
+|   |   |   +---jsesc
+|   |   |   \---resolve
+|   |   +---@unhead
+|   |   |   \---vue
+|   |   |       \---dist
+|   |   |           \---shared
+|   |   +---@vercel
+|   |   |   \---nft
+|   |   |       \---out
+|   |   |           \---utils
+|   |   +---@vexip-ui
+|   |   |   +---hooks
+|   |   |   |   \---dist
+|   |   |   \---utils
+|   |   |       \---dist
+|   |   +---@vitejs
+|   |   |   +---plugin-vue
+|   |   |   |   \---dist
+|   |   |   \---plugin-vue-jsx
+|   |   |       \---dist
+|   |   +---@volar
+|   |   |   +---language-core
+|   |   |   |   \---lib
+|   |   |   +---source-map
+|   |   |   |   \---lib
+|   |   |   \---typescript
+|   |   |       \---lib
+|   |   |           +---node
+|   |   |           +---protocol
+|   |   |           +---quickstart
+|   |   |           \---typescript
+|   |   +---@vue
+|   |   |   +---babel-helper-vue-transform-on
+|   |   |   +---babel-plugin-jsx
+|   |   |   |   \---dist
+|   |   |   +---babel-plugin-resolve-type
+|   |   |   |   \---dist
+|   |   |   +---compiler-core
+|   |   |   |   \---dist
+|   |   |   +---compiler-dom
+|   |   |   |   \---dist
+|   |   |   +---compiler-sfc
+|   |   |   |   \---dist
+|   |   |   +---compiler-ssr
+|   |   |   |   \---dist
+|   |   |   +---devtools-api
+|   |   |   |   \---dist
+|   |   |   +---devtools-core
+|   |   |   |   \---dist
+|   |   |   +---devtools-kit
+|   |   |   |   +---dist
+|   |   |   |   \---node_modules
+|   |   |   |       +---birpc
+|   |   |   |       |   \---dist
+|   |   |   |       \---hookable
+|   |   |   |           \---dist
+|   |   |   +---devtools-shared
+|   |   |   |   \---dist
+|   |   |   +---language-core
+|   |   |   |   \---lib
+|   |   |   |       +---codegen
+|   |   |   |       |   +---script
+|   |   |   |       |   +---style
+|   |   |   |       |   +---template
+|   |   |   |       |   \---utils
+|   |   |   |       +---parsers
+|   |   |   |       +---plugins
+|   |   |   |       +---utils
+|   |   |   |       \---virtualFile
+|   |   |   +---reactivity
+|   |   |   |   \---dist
+|   |   |   +---runtime-core
+|   |   |   |   \---dist
+|   |   |   +---runtime-dom
+|   |   |   |   \---dist
+|   |   |   +---server-renderer
+|   |   |   |   \---dist
+|   |   |   \---shared
+|   |   |       \---dist
+|   |   +---@vue-macros
+|   |   |   \---common
+|   |   |       \---dist
+|   |   +---abbrev
+|   |   |   \---lib
+|   |   +---abort-controller
+|   |   |   \---dist
+|   |   +---accepts
+|   |   |   \---node_modules
+|   |   |       +---mime-db
+|   |   |       \---mime-types
+|   |   +---acorn
+|   |   |   +---bin
+|   |   |   \---dist
+|   |   +---acorn-import-attributes
+|   |   |   +---lib
+|   |   |   \---src
+|   |   +---agent-base
+|   |   |   \---dist
+|   |   +---alien-signals
+|   |   |   +---cjs
+|   |   |   +---esm
+|   |   |   \---types
+|   |   +---ansi-regex
+|   |   +---ansi-styles
+|   |   +---ansis
+|   |   +---any-promise
+|   |   |   \---register
+|   |   +---anymatch
+|   |   |   \---node_modules
+|   |   |       \---picomatch
+|   |   |           \---lib
+|   |   +---archiver
+|   |   |   \---lib
+|   |   |       \---plugins
+|   |   +---archiver-utils
+|   |   |   \---node_modules
+|   |   |       +---.bin
+|   |   |       +---balanced-match
+|   |   |       |   \---.github
+|   |   |       +---brace-expansion
+|   |   |       |   +---.github
+|   |   |       |   +---.tap
+|   |   |       |   |   +---coverage
+|   |   |       |   |   \---processinfo
+|   |   |       |   \---dist
+|   |   |       |       +---commonjs
+|   |   |       |       \---esm
+|   |   |       +---glob
+|   |   |       |   \---dist
+|   |   |       |       +---commonjs
+|   |   |       |       \---esm
+|   |   |       +---is-stream
+|   |   |       +---lru-cache
+|   |   |       |   \---dist
+|   |   |       |       +---commonjs
+|   |   |       |       \---esm
+|   |   |       +---minimatch
+|   |   |       |   \---dist
+|   |   |       |       +---commonjs
+|   |   |       |       \---esm
+|   |   |       \---path-scurry
+|   |   |           \---dist
+|   |   |               +---commonjs
+|   |   |               \---esm
+|   |   +---arg
+|   |   +---ast-kit
+|   |   |   \---dist
+|   |   +---ast-walker-scope
+|   |   |   \---dist
+|   |   +---async
+|   |   |   +---dist
+|   |   |   \---internal
+|   |   +---async-sema
+|   |   |   \---lib
+|   |   +---at-least-node
+|   |   +---autoprefixer
+|   |   |   +---bin
+|   |   |   +---data
+|   |   |   \---lib
+|   |   |       \---hacks
+|   |   +---b4a
+|   |   |   \---lib
+|   |   +---balanced-match
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---bare-events
+|   |   |   \---lib
+|   |   +---bare-fs
+|   |   |   +---lib
+|   |   |   \---prebuilds
+|   |   |       +---android-arm
+|   |   |       +---android-arm64
+|   |   |       +---android-ia32
+|   |   |       +---android-x64
+|   |   |       +---darwin-arm64
+|   |   |       +---darwin-x64
+|   |   |       +---ios-arm64
+|   |   |       +---ios-arm64-simulator
+|   |   |       +---ios-x64-simulator
+|   |   |       +---linux-arm64
+|   |   |       +---linux-x64
+|   |   |       +---win32-arm64
+|   |   |       \---win32-x64
+|   |   +---bare-os
+|   |   |   +---lib
+|   |   |   \---prebuilds
+|   |   |       +---android-arm
+|   |   |       +---android-arm64
+|   |   |       +---android-ia32
+|   |   |       +---android-x64
+|   |   |       +---darwin-arm64
+|   |   |       +---darwin-x64
+|   |   |       +---ios-arm64
+|   |   |       +---ios-arm64-simulator
+|   |   |       +---ios-x64-simulator
+|   |   |       +---linux-arm64
+|   |   |       +---linux-x64
+|   |   |       +---win32-arm64
+|   |   |       \---win32-x64
+|   |   +---bare-path
+|   |   |   \---lib
+|   |   +---bare-stream
+|   |   +---bare-url
+|   |   |   +---lib
+|   |   |   \---prebuilds
+|   |   |       +---android-arm
+|   |   |       +---android-arm64
+|   |   |       +---android-ia32
+|   |   |       +---android-x64
+|   |   |       +---darwin-arm64
+|   |   |       +---darwin-x64
+|   |   |       +---ios-arm64
+|   |   |       +---ios-arm64-simulator
+|   |   |       +---ios-x64-simulator
+|   |   |       +---linux-arm64
+|   |   |       +---linux-x64
+|   |   |       +---win32-arm64
+|   |   |       \---win32-x64
+|   |   +---base64-js
+|   |   +---baseline-browser-mapping
+|   |   |   \---dist
+|   |   +---binary-extensions
+|   |   +---bindings
+|   |   +---birpc
+|   |   |   \---dist
+|   |   +---boolbase
+|   |   +---brace-expansion
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---braces
+|   |   |   \---lib
+|   |   +---browserslist
+|   |   +---buffer
+|   |   +---buffer-crc32
+|   |   |   \---dist
+|   |   +---buffer-from
+|   |   +---bundle-name
+|   |   +---c12
+|   |   |   \---dist
+|   |   +---cac
+|   |   |   +---deno
+|   |   |   \---dist
+|   |   +---cache-content-type
+|   |   |   \---node_modules
+|   |   |       +---mime-db
+|   |   |       \---mime-types
+|   |   +---call-bind-apply-helpers
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---call-bound
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---camelcase-css
+|   |   +---caniuse-api
+|   |   |   \---dist
+|   |   +---caniuse-lite
+|   |   |   +---data
+|   |   |   |   +---features
+|   |   |   |   \---regions
+|   |   |   \---dist
+|   |   |       +---lib
+|   |   |       \---unpacker
+|   |   +---chalk
+|   |   |   +---node_modules
+|   |   |   |   +---ansi-styles
+|   |   |   |   \---supports-color
+|   |   |   \---source
+|   |   +---chokidar
+|   |   +---chownr
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---citty
+|   |   |   \---dist
+|   |   |       \---_chunks
+|   |   |           \---libs
+|   |   +---cliui
+|   |   |   \---build
+|   |   |       \---lib
+|   |   +---cluster-key-slot
+|   |   |   \---lib
+|   |   +---co
+|   |   +---color-convert
+|   |   +---color-name
+|   |   +---commondir
+|   |   |   +---example
+|   |   |   \---test
+|   |   +---compatx
+|   |   |   \---dist
+|   |   +---compress-commons
+|   |   |   +---lib
+|   |   |   |   +---archivers
+|   |   |   |   |   \---zip
+|   |   |   |   \---util
+|   |   |   \---node_modules
+|   |   |       \---is-stream
+|   |   +---concat-map
+|   |   |   +---example
+|   |   |   \---test
+|   |   +---confbox
+|   |   |   \---dist
+|   |   |       \---_chunks
+|   |   |           \---libs
+|   |   +---consola
+|   |   |   +---dist
+|   |   |   |   +---chunks
+|   |   |   |   \---shared
+|   |   |   \---lib
+|   |   +---content-disposition
+|   |   +---content-type
+|   |   +---convert-source-map
+|   |   +---cookie-es
+|   |   |   \---dist
+|   |   +---cookies
+|   |   +---core-util-is
+|   |   |   \---lib
+|   |   +---crc-32
+|   |   |   +---bin
+|   |   |   \---types
+|   |   +---crc32-stream
+|   |   |   \---lib
+|   |   +---croner
+|   |   |   \---dist
+|   |   +---cross-spawn
+|   |   |   +---lib
+|   |   |   |   \---util
+|   |   |   \---node_modules
+|   |   |       +---.bin
+|   |   |       +---isexe
+|   |   |       |   \---test
+|   |   |       \---which
+|   |   |           \---bin
+|   |   +---crossws
+|   |   |   +---adapters
+|   |   |   \---dist
+|   |   |       +---adapters
+|   |   |       +---shared
+|   |   |       \---websocket
+|   |   +---css-select
+|   |   |   \---lib
+|   |   |       +---esm
+|   |   |       |   +---helpers
+|   |   |       |   \---pseudo-selectors
+|   |   |       +---helpers
+|   |   |       \---pseudo-selectors
+|   |   +---css-tree
+|   |   |   +---cjs
+|   |   |   |   +---convertor
+|   |   |   |   +---definition-syntax
+|   |   |   |   +---generator
+|   |   |   |   +---lexer
+|   |   |   |   +---parser
+|   |   |   |   +---syntax
+|   |   |   |   |   +---atrule
+|   |   |   |   |   +---config
+|   |   |   |   |   +---function
+|   |   |   |   |   +---node
+|   |   |   |   |   +---pseudo
+|   |   |   |   |   \---scope
+|   |   |   |   +---tokenizer
+|   |   |   |   +---utils
+|   |   |   |   \---walker
+|   |   |   +---data
+|   |   |   +---dist
+|   |   |   \---lib
+|   |   |       +---convertor
+|   |   |       +---definition-syntax
+|   |   |       +---generator
+|   |   |       +---lexer
+|   |   |       +---parser
+|   |   |       +---syntax
+|   |   |       |   +---atrule
+|   |   |       |   +---config
+|   |   |       |   +---function
+|   |   |       |   +---node
+|   |   |       |   +---pseudo
+|   |   |       |   \---scope
+|   |   |       +---tokenizer
+|   |   |       +---utils
+|   |   |       \---walker
+|   |   +---css-what
+|   |   |   \---lib
+|   |   |       +---commonjs
+|   |   |       \---es
+|   |   +---cssesc
+|   |   |   +---bin
+|   |   |   \---man
+|   |   +---cssnano
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---cssnano-preset-default
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---cssnano-utils
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---csso
+|   |   |   +---cjs
+|   |   |   |   +---clean
+|   |   |   |   +---replace
+|   |   |   |   |   +---atrule
+|   |   |   |   |   \---property
+|   |   |   |   \---restructure
+|   |   |   |       \---prepare
+|   |   |   +---dist
+|   |   |   +---lib
+|   |   |   |   +---clean
+|   |   |   |   +---replace
+|   |   |   |   |   +---atrule
+|   |   |   |   |   \---property
+|   |   |   |   \---restructure
+|   |   |   |       \---prepare
+|   |   |   \---node_modules
+|   |   |       +---css-tree
+|   |   |       |   +---cjs
+|   |   |       |   |   +---convertor
+|   |   |       |   |   +---definition-syntax
+|   |   |       |   |   +---generator
+|   |   |       |   |   +---lexer
+|   |   |       |   |   +---parser
+|   |   |       |   |   +---syntax
+|   |   |       |   |   |   +---atrule
+|   |   |       |   |   |   +---config
+|   |   |       |   |   |   +---function
+|   |   |       |   |   |   +---node
+|   |   |       |   |   |   +---pseudo
+|   |   |       |   |   |   \---scope
+|   |   |       |   |   +---tokenizer
+|   |   |       |   |   +---utils
+|   |   |       |   |   \---walker
+|   |   |       |   +---data
+|   |   |       |   +---dist
+|   |   |       |   \---lib
+|   |   |       |       +---convertor
+|   |   |       |       +---definition-syntax
+|   |   |       |       +---generator
+|   |   |       |       +---lexer
+|   |   |       |       +---parser
+|   |   |       |       +---syntax
+|   |   |       |       |   +---atrule
+|   |   |       |       |   +---config
+|   |   |       |       |   +---function
+|   |   |       |       |   +---node
+|   |   |       |       |   +---pseudo
+|   |   |       |       |   \---scope
+|   |   |       |       +---tokenizer
+|   |   |       |       +---utils
+|   |   |       |       \---walker
+|   |   |       \---mdn-data
+|   |   |           +---api
+|   |   |           +---css
+|   |   |           \---l10n
+|   |   +---csstype
+|   |   +---db0
+|   |   |   \---dist
+|   |   |       +---connectors
+|   |   |       |   +---libsql
+|   |   |       |   \---_internal
+|   |   |       \---integrations
+|   |   |           \---drizzle
+|   |   +---debug
+|   |   |   \---src
+|   |   +---deep-equal
+|   |   |   +---example
+|   |   |   +---lib
+|   |   |   \---test
+|   |   +---deepmerge
+|   |   |   \---dist
+|   |   +---default-browser
+|   |   +---default-browser-id
+|   |   +---define-lazy-prop
+|   |   +---defu
+|   |   |   +---dist
+|   |   |   \---lib
+|   |   +---delegates
+|   |   |   \---test
+|   |   +---denque
+|   |   +---depd
+|   |   |   \---lib
+|   |   |       \---browser
+|   |   +---destr
+|   |   |   +---dist
+|   |   |   \---lib
+|   |   +---destroy
+|   |   +---detect-libc
+|   |   |   \---lib
+|   |   +---devalue
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---didyoumean
+|   |   +---diff
+|   |   |   +---dist
+|   |   |   +---libcjs
+|   |   |   |   +---convert
+|   |   |   |   +---diff
+|   |   |   |   +---patch
+|   |   |   |   \---util
+|   |   |   \---libesm
+|   |   |       +---convert
+|   |   |       +---diff
+|   |   |       +---patch
+|   |   |       \---util
+|   |   +---dlv
+|   |   |   \---dist
+|   |   +---dom-serializer
+|   |   |   +---lib
+|   |   |   |   \---esm
+|   |   |   \---node_modules
+|   |   |       \---entities
+|   |   |           \---lib
+|   |   |               +---esm
+|   |   |               |   \---generated
+|   |   |               \---generated
+|   |   +---domelementtype
+|   |   |   \---lib
+|   |   |       \---esm
+|   |   +---domhandler
+|   |   |   \---lib
+|   |   |       \---esm
+|   |   +---domutils
+|   |   |   \---lib
+|   |   |       \---esm
+|   |   +---dot-prop
+|   |   +---dotenv
+|   |   |   +---lib
+|   |   |   \---skills
+|   |   |       +---dotenv
+|   |   |       \---dotenvx
+|   |   +---dunder-proto
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---duplexer
+|   |   |   \---test
+|   |   +---eastasianwidth
+|   |   +---ee-first
+|   |   +---electron-to-chromium
+|   |   +---emoji-regex
+|   |   +---encodeurl
+|   |   +---enhanced-resolve
+|   |   |   \---lib
+|   |   |       \---util
+|   |   +---entities
+|   |   |   +---dist
+|   |   |   |   +---commonjs
+|   |   |   |   |   +---generated
+|   |   |   |   |   \---internal
+|   |   |   |   \---esm
+|   |   |   |       +---generated
+|   |   |   |       \---internal
+|   |   |   \---src
+|   |   |       +---generated
+|   |   |       \---internal
+|   |   +---error-stack-parser-es
+|   |   |   \---dist
+|   |   +---errx
+|   |   |   \---dist
+|   |   +---es-define-property
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---es-errors
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---es-module-lexer
+|   |   |   +---dist
+|   |   |   \---types
+|   |   +---es-object-atoms
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---esbuild
+|   |   |   +---bin
+|   |   |   \---lib
+|   |   +---escalade
+|   |   |   +---dist
+|   |   |   \---sync
+|   |   +---escape-html
+|   |   +---escape-string-regexp
+|   |   +---estree-walker
+|   |   |   +---dist
+|   |   |   |   +---esm
+|   |   |   |   \---umd
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---etag
+|   |   +---event-target-shim
+|   |   |   \---dist
+|   |   +---events
+|   |   |   +---.github
+|   |   |   \---tests
+|   |   +---events-universal
+|   |   +---execa
+|   |   |   \---lib
+|   |   +---exsolve
+|   |   |   \---dist
+|   |   +---fast-fifo
+|   |   +---fast-glob
+|   |   |   \---out
+|   |   |       +---managers
+|   |   |       +---providers
+|   |   |       |   +---filters
+|   |   |       |   +---matchers
+|   |   |       |   \---transformers
+|   |   |       +---readers
+|   |   |       +---types
+|   |   |       \---utils
+|   |   +---fast-npm-meta
+|   |   |   +---dist
+|   |   |   \---skills
+|   |   |       \---fast-npm-meta
+|   |   +---fast-string-truncated-width
+|   |   |   \---dist
+|   |   +---fast-string-width
+|   |   |   \---dist
+|   |   +---fast-wrap-ansi
+|   |   |   \---lib
+|   |   +---fastq
+|   |   |   \---test
+|   |   +---fdir
+|   |   |   \---dist
+|   |   +---file-uri-to-path
+|   |   |   \---test
+|   |   +---fill-range
+|   |   +---foreground-child
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---fraction.js
+|   |   |   +---dist
+|   |   |   +---examples
+|   |   |   +---src
+|   |   |   \---tests
+|   |   +---fresh
+|   |   +---fs-extra
+|   |   |   \---lib
+|   |   |       +---copy
+|   |   |       +---copy-sync
+|   |   |       +---empty
+|   |   |       +---ensure
+|   |   |       +---fs
+|   |   |       +---json
+|   |   |       +---mkdirs
+|   |   |       +---move
+|   |   |       +---move-sync
+|   |   |       +---output
+|   |   |       +---path-exists
+|   |   |       +---remove
+|   |   |       \---util
+|   |   +---fs.realpath
+|   |   +---function-bind
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---fuse.js
+|   |   |   \---dist
+|   |   +---fzf
+|   |   |   \---dist
+|   |   |       \---types
+|   |   +---generator-function
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---gensync
+|   |   |   \---test
+|   |   +---get-caller-file
+|   |   +---get-east-asian-width
+|   |   +---get-intrinsic
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---get-port-please
+|   |   |   \---dist
+|   |   +---get-proto
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---get-stream
+|   |   |   \---source
+|   |   +---giget
+|   |   |   \---dist
+|   |   |       \---_chunks
+|   |   |           \---libs
+|   |   +---glob
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---glob-parent
+|   |   +---global-directory
+|   |   +---globby
+|   |   +---gopd
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---graceful-fs
+|   |   +---grid-layout-plus
+|   |   |   +---dist
+|   |   |   |   +---components
+|   |   |   |   \---helpers
+|   |   |   +---es
+|   |   |   |   +---components
+|   |   |   |   \---helpers
+|   |   |   +---lib
+|   |   |   |   +---components
+|   |   |   |   \---helpers
+|   |   |   \---src
+|   |   |       +---components
+|   |   |       \---helpers
+|   |   +---gzip-size
+|   |   +---h3
+|   |   |   +---dist
+|   |   |   \---node_modules
+|   |   |       \---cookie-es
+|   |   |           \---dist
+|   |   +---has-flag
+|   |   +---has-symbols
+|   |   |   +---.github
+|   |   |   \---test
+|   |   |       \---shams
+|   |   +---has-tostringtag
+|   |   |   +---.github
+|   |   |   \---test
+|   |   |       \---shams
+|   |   +---hasown
+|   |   |   \---.github
+|   |   +---hookable
+|   |   |   \---dist
+|   |   +---http-assert
+|   |   |   \---node_modules
+|   |   |       +---depd
+|   |   |       |   \---lib
+|   |   |       |       +---browser
+|   |   |       |       \---compat
+|   |   |       +---http-errors
+|   |   |       \---statuses
+|   |   +---http-errors
+|   |   +---http-shutdown
+|   |   +---https-proxy-agent
+|   |   |   \---dist
+|   |   +---httpxy
+|   |   |   \---dist
+|   |   +---human-signals
+|   |   |   \---build
+|   |   |       \---src
+|   |   +---ieee754
+|   |   +---ignore
+|   |   +---image-meta
+|   |   |   \---dist
+|   |   +---impound
+|   |   |   \---dist
+|   |   +---inflight
+|   |   +---inherits
+|   |   +---ini
+|   |   |   \---lib
+|   |   +---interactjs
+|   |   |   \---dist
+|   |   +---ioredis
+|   |   |   \---built
+|   |   |       +---cluster
+|   |   |       +---connectors
+|   |   |       |   \---SentinelConnector
+|   |   |       +---constants
+|   |   |       +---errors
+|   |   |       +---redis
+|   |   |       \---utils
+|   |   +---iron-webcrypto
+|   |   |   \---dist
+|   |   +---is-binary-path
+|   |   +---is-core-module
+|   |   |   \---test
+|   |   +---is-docker
+|   |   +---is-extglob
+|   |   +---is-fullwidth-code-point
+|   |   +---is-generator-function
+|   |   |   \---test
+|   |   +---is-glob
+|   |   +---is-in-ssh
+|   |   +---is-inside-container
+|   |   +---is-installed-globally
+|   |   +---is-module
+|   |   +---is-number
+|   |   +---is-path-inside
+|   |   +---is-reference
+|   |   |   \---dist
+|   |   |       \---types
+|   |   +---is-regex
+|   |   |   \---test
+|   |   +---is-stream
+|   |   +---is-wsl
+|   |   +---isarray
+|   |   +---isexe
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---jackspeak
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---jiti
+|   |   |   +---dist
+|   |   |   \---lib
+|   |   +---js-tokens
+|   |   +---jsesc
+|   |   |   +---bin
+|   |   |   \---man
+|   |   +---json5
+|   |   |   +---dist
+|   |   |   \---lib
+|   |   +---jsonfile
+|   |   +---keygrip
+|   |   +---kleur
+|   |   +---klona
+|   |   |   +---dist
+|   |   |   +---full
+|   |   |   +---json
+|   |   |   \---lite
+|   |   +---knitwork
+|   |   |   \---dist
+|   |   +---koa
+|   |   |   +---dist
+|   |   |   +---lib
+|   |   |   \---node_modules
+|   |   |       +---encodeurl
+|   |   |       +---fresh
+|   |   |       +---http-errors
+|   |   |       |   \---node_modules
+|   |   |       |       \---depd
+|   |   |       |           \---lib
+|   |   |       |               +---browser
+|   |   |       |               \---compat
+|   |   |       \---statuses
+|   |   +---koa-compose
+|   |   +---koa-convert
+|   |   +---koa-send
+|   |   |   \---node_modules
+|   |   |       +---depd
+|   |   |       |   \---lib
+|   |   |       |       +---browser
+|   |   |       |       \---compat
+|   |   |       +---http-errors
+|   |   |       \---statuses
+|   |   +---koa-static
+|   |   |   \---node_modules
+|   |   |       \---debug
+|   |   |           \---src
+|   |   +---launch-editor
+|   |   |   \---editor-info
+|   |   +---lazystream
+|   |   |   +---lib
+|   |   |   +---node_modules
+|   |   |   |   +---readable-stream
+|   |   |   |   |   +---doc
+|   |   |   |   |   |   \---wg-meetings
+|   |   |   |   |   \---lib
+|   |   |   |   |       \---internal
+|   |   |   |   |           \---streams
+|   |   |   |   +---safe-buffer
+|   |   |   |   \---string_decoder
+|   |   |   |       \---lib
+|   |   |   \---test
+|   |   +---lightningcss
+|   |   |   \---node
+|   |   +---lightningcss-win32-x64-msvc
+|   |   +---lilconfig
+|   |   |   \---src
+|   |   +---lines-and-columns
+|   |   |   \---build
+|   |   +---linkifyjs
+|   |   |   \---dist
+|   |   +---listhen
+|   |   |   +---bin
+|   |   |   \---dist
+|   |   |       +---chunks
+|   |   |       \---shared
+|   |   +---local-pkg
+|   |   |   \---dist
+|   |   +---lodash
+|   |   |   \---fp
+|   |   +---lru-cache
+|   |   +---magic-regexp
+|   |   |   \---dist
+|   |   +---magic-string
+|   |   |   \---dist
+|   |   +---magic-string-ast
+|   |   |   \---dist
+|   |   +---magicast
+|   |   |   \---dist
+|   |   +---material-colors
+|   |   |   +---dist
+|   |   |   \---test
+|   |   |       \---fixtures
+|   |   +---math-intrinsics
+|   |   |   +---.github
+|   |   |   +---constants
+|   |   |   \---test
+|   |   +---mdn-data
+|   |   |   +---api
+|   |   |   +---css
+|   |   |   \---l10n
+|   |   +---media-typer
+|   |   +---merge-stream
+|   |   +---merge2
+|   |   +---methods
+|   |   +---micromatch
+|   |   |   \---node_modules
+|   |   |       \---picomatch
+|   |   |           \---lib
+|   |   +---mime
+|   |   |   +---bin
+|   |   |   +---dist
+|   |   |   |   +---src
+|   |   |   |   \---types
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---mime-db
+|   |   +---mime-types
+|   |   +---mimic-fn
+|   |   +---minimatch
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---minipass
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---minizlib
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---mlly
+|   |   |   +---dist
+|   |   |   \---node_modules
+|   |   |       +---confbox
+|   |   |       |   \---dist
+|   |   |       |       \---shared
+|   |   |       \---pkg-types
+|   |   |           \---dist
+|   |   +---mocked-exports
+|   |   |   \---lib
+|   |   +---mrmime
+|   |   +---ms
+|   |   +---muggle-string
+|   |   |   \---out
+|   |   +---mz
+|   |   +---nanoid
+|   |   |   +---async
+|   |   |   +---bin
+|   |   |   +---non-secure
+|   |   |   \---url-alphabet
+|   |   +---nanotar
+|   |   |   \---dist
+|   |   +---negotiator
+|   |   |   \---lib
+|   |   +---nitropack
+|   |   |   +---dist
+|   |   |   |   +---cli
+|   |   |   |   +---config
+|   |   |   |   +---core
+|   |   |   |   +---kit
+|   |   |   |   +---meta
+|   |   |   |   +---presets
+|   |   |   |   |   +---alwaysdata
+|   |   |   |   |   +---aws-amplify
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---aws-lambda
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---azure
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---bun
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---cleavr
+|   |   |   |   |   +---cloudflare
+|   |   |   |   |   |   +---runtime
+|   |   |   |   |   |   |   \---shims
+|   |   |   |   |   |   \---wrangler
+|   |   |   |   |   +---deno
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---digitalocean
+|   |   |   |   |   +---edgio
+|   |   |   |   |   +---firebase
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---flightcontrol
+|   |   |   |   |   +---genezio
+|   |   |   |   |   +---heroku
+|   |   |   |   |   +---iis
+|   |   |   |   |   +---koyeb
+|   |   |   |   |   +---netlify
+|   |   |   |   |   |   +---legacy
+|   |   |   |   |   |   |   \---runtime
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---node
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---platform.sh
+|   |   |   |   |   +---render.com
+|   |   |   |   |   +---stormkit
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---vercel
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---winterjs
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---zeabur
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---zerops
+|   |   |   |   |   +---_nitro
+|   |   |   |   |   |   \---runtime
+|   |   |   |   |   +---_static
+|   |   |   |   |   \---_unenv
+|   |   |   |   |       +---node-compat
+|   |   |   |   |       \---workerd
+|   |   |   |   +---rollup
+|   |   |   |   +---runtime
+|   |   |   |   |   \---internal
+|   |   |   |   |       +---error
+|   |   |   |   |       +---lib
+|   |   |   |   |       \---routes
+|   |   |   |   +---shared
+|   |   |   |   +---types
+|   |   |   |   \---_chunks
+|   |   |   \---node_modules
+|   |   |       +---cookie-es
+|   |   |       |   \---dist
+|   |   |       \---hookable
+|   |   |           \---dist
+|   |   +---node-addon-api
+|   |   |   \---tools
+|   |   +---node-fetch
+|   |   |   \---lib
+|   |   +---node-fetch-native
+|   |   |   +---dist
+|   |   |   |   +---chunks
+|   |   |   |   \---shared
+|   |   |   \---lib
+|   |   +---node-forge
+|   |   |   +---dist
+|   |   |   +---flash
+|   |   |   |   \---swf
+|   |   |   \---lib
+|   |   +---node-gyp-build
+|   |   +---node-mock-http
+|   |   |   \---dist
+|   |   |       \---_polyfill
+|   |   |           +---buffer
+|   |   |           \---events
+|   |   +---node-releases
+|   |   |   \---data
+|   |   |       +---processed
+|   |   |       \---release-schedule
+|   |   +---nopt
+|   |   |   +---bin
+|   |   |   \---lib
+|   |   +---normalize-path
+|   |   +---npm-run-path
+|   |   |   \---node_modules
+|   |   |       \---path-key
+|   |   +---nth-check
+|   |   |   \---lib
+|   |   |       \---esm
+|   |   +---nuxt
+|   |   |   +---bin
+|   |   |   \---dist
+|   |   |       +---app
+|   |   |       |   +---compat
+|   |   |       |   +---components
+|   |   |       |   +---composables
+|   |   |       |   +---middleware
+|   |   |       |   +---plugins
+|   |   |       |   \---types
+|   |   |       +---compiler
+|   |   |       |   \---runtime
+|   |   |       +---components
+|   |   |       |   \---runtime
+|   |   |       +---head
+|   |   |       |   \---runtime
+|   |   |       |       \---plugins
+|   |   |       \---pages
+|   |   |           \---runtime
+|   |   |               \---plugins
+|   |   +---nypm
+|   |   |   \---dist
+|   |   +---object-assign
+|   |   +---object-hash
+|   |   |   \---dist
+|   |   +---obug
+|   |   |   \---dist
+|   |   +---ofetch
+|   |   |   \---dist
+|   |   |       \---shared
+|   |   +---ohash
+|   |   |   \---dist
+|   |   |       +---crypto
+|   |   |       |   +---js
+|   |   |       |   \---node
+|   |   |       +---shared
+|   |   |       \---utils
+|   |   +---on-change
+|   |   |   \---source
+|   |   |       \---smart-clone
+|   |   |           +---clone
+|   |   |           +---diff
+|   |   |           \---methods
+|   |   +---on-finished
+|   |   +---once
+|   |   +---onetime
+|   |   +---only
+|   |   +---open
+|   |   +---orderedmap
+|   |   |   \---dist
+|   |   +---oxc-minify
+|   |   +---oxc-parser
+|   |   |   \---src-js
+|   |   |       +---generated
+|   |   |       |   +---deserialize
+|   |   |       |   +---lazy
+|   |   |       |   \---visit
+|   |   |       +---raw-transfer
+|   |   |       \---visit
+|   |   +---oxc-transform
+|   |   +---oxc-walker
+|   |   |   \---dist
+|   |   +---package-json-from-dist
+|   |   |   \---dist
+|   |   |       +---commonjs
+|   |   |       \---esm
+|   |   +---parseurl
+|   |   +---path-browserify
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---path-is-absolute
+|   |   +---path-key
+|   |   +---path-parse
+|   |   +---path-scurry
+|   |   |   +---dist
+|   |   |   |   +---commonjs
+|   |   |   |   \---esm
+|   |   |   \---node_modules
+|   |   |       \---lru-cache
+|   |   |           \---dist
+|   |   |               +---commonjs
+|   |   |               |   +---browser
+|   |   |               |   \---node
+|   |   |               \---esm
+|   |   |                   +---browser
+|   |   |                   \---node
+|   |   +---path-to-regexp
+|   |   |   +---dist
+|   |   |   \---dist.es2015
+|   |   +---pathe
+|   |   |   \---dist
+|   |   |       \---shared
+|   |   +---perfect-debounce
+|   |   |   \---dist
+|   |   +---picocolors
+|   |   +---picomatch
+|   |   |   \---lib
+|   |   +---pify
+|   |   +---pirates
+|   |   |   \---lib
+|   |   +---pkg-types
+|   |   |   \---dist
+|   |   +---portfinder
+|   |   |   \---lib
+|   |   +---postcss
+|   |   |   \---lib
+|   |   +---postcss-calc
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-colormin
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-convert-values
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-discard-comments
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-discard-duplicates
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-discard-empty
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-discard-overridden
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-import
+|   |   |   \---lib
+|   |   +---postcss-js
+|   |   +---postcss-merge-longhand
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   |       \---decl
+|   |   |   \---types
+|   |   |       \---lib
+|   |   |           \---decl
+|   |   +---postcss-merge-rules
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-minify-font-values
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-minify-gradients
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-minify-params
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-minify-selectors
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-nested
+|   |   |   \---node_modules
+|   |   |       \---postcss-selector-parser
+|   |   |           \---dist
+|   |   |               +---selectors
+|   |   |               \---util
+|   |   +---postcss-nesting
+|   |   |   \---dist
+|   |   +---postcss-normalize-charset
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-normalize-display-values
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-normalize-positions
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-normalize-repeat-style
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-normalize-string
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-normalize-timing-functions
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-normalize-unicode
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-normalize-url
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-normalize-whitespace
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-ordered-values
+|   |   |   +---src
+|   |   |   |   +---lib
+|   |   |   |   \---rules
+|   |   |   \---types
+|   |   |       +---lib
+|   |   |       \---rules
+|   |   +---postcss-reduce-initial
+|   |   |   +---src
+|   |   |   |   +---data
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-reduce-transforms
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-selector-parser
+|   |   |   \---dist
+|   |   |       +---selectors
+|   |   |       \---util
+|   |   +---postcss-svgo
+|   |   |   +---src
+|   |   |   |   \---lib
+|   |   |   \---types
+|   |   |       \---lib
+|   |   +---postcss-unique-selectors
+|   |   |   +---src
+|   |   |   \---types
+|   |   +---postcss-value-parser
+|   |   |   \---lib
+|   |   +---powershell-utils
+|   |   +---pretty-bytes
+|   |   +---process
+|   |   +---process-nextick-args
+|   |   +---proper-lockfile
+|   |   |   +---lib
+|   |   |   \---node_modules
+|   |   |       \---signal-exit
+|   |   +---prosemirror-changeset
+|   |   |   +---dist
+|   |   |   +---src
+|   |   |   \---test
+|   |   +---prosemirror-commands
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-dropcursor
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-gapcursor
+|   |   |   +---dist
+|   |   |   +---src
+|   |   |   \---style
+|   |   +---prosemirror-history
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-inputrules
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-keymap
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-model
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-schema-list
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-state
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-tables
+|   |   |   +---dist
+|   |   |   \---style
+|   |   +---prosemirror-transform
+|   |   |   +---dist
+|   |   |   \---src
+|   |   +---prosemirror-view
+|   |   |   +---dist
+|   |   |   +---src
+|   |   |   \---style
+|   |   +---quansync
+|   |   |   \---dist
+|   |   +---queue-microtask
+|   |   +---radix3
+|   |   |   \---dist
+|   |   +---range-parser
+|   |   +---rc9
+|   |   |   \---dist
+|   |   |       \---_chunks
+|   |   |           \---libs
+|   |   +---read-cache
+|   |   +---readable-stream
+|   |   |   \---lib
+|   |   |       +---internal
+|   |   |       |   \---streams
+|   |   |       +---ours
+|   |   |       |   \---util
+|   |   |       \---stream
+|   |   +---readdir-glob
+|   |   |   \---node_modules
+|   |   |       +---balanced-match
+|   |   |       |   \---.github
+|   |   |       +---brace-expansion
+|   |   |       |   +---.github
+|   |   |       |   +---.tap
+|   |   |       |   |   +---coverage
+|   |   |       |   |   \---processinfo
+|   |   |       |   \---dist
+|   |   |       |       +---commonjs
+|   |   |       |       \---esm
+|   |   |       \---minimatch
+|   |   |           \---lib
+|   |   +---readdirp
+|   |   +---redis-errors
+|   |   |   \---lib
+|   |   +---redis-parser
+|   |   |   \---lib
+|   |   +---regexp-tree
+|   |   |   +---bin
+|   |   |   \---dist
+|   |   |       +---bin
+|   |   |       +---compat-transpiler
+|   |   |       |   +---runtime
+|   |   |       |   \---transforms
+|   |   |       +---generator
+|   |   |       +---interpreter
+|   |   |       |   \---finite-automaton
+|   |   |       |       +---dfa
+|   |   |       |       \---nfa
+|   |   |       +---optimizer
+|   |   |       |   \---transforms
+|   |   |       +---parser
+|   |   |       |   +---generated
+|   |   |       |   \---unicode
+|   |   |       +---transform
+|   |   |       +---traverse
+|   |   |       \---utils
+|   |   +---replace-in-file
+|   |   |   +---bin
+|   |   |   +---lib
+|   |   |   |   \---helpers
+|   |   |   +---node_modules
+|   |   |   |   +---ansi-regex
+|   |   |   |   +---ansi-styles
+|   |   |   |   +---balanced-match
+|   |   |   |   |   \---.github
+|   |   |   |   +---brace-expansion
+|   |   |   |   |   +---.tap
+|   |   |   |   |   |   +---coverage
+|   |   |   |   |   |   \---processinfo
+|   |   |   |   |   \---dist
+|   |   |   |   |       +---commonjs
+|   |   |   |   |       \---esm
+|   |   |   |   +---cliui
+|   |   |   |   |   \---build
+|   |   |   |   |       \---lib
+|   |   |   |   +---emoji-regex
+|   |   |   |   |   \---es2015
+|   |   |   |   +---glob
+|   |   |   |   +---minimatch
+|   |   |   |   +---string-width
+|   |   |   |   +---strip-ansi
+|   |   |   |   +---wrap-ansi
+|   |   |   |   +---yargs
+|   |   |   |   |   +---build
+|   |   |   |   |   |   \---lib
+|   |   |   |   |   |       +---typings
+|   |   |   |   |   |       \---utils
+|   |   |   |   |   +---helpers
+|   |   |   |   |   +---lib
+|   |   |   |   |   |   \---platform-shims
+|   |   |   |   |   \---locales
+|   |   |   |   \---yargs-parser
+|   |   |   |       \---build
+|   |   |   |           \---lib
+|   |   |   +---test
+|   |   |   |   \---helpers
+|   |   |   \---types
+|   |   +---require-directory
+|   |   +---resolve
+|   |   |   +---.claude
+|   |   |   +---.github
+|   |   |   +---bin
+|   |   |   +---example
+|   |   |   +---lib
+|   |   |   \---test
+|   |   |       +---dotdot
+|   |   |       |   \---abc
+|   |   |       +---module_dir
+|   |   |       |   +---xmodules
+|   |   |       |   |   \---aaa
+|   |   |       |   +---ymodules
+|   |   |       |   |   \---aaa
+|   |   |       |   \---zmodules
+|   |   |       |       \---bbb
+|   |   |       +---node_path
+|   |   |       |   +---x
+|   |   |       |   |   +---aaa
+|   |   |       |   |   \---ccc
+|   |   |       |   \---y
+|   |   |       |       +---bbb
+|   |   |       |       \---ccc
+|   |   |       +---pathfilter
+|   |   |       |   \---deep_ref
+|   |   |       +---precedence
+|   |   |       |   +---aaa
+|   |   |       |   \---bbb
+|   |   |       +---resolver
+|   |   |       |   +---baz
+|   |   |       |   +---browser_field
+|   |   |       |   +---dot_main
+|   |   |       |   +---dot_slash_main
+|   |   |       |   +---false_main
+|   |   |       |   +---incorrect_main
+|   |   |       |   +---invalid_main
+|   |   |       |   +---multirepo
+|   |   |       |   |   \---packages
+|   |   |       |   |       +---package-a
+|   |   |       |   |       \---package-b
+|   |   |       |   +---nested_symlinks
+|   |   |       |   |   \---mylib
+|   |   |       |   +---other_path
+|   |   |       |   |   \---lib
+|   |   |       |   +---quux
+|   |   |       |   |   \---foo
+|   |   |       |   +---same_names
+|   |   |       |   |   \---foo
+|   |   |       |   +---symlinked
+|   |   |       |   |   +---package
+|   |   |       |   |   \---_
+|   |   |       |   |       +---node_modules
+|   |   |       |   |       \---symlink_target
+|   |   |       |   \---without_basedir
+|   |   |       \---shadowed_core
+|   |   |           \---node_modules
+|   |   |               \---util
+|   |   +---resolve-from
+|   |   +---resolve-path
+|   |   |   \---node_modules
+|   |   |       +---depd
+|   |   |       |   \---lib
+|   |   |       |       +---browser
+|   |   |       |       \---compat
+|   |   |       +---http-errors
+|   |   |       +---inherits
+|   |   |       +---setprototypeof
+|   |   |       \---statuses
+|   |   +---retry
+|   |   |   +---example
+|   |   |   +---lib
+|   |   |   \---test
+|   |   |       \---integration
+|   |   +---reusify
+|   |   |   +---.github
+|   |   |   |   \---workflows
+|   |   |   \---benchmarks
+|   |   +---rolldown
+|   |   |   +---bin
+|   |   |   +---dist
+|   |   |   |   \---shared
+|   |   |   \---node_modules
+|   |   |       \---@oxc-project
+|   |   |           \---types
+|   |   +---rollup
+|   |   |   \---dist
+|   |   |       +---bin
+|   |   |       +---es
+|   |   |       |   \---shared
+|   |   |       \---shared
+|   |   +---rollup-plugin-visualizer
+|   |   |   \---dist
+|   |   |       +---bin
+|   |   |       +---lib
+|   |   |       +---plugin
+|   |   |       |   \---render-template
+|   |   |       \---shared
+|   |   +---rope-sequence
+|   |   |   \---dist
+|   |   +---rou3
+|   |   |   \---dist
+|   |   +---run-applescript
+|   |   +---run-parallel
+|   |   +---safe-buffer
+|   |   +---safe-regex-test
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---sax
+|   |   |   \---lib
+|   |   +---scule
+|   |   |   \---dist
+|   |   +---semver
+|   |   |   +---bin
+|   |   |   +---classes
+|   |   |   +---functions
+|   |   |   +---internal
+|   |   |   \---ranges
+|   |   +---send
+|   |   +---serialize-javascript
+|   |   +---seroval
+|   |   |   +---dist
+|   |   |   |   +---cjs
+|   |   |   |   |   +---development
+|   |   |   |   |   \---production
+|   |   |   |   +---esm
+|   |   |   |   |   +---development
+|   |   |   |   |   \---production
+|   |   |   |   \---types
+|   |   |   |       \---core
+|   |   |   |           +---context
+|   |   |   |           +---cross
+|   |   |   |           +---tree
+|   |   |   |           \---utils
+|   |   |   \---src
+|   |   |       \---core
+|   |   |           +---context
+|   |   |           +---cross
+|   |   |           +---tree
+|   |   |           \---utils
+|   |   +---serve-placeholder
+|   |   |   \---dist
+|   |   +---serve-static
+|   |   +---setprototypeof
+|   |   |   \---test
+|   |   +---shebang-command
+|   |   +---shebang-regex
+|   |   +---shell-quote
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---signal-exit
+|   |   |   \---dist
+|   |   |       +---cjs
+|   |   |       \---mjs
+|   |   +---simple-git
+|   |   |   \---dist
+|   |   |       +---cjs
+|   |   |       +---esm
+|   |   |       +---src
+|   |   |       |   \---lib
+|   |   |       |       +---args
+|   |   |       |       +---errors
+|   |   |       |       +---parsers
+|   |   |       |       +---plugins
+|   |   |       |       +---responses
+|   |   |       |       +---runners
+|   |   |       |       +---tasks
+|   |   |       |       +---types
+|   |   |       |       \---utils
+|   |   |       \---typings
+|   |   +---sirv
+|   |   +---sisteransi
+|   |   |   \---src
+|   |   +---slash
+|   |   +---smob
+|   |   |   \---dist
+|   |   +---source-map
+|   |   |   \---lib
+|   |   +---source-map-js
+|   |   |   \---lib
+|   |   +---source-map-support
+|   |   |   \---node_modules
+|   |   |       \---source-map
+|   |   |           +---dist
+|   |   |           \---lib
+|   |   +---srvx
+|   |   |   +---bin
+|   |   |   \---dist
+|   |   |       +---adapters
+|   |   |       \---_chunks
+|   |   +---standard-as-callback
+|   |   |   \---built
+|   |   +---statuses
+|   |   +---std-env
+|   |   |   \---dist
+|   |   +---streamx
+|   |   |   \---lib
+|   |   +---string-width
+|   |   +---string-width-cjs
+|   |   |   \---node_modules
+|   |   |       +---ansi-regex
+|   |   |       +---emoji-regex
+|   |   |       |   \---es2015
+|   |   |       \---strip-ansi
+|   |   +---string_decoder
+|   |   |   \---lib
+|   |   +---strip-ansi
+|   |   +---strip-ansi-cjs
+|   |   |   \---node_modules
+|   |   |       \---ansi-regex
+|   |   +---strip-final-newline
+|   |   +---strip-literal
+|   |   |   +---dist
+|   |   |   \---node_modules
+|   |   |       \---js-tokens
+|   |   +---structured-clone-es
+|   |   |   \---dist
+|   |   +---stylehacks
+|   |   |   +---src
+|   |   |   |   +---dictionary
+|   |   |   |   \---plugins
+|   |   |   \---types
+|   |   |       +---dictionary
+|   |   |       \---plugins
+|   |   +---sucrase
+|   |   |   +---bin
+|   |   |   +---dist
+|   |   |   |   +---esm
+|   |   |   |   |   +---parser
+|   |   |   |   |   |   +---plugins
+|   |   |   |   |   |   |   \---jsx
+|   |   |   |   |   |   +---tokenizer
+|   |   |   |   |   |   +---traverser
+|   |   |   |   |   |   \---util
+|   |   |   |   |   +---transformers
+|   |   |   |   |   \---util
+|   |   |   |   +---parser
+|   |   |   |   |   +---plugins
+|   |   |   |   |   |   \---jsx
+|   |   |   |   |   +---tokenizer
+|   |   |   |   |   +---traverser
+|   |   |   |   |   \---util
+|   |   |   |   +---transformers
+|   |   |   |   +---types
+|   |   |   |   |   +---parser
+|   |   |   |   |   |   +---plugins
+|   |   |   |   |   |   |   \---jsx
+|   |   |   |   |   |   +---tokenizer
+|   |   |   |   |   |   +---traverser
+|   |   |   |   |   |   \---util
+|   |   |   |   |   +---transformers
+|   |   |   |   |   \---util
+|   |   |   |   \---util
+|   |   |   +---node_modules
+|   |   |   |   \---commander
+|   |   |   |       \---typings
+|   |   |   +---register
+|   |   |   \---ts-node-plugin
+|   |   +---supports-color
+|   |   +---supports-preserve-symlinks-flag
+|   |   |   +---.github
+|   |   |   \---test
+|   |   +---svgo
+|   |   |   +---bin
+|   |   |   +---dist
+|   |   |   +---lib
+|   |   |   |   +---svgo
+|   |   |   |   \---util
+|   |   |   +---node_modules
+|   |   |   |   \---commander
+|   |   |   |       +---lib
+|   |   |   |       \---typings
+|   |   |   +---plugins
+|   |   |   \---types
+|   |   |       +---lib
+|   |   |       |   +---svgo
+|   |   |       |   \---util
+|   |   |       \---plugins
+|   |   +---tagged-tag
+|   |   +---tailwindcss
+|   |   |   \---dist
+|   |   +---tapable
+|   |   |   \---lib
+|   |   +---tar
+|   |   |   +---dist
+|   |   |   |   +---commonjs
+|   |   |   |   \---esm
+|   |   |   \---node_modules
+|   |   |       \---yallist
+|   |   |           \---dist
+|   |   |               +---commonjs
+|   |   |               \---esm
+|   |   +---tar-stream
+|   |   +---teex
+|   |   +---terser
+|   |   |   +---bin
+|   |   |   +---dist
+|   |   |   +---lib
+|   |   |   |   +---compress
+|   |   |   |   \---utils
+|   |   |   +---node_modules
+|   |   |   |   \---commander
+|   |   |   |       \---typings
+|   |   |   \---tools
+|   |   +---text-decoder
+|   |   |   \---lib
+|   |   +---thenify
+|   |   +---thenify-all
+|   |   +---tiny-invariant
+|   |   |   +---dist
+|   |   |   |   \---esm
+|   |   |   \---src
+|   |   +---tinyclip
+|   |   |   \---dist
+|   |   +---tinycolor2
+|   |   |   +---cjs
+|   |   |   +---dist
+|   |   |   \---esm
+|   |   +---tinyexec
+|   |   |   \---dist
+|   |   +---tinyglobby
+|   |   |   \---dist
+|   |   +---tiptap-extension-resize-image
+|   |   |   +---dist
+|   |   |   |   +---constants
+|   |   |   |   +---controllers
+|   |   |   |   +---types
+|   |   |   |   \---utils
+|   |   |   +---esm
+|   |   |   \---test
+|   |   +---to-regex-range
+|   |   +---toidentifier
+|   |   +---totalist
+|   |   |   +---dist
+|   |   |   \---sync
+|   |   +---tr46
+|   |   |   \---lib
+|   |   +---ts-interface-checker
+|   |   |   \---dist
+|   |   +---tslib
+|   |   |   \---modules
+|   |   +---tsscmp
+|   |   |   +---lib
+|   |   |   \---test
+|   |   |       +---benchmark
+|   |   |       \---unit
+|   |   +---type-fest
+|   |   |   \---source
+|   |   |       +---globals
+|   |   |       \---internal
+|   |   +---type-is
+|   |   |   \---node_modules
+|   |   |       +---mime-db
+|   |   |       \---mime-types
+|   |   +---type-level-regexp
+|   |   |   \---dist
+|   |   +---typescript
+|   |   |   +---bin
+|   |   |   \---lib
+|   |   |       +---cs
+|   |   |       +---de
+|   |   |       +---es
+|   |   |       +---fr
+|   |   |       +---it
+|   |   |       +---ja
+|   |   |       +---ko
+|   |   |       +---pl
+|   |   |       +---pt-br
+|   |   |       +---ru
+|   |   |       +---tr
+|   |   |       +---zh-cn
+|   |   |       \---zh-tw
+|   |   +---ufo
+|   |   |   \---dist
+|   |   +---ultrahtml
+|   |   |   +---dist
+|   |   |   |   +---jsx-runtime
+|   |   |   |   \---transformers
+|   |   |   \---transformers
+|   |   +---uncrypto
+|   |   |   \---dist
+|   |   +---unctx
+|   |   |   +---dist
+|   |   |   \---node_modules
+|   |   |       +---estree-walker
+|   |   |       |   +---src
+|   |   |       |   \---types
+|   |   |       \---unplugin
+|   |   |           \---dist
+|   |   |               +---rspack
+|   |   |               |   \---loaders
+|   |   |               \---webpack
+|   |   |                   \---loaders
+|   |   +---unenv
+|   |   |   +---dist
+|   |   |   |   \---runtime
+|   |   |   |       +---mock
+|   |   |   |       +---node
+|   |   |   |       |   +---assert
+|   |   |   |       |   +---dns
+|   |   |   |       |   +---fs
+|   |   |   |       |   +---inspector
+|   |   |   |       |   +---internal
+|   |   |   |       |   |   +---async_hooks
+|   |   |   |       |   |   +---buffer
+|   |   |   |       |   |   +---crypto
+|   |   |   |       |   |   +---dgram
+|   |   |   |       |   |   +---diagnostics_channel
+|   |   |   |       |   |   +---dns
+|   |   |   |       |   |   +---domain
+|   |   |   |       |   |   +---events
+|   |   |   |       |   |   +---fs
+|   |   |   |       |   |   +---http
+|   |   |   |       |   |   +---http2
+|   |   |   |       |   |   +---net
+|   |   |   |       |   |   +---os
+|   |   |   |       |   |   +---perf_hooks
+|   |   |   |       |   |   +---process
+|   |   |   |       |   |   +---punycode
+|   |   |   |       |   |   +---querystring
+|   |   |   |       |   |   +---readline
+|   |   |   |       |   |   |   \---promises
+|   |   |   |       |   |   +---stream
+|   |   |   |       |   |   +---timers
+|   |   |   |       |   |   +---tls
+|   |   |   |       |   |   +---trace_events
+|   |   |   |       |   |   +---tty
+|   |   |   |       |   |   +---url
+|   |   |   |       |   |   +---util
+|   |   |   |       |   |   +---v8
+|   |   |   |       |   |   +---vm
+|   |   |   |       |   |   +---worker_threads
+|   |   |   |       |   |   \---zlib
+|   |   |   |       |   |       \---formats
+|   |   |   |       |   +---path
+|   |   |   |       |   +---readline
+|   |   |   |       |   +---stream
+|   |   |   |       |   +---timers
+|   |   |   |       |   \---util
+|   |   |   |       +---npm
+|   |   |   |       |   \---whatwg-url
+|   |   |   |       +---polyfill
+|   |   |   |       +---web
+|   |   |   |       |   \---performance
+|   |   |   |       \---_internal
+|   |   |   \---lib
+|   |   +---unhead
+|   |   |   \---dist
+|   |   |       \---shared
+|   |   +---unicorn-magic
+|   |   +---unimport
+|   |   |   +---dist
+|   |   |   |   +---chunks
+|   |   |   |   \---shared
+|   |   |   \---node_modules
+|   |   |       \---estree-walker
+|   |   |           +---src
+|   |   |           \---types
+|   |   +---universalify
+|   |   +---unplugin
+|   |   |   \---dist
+|   |   |       +---rspack
+|   |   |       |   \---loaders
+|   |   |       \---webpack
+|   |   |           \---loaders
+|   |   +---unplugin-utils
+|   |   |   \---dist
+|   |   +---unrouting
+|   |   |   \---dist
+|   |   +---unstorage
+|   |   |   +---dist
+|   |   |   |   \---shared
+|   |   |   +---drivers
+|   |   |   |   \---utils
+|   |   |   \---node_modules
+|   |   |       \---lru-cache
+|   |   |           \---dist
+|   |   |               +---commonjs
+|   |   |               |   +---browser
+|   |   |               |   \---node
+|   |   |               \---esm
+|   |   |                   +---browser
+|   |   |                   \---node
+|   |   +---untun
+|   |   |   +---bin
+|   |   |   +---dist
+|   |   |   |   \---chunks
+|   |   |   \---node_modules
+|   |   |       +---citty
+|   |   |       |   \---dist
+|   |   |       \---pathe
+|   |   |           \---dist
+|   |   |               \---shared
+|   |   +---untyped
+|   |   |   +---dist
+|   |   |   |   +---loader
+|   |   |   |   \---shared
+|   |   |   \---node_modules
+|   |   |       \---citty
+|   |   |           \---dist
+|   |   +---unwasm
+|   |   |   +---dist
+|   |   |   |   +---plugin
+|   |   |   |   \---tools
+|   |   |   \---examples
+|   |   +---update-browserslist-db
+|   |   +---uqr
+|   |   |   \---dist
+|   |   +---util-deprecate
+|   |   +---vary
+|   |   +---vite
+|   |   |   +---bin
+|   |   |   +---dist
+|   |   |   |   +---client
+|   |   |   |   \---node
+|   |   |   |       \---chunks
+|   |   |   +---misc
+|   |   |   \---types
+|   |   |       \---internal
+|   |   +---vite-dev-rpc
+|   |   |   \---dist
+|   |   +---vite-hot-client
+|   |   |   \---dist
+|   |   +---vite-node
+|   |   |   +---dist
+|   |   |   \---node_modules
+|   |   |       +---.bin
+|   |   |       \---vite
+|   |   |           +---bin
+|   |   |           +---dist
+|   |   |           |   +---client
+|   |   |           |   \---node
+|   |   |           |       \---chunks
+|   |   |           +---misc
+|   |   |           \---types
+|   |   |               \---internal
+|   |   +---vite-plugin-checker
+|   |   |   +---dist
+|   |   |   |   +---@runtime
+|   |   |   |   +---checkers
+|   |   |   |   |   +---biome
+|   |   |   |   |   +---eslint
+|   |   |   |   |   +---oxlint
+|   |   |   |   |   +---stylelint
+|   |   |   |   |   +---typescript
+|   |   |   |   |   \---vueTsc
+|   |   |   |   \---client
+|   |   |   \---node_modules
+|   |   |       +---npm-run-path
+|   |   |       +---path-key
+|   |   |       \---unicorn-magic
+|   |   +---vite-plugin-inspect
+|   |   |   \---dist
+|   |   |       +---client
+|   |   |       |   \---assets
+|   |   |       \---shared
+|   |   +---vite-plugin-vue-tracer
+|   |   |   +---dist
+|   |   |   |   \---client
+|   |   |   \---node_modules
+|   |   |       \---estree-walker
+|   |   |           +---src
+|   |   |           \---types
+|   |   +---vscode-uri
+|   |   |   \---lib
+|   |   |       +---esm
+|   |   |       \---umd
+|   |   +---vue
+|   |   |   +---compiler-sfc
+|   |   |   +---dist
+|   |   |   +---jsx-runtime
+|   |   |   \---server-renderer
+|   |   +---vue-bundle-renderer
+|   |   |   \---dist
+|   |   +---vue-color
+|   |   |   \---dist
+|   |   |       +---types
+|   |   |       |   +---components
+|   |   |       |   |   \---common
+|   |   |       |   +---composable
+|   |   |       |   \---utils
+|   |   |       \---vue2
+|   |   +---vue-devtools-stub
+|   |   |   \---dist
+|   |   +---vue-router
+|   |   |   +---dist
+|   |   |   |   +---experimental
+|   |   |   |   +---unplugin
+|   |   |   |   \---volar
+|   |   |   +---node_modules
+|   |   |   |   +---.bin
+|   |   |   |   \---@babel
+|   |   |   |       +---generator
+|   |   |   |       |   \---lib
+|   |   |   |       +---helper-string-parser
+|   |   |   |       |   \---lib
+|   |   |   |       +---helper-validator-identifier
+|   |   |   |       |   \---lib
+|   |   |   |       +---parser
+|   |   |   |       |   +---bin
+|   |   |   |       |   +---lib
+|   |   |   |       |   \---typings
+|   |   |   |       \---types
+|   |   |   |           \---lib
+|   |   |   \---vetur
+|   |   +---vue-tsc
+|   |   |   \---bin
+|   |   +---w3c-keyname
+|   |   +---webidl-conversions
+|   |   |   \---lib
+|   |   +---webpack-virtual-modules
+|   |   |   +---lib
+|   |   |   \---src
+|   |   +---whatwg-url
+|   |   |   \---lib
+|   |   +---which
+|   |   |   +---bin
+|   |   |   \---lib
+|   |   +---wrap-ansi
+|   |   +---wrap-ansi-cjs
+|   |   |   \---node_modules
+|   |   |       +---ansi-regex
+|   |   |       +---ansi-styles
+|   |   |       +---emoji-regex
+|   |   |       |   \---es2015
+|   |   |       +---string-width
+|   |   |       \---strip-ansi
+|   |   +---wrappy
+|   |   +---ws
+|   |   |   \---lib
+|   |   +---wsl-utils
+|   |   +---y18n
+|   |   |   \---build
+|   |   |       \---lib
+|   |   |           \---platform-shims
+|   |   +---yallist
+|   |   +---yaml
+|   |   |   +---browser
+|   |   |   |   \---dist
+|   |   |   |       +---compose
+|   |   |   |       +---doc
+|   |   |   |       +---nodes
+|   |   |   |       +---parse
+|   |   |   |       +---schema
+|   |   |   |       |   +---common
+|   |   |   |       |   +---core
+|   |   |   |       |   +---json
+|   |   |   |       |   \---yaml-1.1
+|   |   |   |       \---stringify
+|   |   |   \---dist
+|   |   |       +---compose
+|   |   |       +---doc
+|   |   |       +---nodes
+|   |   |       +---parse
+|   |   |       +---schema
+|   |   |       |   +---common
+|   |   |       |   +---core
+|   |   |       |   +---json
+|   |   |       |   \---yaml-1.1
+|   |   |       \---stringify
+|   |   +---yargs
+|   |   |   +---build
+|   |   |   |   \---lib
+|   |   |   |       +---typings
+|   |   |   |       \---utils
+|   |   |   +---helpers
+|   |   |   +---lib
+|   |   |   |   \---platform-shims
+|   |   |   \---locales
+|   |   +---yargs-parser
+|   |   |   \---build
+|   |   |       \---lib
+|   |   +---ylru
+|   |   +---youch
+|   |   |   \---build
+|   |   |       +---public
+|   |   |       |   +---error_cause
+|   |   |       |   +---error_info
+|   |   |       |   +---error_metadata
+|   |   |       |   +---error_stack
+|   |   |       |   +---error_stack_source
+|   |   |       |   +---header
+|   |   |       |   \---layout
+|   |   |       \---src
+|   |   |           \---templates
+|   |   |               +---error_cause
+|   |   |               +---error_info
+|   |   |               +---error_metadata
+|   |   |               +---error_stack
+|   |   |               +---error_stack_source
+|   |   |               +---header
+|   |   |               \---layout
+|   |   +---youch-core
+|   |   |   \---build
+|   |   |       \---src
+|   |   \---zip-stream
+|   +---public
+|   |   \---email-templates
+|   \---server
+|       \---routes
+|           \---email-templates
++---nginx
++---secrets
+\---SSL
