@@ -1,0 +1,118 @@
+﻿worldbuilding
+|-- backend
+    |-- config
+        |-- database.php
+        |-- env.php
+    |-- controllers
+        |-- admin
+        |-- cms
+        |-- index
+        |-- link-validation
+        |-- minio
+        |-- shared
+    |-- core
+        |-- brevo
+        |-- cms
+        |-- link-validation
+        |-- minio
+        |-- shared
+    |-- db
+        |-- migration
+        |-- db.sql
+    |-- models
+        |-- admin
+        |-- cms
+        |-- index
+        |-- minio
+        |-- shared
+    |-- php
+        |-- sessions.ini
+        |-- uploads.ini
+    |-- public
+        |-- .htaccess
+        |-- index.php
+    |-- routes
+        |-- admin
+        |-- cms
+        |-- index
+        |-- link-validation
+        |-- shared
+    |-- scripts
+        |-- minio
+    |-- templates
+        |-- brevo
+    |-- .dockerignore
+    |-- composer.json
+    |-- composer.lock
+    |-- Dockerfile
+|-- docker
+    |-- minio
+        |-- mock-data
+        |-- cms-policy.json
+|-- Docs
+    |-- DossierProjet
+        |-- DossierInfo.md
+    |-- tutoPreCommit.md
+    |-- tutorielbrevo.md
+|-- frontend
+    |-- app
+        |-- assets
+        |-- components
+        |-- composables
+        |-- middleware
+        |-- pages
+        |-- plugins
+        |-- types
+        |-- utils
+        |-- views
+        |-- app.vue
+    |-- nginx
+        |-- prod.conf
+        |-- prod-http.conf
+        |-- prod-locations.conf
+        |-- start-production.sh
+        |-- static.conf
+    |-- public
+        |-- email-templates
+        |-- favicon.ico
+        |-- robots.txt
+    |-- server
+        |-- routes
+    |-- .dockerignore
+    |-- dev.err.log
+    |-- dev.log
+    |-- Dockerfile
+    |-- nuxt.config.ts
+    |-- package.json
+    |-- package-lock.json
+    |-- tsconfig.json
+|-- nginx
+    |-- dev.conf
+    |-- host-gateway.conf
+|-- secrets
+    |-- brevo_api_key
+    |-- brevo_api_key_example
+    |-- minio_access_key
+    |-- minio_access_key_example
+    |-- minio_root_password
+    |-- minio_root_password_example
+    |-- minio_root_user
+    |-- minio_root_user_example
+    |-- minio_secret_key
+    |-- minio_secret_key_example
+    |-- mysql_password
+    |-- mysql_password_example
+    |-- mysql_root_password
+    |-- mysql_root_password_example
+    |-- mysql_user
+    |-- mysql_user_example
+|-- .env
+|-- .env.example
+|-- .gitignore
+|-- .pre-commit-config.yaml
+|-- .secrets.baseline
+|-- AGENTS.md
+|-- docker-compose.prod.yml
+|-- docker-compose.yml
+|-- package.json
+|-- README.md
