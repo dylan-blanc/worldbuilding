@@ -43,6 +43,7 @@ TODO.md
 
 # Test
 backend/tests/*.php
+artifacts
 
 # bdd
 backend/db/dbseed.sql
