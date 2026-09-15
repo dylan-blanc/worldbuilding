@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 /**
- * Handles page metadata, CMS drafts and publication for routes declared in routes/cms/pages.php.
+ * Handles page discovery, metadata, CMS drafts and publication for routes declared in routes/cms/pages.php.
+ * GET /pages validates discovery parameters, then Page::findPublicCards() matches every selected filter
+ * through page_filters and optionally limits results to the authenticated user's followed pages.
  * GET /me/pages and POST /me/pages/{id}/settings read and update the authenticated owner's page cards and filters.
  * GET /pages/{id} reads pages.pagecontent and applies PageReadAccess using the SQL user role.
  * PUT /pages/{id}/draft validates frontend JSON and link syntax locally, then writes page_revision through PageRevision.
@@ -34,12 +36,21 @@ final class PageController
         $subcategoryId = $this->optionalPositiveIntQuery("subcategory_id");
         $sortBy = $this->optionalEnumQuery("sort_by", ["date", "like", "view"]);
         $sortOrder = $this->optionalEnumQuery("sort_order", ["asc", "desc"]);
+        $favoritesOnly = $this->optionalBooleanQuery("is_favorite");
 
         if (($sortBy === null) !== ($sortOrder === null)) {
             Response::error("Le type et l'ordre du tri sont requis ensemble", 422);
         }
 
-        $this->validateFavoriteQuery();
+        $favoriteUserId = null;
+
+        if ($favoritesOnly) {
+            $favoriteUserId = Session::userId();
+
+            if ($favoriteUserId === null) {
+                Response::error("Non authentifie", 401, "authentication_required");
+            }
+        }
 
         Response::json(200, [
             "pages" => $this->pages->findPublicCards(
@@ -47,7 +58,8 @@ final class PageController
                 $categoryId,
                 $subcategoryId,
                 $sortBy,
-                $sortOrder
+                $sortOrder,
+                $favoriteUserId
             ),
         ]);
     }
@@ -466,14 +478,16 @@ final class PageController
         return $value;
     }
 
-    private function validateFavoriteQuery(): void
+    private function optionalBooleanQuery(string $key): bool
     {
-        if (!array_key_exists("is_favorite", $_GET) || $_GET["is_favorite"] === "") {
-            return;
+        if (!array_key_exists($key, $_GET) || $_GET[$key] === "") {
+            return false;
         }
 
-        if (!is_scalar($_GET["is_favorite"]) || !in_array((string) $_GET["is_favorite"], ["0", "1"], true)) {
-            Response::error("Parametre is_favorite invalide", 422);
+        if (!is_scalar($_GET[$key]) || !in_array((string) $_GET[$key], ["0", "1"], true)) {
+            Response::error("Parametre " . $key . " invalide", 422);
         }
+
+        return (string) $_GET[$key] === "1";
     }
 }

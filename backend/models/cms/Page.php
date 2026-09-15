@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 /**
  * Reads public/owned pages and updates page metadata for PageController.
- * Public cards join users for owner identity/profile data and replace every owner field with NULL for anonymous pages.
+ * GET /pages reaches findPublicCards(), which matches selected IDs directly through page_filters,
+ * optionally joins users_engagement follows, and returns public cards with anonymous owner fields removed.
  * POST /pages creates the private page row and its first page_revision draft in one SQL transaction.
  * CMS content edits no longer update pages.pagecontent directly; PageRevision copies content there on publication.
  * Report targets include pagecontent for ModerationController -> Moderation case snapshot creation.
@@ -20,7 +21,8 @@ final class Page
         ?int $categoryId = null,
         ?int $subcategoryId = null,
         ?string $sortBy = null,
-        ?string $sortOrder = null
+        ?string $sortOrder = null,
+        ?int $favoriteUserId = null
     ): array
     {
         $where = ["pages.page_status = :page_status"];
@@ -32,43 +34,51 @@ final class Page
             $where[] = "EXISTS (
                 SELECT 1
                 FROM page_filters
-                INNER JOIN filters assigned_filter ON assigned_filter.id = page_filters.filter_id
-                LEFT JOIN filters assigned_parent ON assigned_parent.id = assigned_filter.belong_to
+                INNER JOIN filters selected_filter ON selected_filter.id = page_filters.filter_id
                 WHERE page_filters.page_id = pages.id
-                    AND (
-                        assigned_filter.id = :theme_filter_id
-                        OR assigned_filter.belong_to = :theme_child_id
-                        OR assigned_parent.belong_to = :theme_descendant_id
-                    )
+                    AND selected_filter.id = :theme_filter_id
+                    AND selected_filter.filter_type = :theme_filter_type
             )";
             $values[":theme_filter_id"] = $themeId;
-            $values[":theme_child_id"] = $themeId;
-            $values[":theme_descendant_id"] = $themeId;
+            $values[":theme_filter_type"] = "theme";
         }
 
         if ($categoryId !== null) {
             $where[] = "EXISTS (
                 SELECT 1
                 FROM page_filters
-                INNER JOIN filters assigned_filter ON assigned_filter.id = page_filters.filter_id
+                INNER JOIN filters selected_filter ON selected_filter.id = page_filters.filter_id
                 WHERE page_filters.page_id = pages.id
-                    AND (
-                        assigned_filter.id = :category_filter_id
-                        OR assigned_filter.belong_to = :category_child_id
-                    )
+                    AND selected_filter.id = :category_filter_id
+                    AND selected_filter.filter_type = :category_filter_type
             )";
             $values[":category_filter_id"] = $categoryId;
-            $values[":category_child_id"] = $categoryId;
+            $values[":category_filter_type"] = "category";
         }
 
         if ($subcategoryId !== null) {
             $where[] = "EXISTS (
                 SELECT 1
                 FROM page_filters
+                INNER JOIN filters selected_filter ON selected_filter.id = page_filters.filter_id
                 WHERE page_filters.page_id = pages.id
-                    AND page_filters.filter_id = :subcategory_filter_id
+                    AND selected_filter.id = :subcategory_filter_id
+                    AND selected_filter.filter_type = :subcategory_filter_type
             )";
             $values[":subcategory_filter_id"] = $subcategoryId;
+            $values[":subcategory_filter_type"] = "subcategory";
+        }
+
+        if ($favoriteUserId !== null) {
+            $where[] = "EXISTS (
+                SELECT 1
+                FROM users_engagement
+                WHERE users_engagement.page_id = pages.id
+                    AND users_engagement.user_id = :favorite_user_id
+                    AND users_engagement.engagement_type = :favorite_engagement_type
+            )";
+            $values[":favorite_user_id"] = $favoriteUserId;
+            $values[":favorite_engagement_type"] = "follow";
         }
 
         $sortColumns = [
