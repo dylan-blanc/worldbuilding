@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Dispatches page, CMS revision and media HTTP endpoints from public/index.php.
  * State-changing routes call authenticated controllers, then models execute prepared SQL or MinIO SDK requests.
- * Specific draft/publish/media/profile-picture patterns are resolved before the generic page field PATCH route.
+ * Engagement/draft/publish/media/profile-picture patterns are resolved before the generic page field PATCH route.
  */
 function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
 {
@@ -50,6 +50,24 @@ function dispatchPageRoutes(string $path, string $method, PDO $pdo): bool
 
         $controller = new PageController($pdo);
         $controller->show((int) $matches[1]);
+    }
+
+    if (preg_match("#^/pages/(\\d+)/(favorite|like|follow)$#", $route, $matches) === 1) {
+        $controller = new PageEngagementController($pdo);
+        $id = (int) $matches[1];
+        $handlers = [
+            "POST:favorite" => "addFavorite",
+            "DELETE:favorite" => "removeFavorite",
+            "POST:like" => "addLike",
+            "DELETE:like" => "removeLike",
+            "POST:follow" => "addFollow",
+            "DELETE:follow" => "removeFollow",
+        ];
+        $handler = $handlers[$method . ":" . $matches[2]] ?? null;
+
+        if ($handler !== null) $controller->{$handler}($id);
+
+        pageMethodNotAllowed();
     }
 
     if (preg_match("#^/pages/(\\d+)/draft$#", $route, $matches) === 1) {

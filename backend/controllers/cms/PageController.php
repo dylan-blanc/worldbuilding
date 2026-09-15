@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 /**
- * Handles page metadata, CMS drafts and publication for routes declared in routes/cms/pages.php.
+ * Handles page discovery, metadata, CMS drafts and publication for routes declared in routes/cms/pages.php.
+ * GET /pages validates discovery parameters, then Page::findPublicCards() matches selected filters and
+ * ranks period activity through page_view_events, users_engagement or pages.updated_at.
  * GET /me/pages and POST /me/pages/{id}/settings read and update the authenticated owner's page cards and filters.
- * GET /pages/{id} reads pages.pagecontent and applies PageReadAccess using the SQL user role.
+ * GET /pages/{id} reads pages.pagecontent, applies PageReadAccess and records public views through PageView.
  * PUT /pages/{id}/draft validates frontend JSON and link syntax locally, then writes page_revision through PageRevision.
  * POST /pages/{id}/publish validates metadata and remote links, then promotes JSON and publishes the page.
  * PUT /pages/{id}/metadata writes the owner-selected title and page_filters without changing CMS JSON.
@@ -16,6 +18,7 @@ final class PageController
     private Page $pages;
     private PageRevision $revisions;
     private PageFilter $pageFilters;
+    private PageView $pageViews;
     private User $users;
 
     public function __construct(PDO $pdo)
@@ -24,6 +27,7 @@ final class PageController
         $this->pages = new Page($pdo);
         $this->revisions = new PageRevision($pdo);
         $this->pageFilters = new PageFilter($pdo);
+        $this->pageViews = new PageView($pdo);
         $this->users = new User($pdo);
     }
 
@@ -34,12 +38,32 @@ final class PageController
         $subcategoryId = $this->optionalPositiveIntQuery("subcategory_id");
         $sortBy = $this->optionalEnumQuery("sort_by", ["date", "like", "view"]);
         $sortOrder = $this->optionalEnumQuery("sort_order", ["asc", "desc"]);
+        $favoritesOnly = $this->optionalBooleanQuery("is_favorite");
+        $ranking = $this->optionalEnumQuery("ranking", ["popular", "favorites", "updated"]);
+        $period = $this->optionalEnumQuery("period", ["24h", "7d", "1month", "3month", "6month", "1year"]);
+        $feed = $this->optionalEnumQuery("feed", ["new", "trending"]);
 
         if (($sortBy === null) !== ($sortOrder === null)) {
             Response::error("Le type et l'ordre du tri sont requis ensemble", 422);
         }
 
-        $this->validateFavoriteQuery();
+        if (($ranking === null) !== ($period === null)) {
+            Response::error("Le classement et sa periode sont requis ensemble", 422);
+        }
+
+        if ($ranking !== null && $sortBy !== null) {
+            Response::error("Un seul classement peut etre applique", 422);
+        }
+
+        if ($ranking !== null && $feed !== null) {
+            Response::error("Un seul mode de decouverte peut etre applique", 422);
+        }
+
+        $viewerUserId = Session::userId();
+
+        if ($favoritesOnly && $viewerUserId === null) {
+            Response::error("Non authentifie", 401, "authentication_required");
+        }
 
         Response::json(200, [
             "pages" => $this->pages->findPublicCards(
@@ -47,7 +71,12 @@ final class PageController
                 $categoryId,
                 $subcategoryId,
                 $sortBy,
-                $sortOrder
+                $sortOrder,
+                $viewerUserId,
+                $favoritesOnly,
+                $ranking,
+                $period,
+                $feed
             ),
         ]);
     }
@@ -133,6 +162,10 @@ final class PageController
 
         if (!PageReadAccess::allows($page, $userId, $isAdmin)) {
             Response::error("Page introuvable", 404);
+        }
+
+        if ($page["page_status"] === "public") {
+            $this->pageViews->record($id);
         }
 
         // Select the badge before anonymous responses remove the public owner identifier.
@@ -466,14 +499,16 @@ final class PageController
         return $value;
     }
 
-    private function validateFavoriteQuery(): void
+    private function optionalBooleanQuery(string $key): bool
     {
-        if (!array_key_exists("is_favorite", $_GET) || $_GET["is_favorite"] === "") {
-            return;
+        if (!array_key_exists($key, $_GET) || $_GET[$key] === "") {
+            return false;
         }
 
-        if (!is_scalar($_GET["is_favorite"]) || !in_array((string) $_GET["is_favorite"], ["0", "1"], true)) {
-            Response::error("Parametre is_favorite invalide", 422);
+        if (!is_scalar($_GET[$key]) || !in_array((string) $_GET[$key], ["0", "1"], true)) {
+            Response::error("Parametre " . $key . " invalide", 422);
         }
+
+        return (string) $_GET[$key] === "1";
     }
 }

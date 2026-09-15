@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 /**
  * Reads public/owned pages and updates page metadata for PageController.
- * Public cards join users for owner identity/profile data and replace every owner field with NULL for anonymous pages.
+ * GET /pages reaches findPublicCards(), which matches IDs through page_filters and ranks rolling-period
+ * page_view_events, users_engagement or pages.updated_at before returning public cards.
  * POST /pages creates the private page row and its first page_revision draft in one SQL transaction.
  * CMS content edits no longer update pages.pagecontent directly; PageRevision copies content there on publication.
  * Report targets include pagecontent for ModerationController -> Moderation case snapshot creation.
@@ -20,55 +21,89 @@ final class Page
         ?int $categoryId = null,
         ?int $subcategoryId = null,
         ?string $sortBy = null,
-        ?string $sortOrder = null
+        ?string $sortOrder = null,
+        ?int $viewerUserId = null,
+        bool $favoritesOnly = false,
+        ?string $ranking = null,
+        ?string $period = null,
+        ?string $feed = null
     ): array
     {
         $where = ["pages.page_status = :page_status"];
         $values = [
             ":page_status" => "public",
         ];
+        $engagementStateSelects = [
+            "0 AS is_liked",
+            "0 AS is_following",
+            "0 AS is_favorite",
+        ];
+
+        if ($viewerUserId !== null) {
+            $engagementStateSelects = [];
+
+            foreach (["is_liked" => "like", "is_following" => "follow", "is_favorite" => "favorite"] as $state => $type) {
+                $engagementStateSelects[] = "EXISTS (
+                    SELECT 1
+                    FROM users_engagement viewer_engagement
+                    WHERE viewer_engagement.page_id = pages.id
+                        AND viewer_engagement.user_id = :" . $state . "_user_id
+                        AND viewer_engagement.engagement_type = :" . $state . "_type
+                ) AS " . $state;
+                $values[":" . $state . "_user_id"] = $viewerUserId;
+                $values[":" . $state . "_type"] = $type;
+            }
+        }
 
         if ($themeId !== null) {
             $where[] = "EXISTS (
                 SELECT 1
                 FROM page_filters
-                INNER JOIN filters assigned_filter ON assigned_filter.id = page_filters.filter_id
-                LEFT JOIN filters assigned_parent ON assigned_parent.id = assigned_filter.belong_to
+                INNER JOIN filters selected_filter ON selected_filter.id = page_filters.filter_id
                 WHERE page_filters.page_id = pages.id
-                    AND (
-                        assigned_filter.id = :theme_filter_id
-                        OR assigned_filter.belong_to = :theme_child_id
-                        OR assigned_parent.belong_to = :theme_descendant_id
-                    )
+                    AND selected_filter.id = :theme_filter_id
+                    AND selected_filter.filter_type = :theme_filter_type
             )";
             $values[":theme_filter_id"] = $themeId;
-            $values[":theme_child_id"] = $themeId;
-            $values[":theme_descendant_id"] = $themeId;
+            $values[":theme_filter_type"] = "theme";
         }
 
         if ($categoryId !== null) {
             $where[] = "EXISTS (
                 SELECT 1
                 FROM page_filters
-                INNER JOIN filters assigned_filter ON assigned_filter.id = page_filters.filter_id
+                INNER JOIN filters selected_filter ON selected_filter.id = page_filters.filter_id
                 WHERE page_filters.page_id = pages.id
-                    AND (
-                        assigned_filter.id = :category_filter_id
-                        OR assigned_filter.belong_to = :category_child_id
-                    )
+                    AND selected_filter.id = :category_filter_id
+                    AND selected_filter.filter_type = :category_filter_type
             )";
             $values[":category_filter_id"] = $categoryId;
-            $values[":category_child_id"] = $categoryId;
+            $values[":category_filter_type"] = "category";
         }
 
         if ($subcategoryId !== null) {
             $where[] = "EXISTS (
                 SELECT 1
                 FROM page_filters
+                INNER JOIN filters selected_filter ON selected_filter.id = page_filters.filter_id
                 WHERE page_filters.page_id = pages.id
-                    AND page_filters.filter_id = :subcategory_filter_id
+                    AND selected_filter.id = :subcategory_filter_id
+                    AND selected_filter.filter_type = :subcategory_filter_type
             )";
             $values[":subcategory_filter_id"] = $subcategoryId;
+            $values[":subcategory_filter_type"] = "subcategory";
+        }
+
+        if ($favoritesOnly && $viewerUserId !== null) {
+            $where[] = "EXISTS (
+                SELECT 1
+                FROM users_engagement
+                WHERE users_engagement.page_id = pages.id
+                    AND users_engagement.user_id = :favorite_user_id
+                    AND users_engagement.engagement_type = :favorite_engagement_type
+            )";
+            $values[":favorite_user_id"] = $viewerUserId;
+            $values[":favorite_engagement_type"] = "favorite";
         }
 
         $sortColumns = [
@@ -77,6 +112,89 @@ final class Page
             "view" => "pages.number_of_view",
         ];
         $orderBy = "pages.id DESC";
+        $joins = [];
+
+        if ($feed === "new") {
+            $where[] = "pages.created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 7 DAY)";
+            $orderBy = "pages.created_at DESC, pages.id DESC";
+        } elseif ($feed === "trending") {
+            $joins[] = "LEFT JOIN (
+                SELECT page_id,
+                    SUM(CASE WHEN viewed_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) THEN 1 ELSE 0 END) AS recent_view_score,
+                    SUM(CASE WHEN viewed_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) THEN 1 ELSE 0 END) AS previous_view_score
+                FROM page_view_events
+                WHERE viewed_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 31 DAY)
+                GROUP BY page_id
+            ) trend_views ON trend_views.page_id = pages.id";
+            $joins[] = "LEFT JOIN (
+                SELECT page_id,
+                    SUM(CASE
+                        WHEN created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) AND engagement_type = 'like' THEN 10
+                        WHEN created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) AND engagement_type = 'favorite' THEN 15
+                        ELSE 0
+                    END) AS recent_engagement_score,
+                    SUM(CASE
+                        WHEN created_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) AND engagement_type = 'like' THEN 10
+                        WHEN created_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) AND engagement_type = 'favorite' THEN 15
+                        ELSE 0
+                    END) AS previous_engagement_score
+                FROM users_engagement
+                WHERE created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 31 DAY)
+                GROUP BY page_id
+            ) trend_engagements ON trend_engagements.page_id = pages.id";
+            $recentTrendScore = "(
+                COALESCE(trend_views.recent_view_score, 0)
+                + COALESCE(trend_engagements.recent_engagement_score, 0)
+            )";
+            $baselineTrendScore = "(
+                COALESCE(trend_views.previous_view_score, 0)
+                + COALESCE(trend_engagements.previous_engagement_score, 0)
+            ) / 30";
+            $where[] = $recentTrendScore . " > " . $baselineTrendScore;
+            $orderBy = "(" . $recentTrendScore . " - " . $baselineTrendScore . ") DESC, pages.id DESC";
+        } elseif ($feed !== null) {
+            throw new InvalidArgumentException("Mode de decouverte invalide");
+        }
+
+        if ($ranking !== null || $period !== null) {
+            $periodStart = $this->rankingPeriodStart($period);
+
+            if ($ranking === "popular") {
+                $joins[] = "LEFT JOIN (
+                    SELECT page_id, COUNT(*) AS period_view_count
+                    FROM page_view_events
+                    WHERE viewed_at >= " . $periodStart . "
+                    GROUP BY page_id
+                ) period_views ON period_views.page_id = pages.id";
+                $joins[] = "LEFT JOIN (
+                    SELECT page_id, COUNT(*) AS period_like_count
+                    FROM users_engagement
+                    WHERE engagement_type = :ranking_like_type
+                        AND created_at >= " . $periodStart . "
+                    GROUP BY page_id
+                ) period_likes ON period_likes.page_id = pages.id";
+                $values[":ranking_like_type"] = "like";
+                $orderBy = "(
+                    COALESCE(period_views.period_view_count, 0)
+                    + COALESCE(period_likes.period_like_count, 0) * 10
+                ) DESC, pages.id DESC";
+            } elseif ($ranking === "favorites") {
+                $joins[] = "LEFT JOIN (
+                    SELECT page_id, COUNT(*) AS period_favorite_count
+                    FROM users_engagement
+                    WHERE engagement_type = :ranking_favorite_type
+                        AND created_at >= " . $periodStart . "
+                    GROUP BY page_id
+                ) period_favorites ON period_favorites.page_id = pages.id";
+                $values[":ranking_favorite_type"] = "favorite";
+                $orderBy = "COALESCE(period_favorites.period_favorite_count, 0) DESC, pages.id DESC";
+            } elseif ($ranking === "updated") {
+                $where[] = "pages.updated_at >= " . $periodStart;
+                $orderBy = "pages.updated_at DESC, pages.id DESC";
+            } else {
+                throw new InvalidArgumentException("Classement de pages invalide");
+            }
+        }
 
         if ($sortBy !== null || $sortOrder !== null) {
             if (!isset($sortColumns[$sortBy]) || !in_array($sortOrder, ["asc", "desc"], true)) {
@@ -92,10 +210,12 @@ final class Page
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.username END AS owner_username,
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.profil_picture END AS owner_picture,
                 pages.page_title, pages.page_status, pages.is_anonymous, pages.number_of_likes,
-                pages.number_of_view, pages.number_of_followers, pages.page_description,
-                pages.page_picture, pages.created_at, pages.updated_at
+                pages.number_of_view, pages.number_of_followers, pages.number_of_favorites,
+                " . implode(",\n", $engagementStateSelects) . ",
+                pages.page_description, pages.page_picture, pages.created_at, pages.updated_at
             FROM pages
             INNER JOIN users ON users.id = pages.owner_user_id
+            " . implode("\n", $joins) . "
             WHERE " . implode(" AND ", $where) . "
             ORDER BY " . $orderBy;
 
@@ -104,6 +224,24 @@ final class Page
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function rankingPeriodStart(?string $period): string
+    {
+        $periods = [
+            "24h" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)",
+            "7d" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 7 DAY)",
+            "1month" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)",
+            "3month" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 3 MONTH)",
+            "6month" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 6 MONTH)",
+            "1year" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)",
+        ];
+
+        if ($period === null || !isset($periods[$period])) {
+            throw new InvalidArgumentException("Periode de classement invalide");
+        }
+
+        return $periods[$period];
     }
 
     public function findCardsByOwnerId(int $ownerUserId): array

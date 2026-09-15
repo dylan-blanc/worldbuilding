@@ -1,12 +1,14 @@
 <!--
   This component loads and displays the public page cards used by app/views/accueil.vue.
   Data follows frontend -> GET /api/pages -> PageController::index() -> Page::findPublicCards()
-  -> users/pages SQL join -> card response. UserAvatar resolves non-anonymous owner pictures.
+  -> users/pages/engagement SQL queries -> card response. Like and favorite clicks follow frontend ->
+  POST or DELETE /api/pages/{id}/{engagement} -> PageEngagementController -> PageEngagement -> SQL.
+  UserAvatar resolves non-anonymous owner pictures.
   ModerationReportAction delegates reports to the shared composable and POST /api/pages/{id}/reports.
 -->
 <script setup lang="ts">
-import { EyeIcon, HeartIcon } from "@heroicons/vue/24/outline"
-import { StarIcon } from "@heroicons/vue/24/solid"
+import { EyeIcon, HeartIcon as HeartOutlineIcon, StarIcon as StarOutlineIcon } from "@heroicons/vue/24/outline"
+import { HeartIcon as HeartSolidIcon } from "@heroicons/vue/24/solid"
 
 type PublicPage = {
   id: number
@@ -19,6 +21,10 @@ type PublicPage = {
   number_of_likes: number
   number_of_view: number
   number_of_followers: number
+  number_of_favorites: number
+  is_liked: boolean | number
+  is_following: boolean | number
+  is_favorite: boolean | number
   page_description: string | null
   page_picture: string | null
   created_at: string
@@ -29,11 +35,23 @@ type PagesResponse = {
   pages: PublicPage[]
 }
 
+type EngagementResponse = {
+  is_liked: boolean
+  is_following: boolean
+  is_favorite: boolean
+  number_of_likes: number
+  number_of_followers: number
+  number_of_favorites: number
+}
+
 const config = useRuntimeConfig()
 const route = useRoute()
 const pages = ref<PublicPage[]>([])
 const pending = ref(true)
 const errorMessage = ref("")
+const engagementErrorMessage = ref("")
+const engagementPending = reactive<Record<number, boolean>>({})
+const apiFetch = useApi()
 const { resolveUrl: resolvePagePicture } = usePagePicture()
 const { renewSession } = useSessionActivity()
 
@@ -50,6 +68,9 @@ const apiQuery = computed(() => {
     "sort_by",
     "sort_order",
     "is_favorite",
+    "ranking",
+    "period",
+    "feed",
   ]
 
   for (const parameter of allowedParameters) {
@@ -72,6 +93,7 @@ async function fetchPages(): Promise<void> {
   try {
     const response = await $fetch<PagesResponse>(`${config.public.apiBase}/pages`, {
       query: apiQuery.value,
+      credentials: "include",
     })
 
     if (requestId !== latestRequest) return
@@ -86,6 +108,69 @@ async function fetchPages(): Promise<void> {
   }
 }
 
+async function togglePageFavorite(page: PublicPage): Promise<void> {
+  if (engagementPending[page.id]) return
+
+  engagementPending[page.id] = true
+  engagementErrorMessage.value = ""
+
+  try {
+    const response = await apiFetch<EngagementResponse>(`${config.public.apiBase}/pages/${page.id}/favorite`, {
+      method: Boolean(page.is_favorite) ? "DELETE" : "POST",
+    })
+
+    applyEngagementResponse(page, response)
+
+    if (!response.is_favorite && route.query.is_favorite === "1") {
+      pages.value = pages.value.filter((listedPage) => listedPage.id !== page.id)
+    }
+  } catch (error: unknown) {
+    const failure = error as { status?: number, statusCode?: number, response?: { status?: number } }
+    const status = failure.status || failure.statusCode || failure.response?.status || 0
+
+    engagementErrorMessage.value = status === 401
+      ? "Connectez-vous pour ajouter cette page aux favoris."
+      : "Impossible de modifier ce favori."
+  } finally {
+    engagementPending[page.id] = false
+  }
+}
+
+async function togglePageLike(page: PublicPage): Promise<void> {
+  if (engagementPending[page.id]) return
+
+  engagementPending[page.id] = true
+  engagementErrorMessage.value = ""
+
+  try {
+    const response = await apiFetch<EngagementResponse>(`${config.public.apiBase}/pages/${page.id}/like`, {
+      method: Boolean(page.is_liked) ? "DELETE" : "POST",
+    })
+
+    applyEngagementResponse(page, response)
+  } catch (error: unknown) {
+    const failure = error as { status?: number, statusCode?: number, response?: { status?: number } }
+    const status = failure.status || failure.statusCode || failure.response?.status || 0
+
+    engagementErrorMessage.value = status === 401
+      ? "Connectez-vous pour aimer cette page."
+      : status === 409
+        ? "Retirez cette page des favoris avant de retirer son like."
+        : "Impossible de modifier ce like."
+  } finally {
+    engagementPending[page.id] = false
+  }
+}
+
+function applyEngagementResponse(page: PublicPage, response: EngagementResponse): void {
+  page.is_liked = response.is_liked
+  page.is_following = response.is_following
+  page.is_favorite = response.is_favorite
+  page.number_of_likes = response.number_of_likes
+  page.number_of_followers = response.number_of_followers
+  page.number_of_favorites = response.number_of_favorites
+}
+
 onMounted(() => {
   watch(apiQueryKey, fetchPages, { immediate: true })
 })
@@ -93,6 +178,10 @@ onMounted(() => {
 
 <template>
   <section class="flex flex-col gap-4">
+    <p v-if="engagementErrorMessage" class="error-color text-center text-sm" role="alert">
+      {{ engagementErrorMessage }}
+    </p>
+
     <LoadingSpinner
       v-if="pending"
       label="Chargement des pages"
@@ -155,13 +244,36 @@ onMounted(() => {
         />
 
         <div class="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-          <div
-            class="absolute left-3 top-2 flex flex-col items-center text-sm leading-none text-(--primary-color)"
-            aria-label="Vote en attente"
+          <button
+            type="button"
+            class="pointer-events-auto absolute left-3 top-2 flex flex-col items-center text-sm leading-none text-(--primary-color) disabled:cursor-wait disabled:opacity-60"
+            :disabled="engagementPending[page.id]"
+            :aria-label="page.is_favorite ? `Retirer ${page.page_title} des favoris` : `Ajouter ${page.page_title} aux favoris`"
+            :aria-pressed="Boolean(page.is_favorite)"
+            @click.stop="togglePageFavorite(page)"
           >
-            <StarIcon class="h-7 w-7" aria-hidden="true" />
-            <span>--</span>
-          </div>
+            <svg
+              v-if="page.is_favorite"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="h-7 w-7"
+              aria-hidden="true"
+            >
+              <defs>
+                <linearGradient :id="`favorite-gradient-${page.id}`" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" class="[stop-color:#fde047]" />
+                  <stop offset="100%" class="[stop-color:#f59e0b]" />
+                </linearGradient>
+              </defs>
+              <path
+                fill-rule="evenodd"
+                :fill="`url(#favorite-gradient-${page.id})`"
+                d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <StarOutlineIcon v-else class="h-7 w-7" aria-hidden="true" />
+          </button>
 
           <div class="absolute bottom-4 left-4 flex flex-col gap-2">
             <UserAvatar
@@ -182,10 +294,23 @@ onMounted(() => {
                 <EyeIcon class="h-4 w-4" aria-hidden="true" />
                 {{ page.number_of_view }}
               </span>
-              <span title="Likes" class="inline-flex items-center gap-1">
-                <HeartIcon class="h-4 w-4" aria-hidden="true" />
+              <button
+                type="button"
+                class="pointer-events-auto inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-70"
+                :disabled="engagementPending[page.id] || Boolean(page.is_favorite && page.is_liked)"
+                :title="page.is_favorite && page.is_liked ? 'Retirez d’abord cette page des favoris' : 'Likes'"
+                :aria-label="page.is_favorite && page.is_liked
+                  ? `Retirez d’abord ${page.page_title} des favoris pour enlever son like`
+                  : page.is_liked
+                    ? `Retirer le like de ${page.page_title}`
+                    : `Aimer ${page.page_title}`"
+                :aria-pressed="Boolean(page.is_liked)"
+                @click.stop="togglePageLike(page)"
+              >
+                <HeartSolidIcon v-if="page.is_liked" class="h-4 w-4" aria-hidden="true" />
+                <HeartOutlineIcon v-else class="h-4 w-4" aria-hidden="true" />
                 {{ page.number_of_likes }}
-              </span>
+              </button>
             </div>
           </div>
         </div>

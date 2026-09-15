@@ -35,12 +35,22 @@ CREATE TABLE IF NOT EXISTS pages (
     number_of_likes INT DEFAULT 0,
     number_of_view INT DEFAULT 0,
     number_of_followers INT DEFAULT 0,
+    number_of_favorites INT NOT NULL DEFAULT 0,
     page_description TEXT,
     page_picture VARCHAR(255),
     pagecontent JSON NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS page_view_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    page_id INT NOT NULL,
+    viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX page_view_period (page_id, viewed_at),
+    INDEX page_view_time (viewed_at),
+    FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS moderation_cases (
@@ -198,8 +208,9 @@ CREATE TABLE IF NOT EXISTS users_engagement (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     page_id INT NOT NULL,
-    engagement_type ENUM('like', 'follow') NOT NULL,
+    engagement_type ENUM('like', 'follow', 'favorite') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_page_engagement (user_id, page_id, engagement_type),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE
 );
