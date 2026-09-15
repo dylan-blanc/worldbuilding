@@ -43,6 +43,15 @@ CREATE TABLE IF NOT EXISTS pages (
     FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS page_view_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    page_id INT NOT NULL,
+    viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX page_view_period (page_id, viewed_at),
+    INDEX page_view_time (viewed_at),
+    FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS moderation_cases (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     reported_page_id INT NOT NULL UNIQUE,

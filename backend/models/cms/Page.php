@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 /**
  * Reads public/owned pages and updates page metadata for PageController.
- * GET /pages reaches findPublicCards(), which matches selected IDs directly through page_filters,
- * optionally joins users_engagement follows, and returns public cards with anonymous owner fields removed.
+ * GET /pages reaches findPublicCards(), which matches IDs through page_filters and ranks rolling-period
+ * page_view_events, users_engagement or pages.updated_at before returning public cards.
  * POST /pages creates the private page row and its first page_revision draft in one SQL transaction.
  * CMS content edits no longer update pages.pagecontent directly; PageRevision copies content there on publication.
  * Report targets include pagecontent for ModerationController -> Moderation case snapshot creation.
@@ -22,7 +22,9 @@ final class Page
         ?int $subcategoryId = null,
         ?string $sortBy = null,
         ?string $sortOrder = null,
-        ?int $favoriteUserId = null
+        ?int $favoriteUserId = null,
+        ?string $ranking = null,
+        ?string $period = null
     ): array
     {
         $where = ["pages.page_status = :page_status"];
@@ -87,6 +89,47 @@ final class Page
             "view" => "pages.number_of_view",
         ];
         $orderBy = "pages.id DESC";
+        $joins = [];
+
+        if ($ranking !== null || $period !== null) {
+            $periodStart = $this->rankingPeriodStart($period);
+
+            if ($ranking === "popular") {
+                $joins[] = "LEFT JOIN (
+                    SELECT page_id, COUNT(*) AS period_view_count
+                    FROM page_view_events
+                    WHERE viewed_at >= " . $periodStart . "
+                    GROUP BY page_id
+                ) period_views ON period_views.page_id = pages.id";
+                $joins[] = "LEFT JOIN (
+                    SELECT page_id, COUNT(*) AS period_like_count
+                    FROM users_engagement
+                    WHERE engagement_type = :ranking_like_type
+                        AND created_at >= " . $periodStart . "
+                    GROUP BY page_id
+                ) period_likes ON period_likes.page_id = pages.id";
+                $values[":ranking_like_type"] = "like";
+                $orderBy = "(
+                    COALESCE(period_views.period_view_count, 0)
+                    + COALESCE(period_likes.period_like_count, 0) * 10
+                ) DESC, pages.id DESC";
+            } elseif ($ranking === "favorites") {
+                $joins[] = "LEFT JOIN (
+                    SELECT page_id, COUNT(*) AS period_favorite_count
+                    FROM users_engagement
+                    WHERE engagement_type = :ranking_favorite_type
+                        AND created_at >= " . $periodStart . "
+                    GROUP BY page_id
+                ) period_favorites ON period_favorites.page_id = pages.id";
+                $values[":ranking_favorite_type"] = "follow";
+                $orderBy = "COALESCE(period_favorites.period_favorite_count, 0) DESC, pages.id DESC";
+            } elseif ($ranking === "updated") {
+                $where[] = "pages.updated_at >= " . $periodStart;
+                $orderBy = "pages.updated_at DESC, pages.id DESC";
+            } else {
+                throw new InvalidArgumentException("Classement de pages invalide");
+            }
+        }
 
         if ($sortBy !== null || $sortOrder !== null) {
             if (!isset($sortColumns[$sortBy]) || !in_array($sortOrder, ["asc", "desc"], true)) {
@@ -106,6 +149,7 @@ final class Page
                 pages.page_picture, pages.created_at, pages.updated_at
             FROM pages
             INNER JOIN users ON users.id = pages.owner_user_id
+            " . implode("\n", $joins) . "
             WHERE " . implode(" AND ", $where) . "
             ORDER BY " . $orderBy;
 
@@ -114,6 +158,24 @@ final class Page
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function rankingPeriodStart(?string $period): string
+    {
+        $periods = [
+            "24h" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR)",
+            "7d" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 7 DAY)",
+            "1month" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 MONTH)",
+            "3month" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 3 MONTH)",
+            "6month" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 6 MONTH)",
+            "1year" => "DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 YEAR)",
+        ];
+
+        if ($period === null || !isset($periods[$period])) {
+            throw new InvalidArgumentException("Periode de classement invalide");
+        }
+
+        return $periods[$period];
     }
 
     public function findCardsByOwnerId(int $ownerUserId): array

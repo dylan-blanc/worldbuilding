@@ -2,7 +2,7 @@
   FilterBar renders the discovery controls used on the index page.
   It loads filter choices through frontend -> GET /filters -> FilterController -> Filter -> SQL.
   Select changes update dependent choices locally, Apply writes page filters to the route,
-  and sorting or favorites update the route immediately for PageDisplay -> GET /pages.
+  and ranking, period, sorting or favorites update the route immediately for PageDisplay -> GET /pages.
 -->
 <script setup lang="ts">
 import {
@@ -13,6 +13,7 @@ import {
   HeartIcon,
   StarIcon,
 } from "@heroicons/vue/24/outline"
+import DatedFilter from "~/components/index/filter/DatedFilter.vue"
 
 type Filter = {
   id: number
@@ -28,6 +29,8 @@ type FilterResponse = {
 
 type SortBy = "date" | "like" | "view"
 type SortOrder = "asc" | "desc" | ""
+type Ranking = "popular" | "rating" | "favorites" | "updated" | ""
+type RankingPeriod = "24h" | "7d" | "1month" | "3month" | "6month" | "1year" | ""
 
 const config = useRuntimeConfig()
 const route = useRoute()
@@ -72,12 +75,32 @@ const sortOptions = [
   },
 ] as const
 
+const rankingOptions = [
+  { id: "popular", label: "Les plus populaires", disabled: false },
+  { id: "rating", label: "Meilleure évaluation", disabled: true, disabledHint: "Bientôt disponible" },
+  { id: "favorites", label: "Total favoris", disabled: false },
+  { id: "updated", label: "Dernières mises à jour", disabled: false },
+] as const
+
+const periodOptions = [
+  { id: "24h", label: "Aujourd'hui" },
+  { id: "7d", label: "Une semaine" },
+  { id: "1month", label: "Un mois" },
+  { id: "3month", label: "Trois mois" },
+  { id: "6month", label: "Six mois" },
+  { id: "1year", label: "Un an" },
+] as const
+
 const selectedFilters = reactive({
   theme: queryValue("theme_id"),
   category: queryValue("category_id"),
   subcategory: queryValue("subcategory_id"),
 })
 const selectedSort = reactive<{ by: SortBy | "", order: SortOrder }>({ by: "", order: "" })
+const selectedRanking = reactive<{ by: Ranking, period: RankingPeriod }>({
+  by: validRanking(queryValue("ranking")),
+  period: validRankingPeriod(queryValue("period")),
+})
 const favoritesOnly = ref(queryValue("is_favorite") === "1")
 const areFiltersVisible = ref(true)
 
@@ -124,6 +147,14 @@ function validSortOrder(value: string): SortOrder {
   return value === "asc" || value === "desc" ? value : ""
 }
 
+function validRanking(value: string): Ranking {
+  return value === "popular" || value === "favorites" || value === "updated" ? value : ""
+}
+
+function validRankingPeriod(value: string): RankingPeriod {
+  return periodOptions.some((period) => period.id === value) ? value as RankingPeriod : ""
+}
+
 function syncFiltersWithUrl(): void {
   selectedFilters.theme = queryValue("theme_id")
   selectedFilters.category = queryValue("category_id")
@@ -133,9 +164,13 @@ function syncFiltersWithUrl(): void {
 function syncAutomaticControlsWithUrl(): void {
   const sortBy = validSortBy(queryValue("sort_by"))
   const sortOrder = validSortOrder(queryValue("sort_order"))
+  const ranking = validRanking(queryValue("ranking"))
+  const period = validRankingPeriod(queryValue("period"))
 
   selectedSort.by = sortBy !== "" && sortOrder !== "" ? sortBy : ""
   selectedSort.order = sortBy !== "" && sortOrder !== "" ? sortOrder : ""
+  selectedRanking.by = ranking !== "" && period !== "" ? ranking : ""
+  selectedRanking.period = ranking !== "" && period !== "" ? period : ""
   favoritesOnly.value = queryValue("is_favorite") === "1"
 }
 
@@ -150,6 +185,9 @@ function clearInvalidSelections(): void {
 }
 
 async function cycleSort(sortBy: SortBy): Promise<void> {
+  selectedRanking.by = ""
+  selectedRanking.period = ""
+
   if (selectedSort.by !== sortBy) {
     selectedSort.by = sortBy
     selectedSort.order = "asc"
@@ -159,6 +197,27 @@ async function cycleSort(sortBy: SortBy): Promise<void> {
   }
 
   await applyAutomaticControls()
+}
+
+async function applyRanking(selection?: { order: string, period: string }): Promise<void> {
+  if (selection) {
+    selectedRanking.by = selection.order as Ranking
+    selectedRanking.period = selection.period as RankingPeriod
+  }
+
+  if (selectedRanking.by === "" || selectedRanking.by === "rating" || selectedRanking.period === "") return
+
+  selectedSort.by = ""
+  selectedSort.order = ""
+
+  const query = { ...route.query }
+
+  delete query.sort_by
+  delete query.sort_order
+  query.ranking = selectedRanking.by
+  query.period = selectedRanking.period
+
+  await router.push({ query })
 }
 
 function updateFilterChildren(field: keyof typeof selectedFilters): void {
@@ -187,6 +246,8 @@ function cleanFilterQuery() {
   delete query.sort_by
   delete query.sort_order
   delete query.is_favorite
+  delete query.ranking
+  delete query.period
 
   return query
 }
@@ -205,6 +266,11 @@ async function applyFilters(): Promise<void> {
 
   if (favoritesOnly.value) query.is_favorite = "1"
 
+  if (selectedRanking.by !== "" && selectedRanking.period !== "") {
+    query.ranking = selectedRanking.by
+    query.period = selectedRanking.period
+  }
+
   await router.push({ query })
 }
 
@@ -215,12 +281,20 @@ async function applyAutomaticControls(): Promise<void> {
   delete query.sort_order
   delete query.is_favorite
 
+  delete query.ranking
+  delete query.period
+
   if (selectedSort.by !== "" && selectedSort.order !== "") {
     query.sort_by = selectedSort.by
     query.sort_order = selectedSort.order
   }
 
   if (favoritesOnly.value) query.is_favorite = "1"
+
+  if (selectedRanking.by !== "" && selectedRanking.period !== "") {
+    query.ranking = selectedRanking.by
+    query.period = selectedRanking.period
+  }
 
   await router.push({ query })
 }
@@ -236,6 +310,8 @@ async function resetFilters(): Promise<void> {
   selectedFilters.subcategory = ""
   selectedSort.by = ""
   selectedSort.order = ""
+  selectedRanking.by = ""
+  selectedRanking.period = ""
   favoritesOnly.value = false
 
   await router.push({ query: cleanFilterQuery() })
@@ -256,7 +332,7 @@ watch(
   syncFiltersWithUrl,
 )
 watch(
-  () => [route.query.sort_by, route.query.sort_order, route.query.is_favorite],
+  () => [route.query.sort_by, route.query.sort_order, route.query.is_favorite, route.query.ranking, route.query.period],
   syncAutomaticControlsWithUrl,
 )
 
@@ -301,19 +377,24 @@ onMounted(async () => {
       :aria-hidden="!areFiltersVisible"
       :inert="!areFiltersVisible"
     >
-      <div class="min-h-0 overflow-hidden">
+      <div class="min-h-0">
         <form
           class="primary-background primary-border mt-6 grid w-full gap-5 rounded-md p-4 shadow-sm"
           @submit.prevent="applyFilters"
         >
-          <div class="flex flex-wrap gap-3 sm:justify-end" aria-label="Classements décoratifs">
-            <button
-              type="button"
-              class="button-primary inline-flex min-h-11 items-center gap-2 rounded-full px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"
+          <div class="flex flex-wrap items-start gap-3 sm:justify-end" aria-label="Classements principaux">
+            <DatedFilter
+              v-model:order="selectedRanking.by"
+              v-model:period="selectedRanking.period"
+              label="Populaire"
+              :order-options="rankingOptions"
+              :period-options="periodOptions"
+              @change="applyRanking"
             >
-              Populaire
-              <BarsArrowDownIcon class="size-6" aria-hidden="true" />
-            </button>
+              <template #icon>
+                <BarsArrowDownIcon class="size-6" aria-hidden="true" />
+              </template>
+            </DatedFilter>
             <button
               type="button"
               class="form-control min-h-11 rounded-full border-2 px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"

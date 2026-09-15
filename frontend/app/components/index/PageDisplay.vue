@@ -50,6 +50,8 @@ const apiQuery = computed(() => {
     "sort_by",
     "sort_order",
     "is_favorite",
+    "ranking",
+    "period",
   ]
 
   for (const parameter of allowedParameters) {
