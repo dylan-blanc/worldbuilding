@@ -33,18 +33,26 @@ final class Page
         $values = [
             ":page_status" => "public",
         ];
-        $favoriteStateSelect = "0";
+        $engagementStateSelects = [
+            "0 AS is_liked",
+            "0 AS is_following",
+            "0 AS is_favorite",
+        ];
 
         if ($viewerUserId !== null) {
-            $favoriteStateSelect = "EXISTS (
-                SELECT 1
-                FROM users_engagement viewer_favorite
-                WHERE viewer_favorite.page_id = pages.id
-                    AND viewer_favorite.user_id = :favorite_state_user_id
-                    AND viewer_favorite.engagement_type = :favorite_state_type
-            )";
-            $values[":favorite_state_user_id"] = $viewerUserId;
-            $values[":favorite_state_type"] = "favorite";
+            $engagementStateSelects = [];
+
+            foreach (["is_liked" => "like", "is_following" => "follow", "is_favorite" => "favorite"] as $state => $type) {
+                $engagementStateSelects[] = "EXISTS (
+                    SELECT 1
+                    FROM users_engagement viewer_engagement
+                    WHERE viewer_engagement.page_id = pages.id
+                        AND viewer_engagement.user_id = :" . $state . "_user_id
+                        AND viewer_engagement.engagement_type = :" . $state . "_type
+                ) AS " . $state;
+                $values[":" . $state . "_user_id"] = $viewerUserId;
+                $values[":" . $state . "_type"] = $type;
+            }
         }
 
         if ($themeId !== null) {
@@ -203,7 +211,7 @@ final class Page
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.profil_picture END AS owner_picture,
                 pages.page_title, pages.page_status, pages.is_anonymous, pages.number_of_likes,
                 pages.number_of_view, pages.number_of_followers, pages.number_of_favorites,
-                " . $favoriteStateSelect . " AS is_favorite,
+                " . implode(",\n", $engagementStateSelects) . ",
                 pages.page_description, pages.page_picture, pages.created_at, pages.updated_at
             FROM pages
             INNER JOIN users ON users.id = pages.owner_user_id

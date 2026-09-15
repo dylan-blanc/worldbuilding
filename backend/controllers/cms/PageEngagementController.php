@@ -18,34 +18,50 @@ final class PageEngagementController
 
     public function addFavorite(int $pageId): void
     {
-        $userId = $this->authenticatedUserId();
-
-        try {
-            $count = $this->engagements->addFavorite($pageId, $userId);
-        } catch (DomainException $exception) {
-            Response::error($exception->getMessage(), 404);
-        }
-
-        Response::json(201, [
-            "is_favorite" => true,
-            "number_of_favorites" => $count,
-        ]);
+        $this->respond("addFavorite", $pageId, 201);
     }
 
     public function removeFavorite(int $pageId): void
     {
+        $this->respond("removeFavorite", $pageId, 200);
+    }
+
+    public function addLike(int $pageId): void
+    {
+        $this->respond("addLike", $pageId, 201);
+    }
+
+    public function removeLike(int $pageId): void
+    {
+        $this->respond("removeLike", $pageId, 200);
+    }
+
+    public function addFollow(int $pageId): void
+    {
+        $this->respond("addFollow", $pageId, 201);
+    }
+
+    public function removeFollow(int $pageId): void
+    {
+        $this->respond("removeFollow", $pageId, 200);
+    }
+
+    private function respond(string $method, int $pageId, int $status): void
+    {
         $userId = $this->authenticatedUserId();
 
         try {
-            $count = $this->engagements->removeFavorite($pageId, $userId);
+            $engagement = $this->engagements->{$method}($pageId, $userId);
         } catch (DomainException $exception) {
-            Response::error($exception->getMessage(), 404);
+            $likeRequired = $exception->getMessage() === "Retirez cette page des favoris avant de retirer son like";
+            Response::error(
+                $exception->getMessage(),
+                $likeRequired ? 409 : 404,
+                $likeRequired ? "favorite_requires_like" : "page_not_found"
+            );
         }
 
-        Response::json(200, [
-            "is_favorite" => false,
-            "number_of_favorites" => $count,
-        ]);
+        Response::json($status, $engagement);
     }
 
     private function authenticatedUserId(): int
