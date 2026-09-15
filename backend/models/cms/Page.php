@@ -22,15 +22,30 @@ final class Page
         ?int $subcategoryId = null,
         ?string $sortBy = null,
         ?string $sortOrder = null,
-        ?int $favoriteUserId = null,
+        ?int $viewerUserId = null,
+        bool $favoritesOnly = false,
         ?string $ranking = null,
-        ?string $period = null
+        ?string $period = null,
+        ?string $feed = null
     ): array
     {
         $where = ["pages.page_status = :page_status"];
         $values = [
             ":page_status" => "public",
         ];
+        $favoriteStateSelect = "0";
+
+        if ($viewerUserId !== null) {
+            $favoriteStateSelect = "EXISTS (
+                SELECT 1
+                FROM users_engagement viewer_favorite
+                WHERE viewer_favorite.page_id = pages.id
+                    AND viewer_favorite.user_id = :favorite_state_user_id
+                    AND viewer_favorite.engagement_type = :favorite_state_type
+            )";
+            $values[":favorite_state_user_id"] = $viewerUserId;
+            $values[":favorite_state_type"] = "favorite";
+        }
 
         if ($themeId !== null) {
             $where[] = "EXISTS (
@@ -71,7 +86,7 @@ final class Page
             $values[":subcategory_filter_type"] = "subcategory";
         }
 
-        if ($favoriteUserId !== null) {
+        if ($favoritesOnly && $viewerUserId !== null) {
             $where[] = "EXISTS (
                 SELECT 1
                 FROM users_engagement
@@ -79,8 +94,8 @@ final class Page
                     AND users_engagement.user_id = :favorite_user_id
                     AND users_engagement.engagement_type = :favorite_engagement_type
             )";
-            $values[":favorite_user_id"] = $favoriteUserId;
-            $values[":favorite_engagement_type"] = "follow";
+            $values[":favorite_user_id"] = $viewerUserId;
+            $values[":favorite_engagement_type"] = "favorite";
         }
 
         $sortColumns = [
@@ -90,6 +105,48 @@ final class Page
         ];
         $orderBy = "pages.id DESC";
         $joins = [];
+
+        if ($feed === "new") {
+            $where[] = "pages.created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 7 DAY)";
+            $orderBy = "pages.created_at DESC, pages.id DESC";
+        } elseif ($feed === "trending") {
+            $joins[] = "LEFT JOIN (
+                SELECT page_id,
+                    SUM(CASE WHEN viewed_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) THEN 1 ELSE 0 END) AS recent_view_score,
+                    SUM(CASE WHEN viewed_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) THEN 1 ELSE 0 END) AS previous_view_score
+                FROM page_view_events
+                WHERE viewed_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 31 DAY)
+                GROUP BY page_id
+            ) trend_views ON trend_views.page_id = pages.id";
+            $joins[] = "LEFT JOIN (
+                SELECT page_id,
+                    SUM(CASE
+                        WHEN created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) AND engagement_type = 'like' THEN 10
+                        WHEN created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) AND engagement_type = 'favorite' THEN 15
+                        ELSE 0
+                    END) AS recent_engagement_score,
+                    SUM(CASE
+                        WHEN created_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) AND engagement_type = 'like' THEN 10
+                        WHEN created_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 24 HOUR) AND engagement_type = 'favorite' THEN 15
+                        ELSE 0
+                    END) AS previous_engagement_score
+                FROM users_engagement
+                WHERE created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 31 DAY)
+                GROUP BY page_id
+            ) trend_engagements ON trend_engagements.page_id = pages.id";
+            $recentTrendScore = "(
+                COALESCE(trend_views.recent_view_score, 0)
+                + COALESCE(trend_engagements.recent_engagement_score, 0)
+            )";
+            $baselineTrendScore = "(
+                COALESCE(trend_views.previous_view_score, 0)
+                + COALESCE(trend_engagements.previous_engagement_score, 0)
+            ) / 30";
+            $where[] = $recentTrendScore . " > " . $baselineTrendScore;
+            $orderBy = "(" . $recentTrendScore . " - " . $baselineTrendScore . ") DESC, pages.id DESC";
+        } elseif ($feed !== null) {
+            throw new InvalidArgumentException("Mode de decouverte invalide");
+        }
 
         if ($ranking !== null || $period !== null) {
             $periodStart = $this->rankingPeriodStart($period);
@@ -121,7 +178,7 @@ final class Page
                         AND created_at >= " . $periodStart . "
                     GROUP BY page_id
                 ) period_favorites ON period_favorites.page_id = pages.id";
-                $values[":ranking_favorite_type"] = "follow";
+                $values[":ranking_favorite_type"] = "favorite";
                 $orderBy = "COALESCE(period_favorites.period_favorite_count, 0) DESC, pages.id DESC";
             } elseif ($ranking === "updated") {
                 $where[] = "pages.updated_at >= " . $periodStart;
@@ -145,8 +202,9 @@ final class Page
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.username END AS owner_username,
                 CASE WHEN pages.is_anonymous = 1 THEN NULL ELSE users.profil_picture END AS owner_picture,
                 pages.page_title, pages.page_status, pages.is_anonymous, pages.number_of_likes,
-                pages.number_of_view, pages.number_of_followers, pages.page_description,
-                pages.page_picture, pages.created_at, pages.updated_at
+                pages.number_of_view, pages.number_of_followers, pages.number_of_favorites,
+                " . $favoriteStateSelect . " AS is_favorite,
+                pages.page_description, pages.page_picture, pages.created_at, pages.updated_at
             FROM pages
             INNER JOIN users ON users.id = pages.owner_user_id
             " . implode("\n", $joins) . "

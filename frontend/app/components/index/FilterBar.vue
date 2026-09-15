@@ -31,6 +31,7 @@ type SortBy = "date" | "like" | "view"
 type SortOrder = "asc" | "desc" | ""
 type Ranking = "popular" | "rating" | "favorites" | "updated" | ""
 type RankingPeriod = "24h" | "7d" | "1month" | "3month" | "6month" | "1year" | ""
+type Feed = "new" | "trending" | ""
 
 const config = useRuntimeConfig()
 const route = useRoute()
@@ -101,6 +102,7 @@ const selectedRanking = reactive<{ by: Ranking, period: RankingPeriod }>({
   by: validRanking(queryValue("ranking")),
   period: validRankingPeriod(queryValue("period")),
 })
+const selectedFeed = ref<Feed>(validFeed(queryValue("feed")))
 const favoritesOnly = ref(queryValue("is_favorite") === "1")
 const areFiltersVisible = ref(true)
 
@@ -155,6 +157,10 @@ function validRankingPeriod(value: string): RankingPeriod {
   return periodOptions.some((period) => period.id === value) ? value as RankingPeriod : ""
 }
 
+function validFeed(value: string): Feed {
+  return value === "new" || value === "trending" ? value : ""
+}
+
 function syncFiltersWithUrl(): void {
   selectedFilters.theme = queryValue("theme_id")
   selectedFilters.category = queryValue("category_id")
@@ -171,6 +177,7 @@ function syncAutomaticControlsWithUrl(): void {
   selectedSort.order = sortBy !== "" && sortOrder !== "" ? sortOrder : ""
   selectedRanking.by = ranking !== "" && period !== "" ? ranking : ""
   selectedRanking.period = ranking !== "" && period !== "" ? period : ""
+  selectedFeed.value = validFeed(queryValue("feed"))
   favoritesOnly.value = queryValue("is_favorite") === "1"
 }
 
@@ -209,13 +216,33 @@ async function applyRanking(selection?: { order: string, period: string }): Prom
 
   selectedSort.by = ""
   selectedSort.order = ""
+  selectedFeed.value = ""
 
   const query = { ...route.query }
 
   delete query.sort_by
   delete query.sort_order
+  delete query.feed
   query.ranking = selectedRanking.by
   query.period = selectedRanking.period
+
+  await router.push({ query })
+}
+
+async function activateFeed(feed: Exclude<Feed, "">): Promise<void> {
+  selectedFeed.value = feed
+  selectedRanking.by = ""
+  selectedRanking.period = ""
+  selectedSort.by = ""
+  selectedSort.order = ""
+
+  const query = { ...route.query }
+
+  delete query.ranking
+  delete query.period
+  delete query.sort_by
+  delete query.sort_order
+  query.feed = feed
 
   await router.push({ query })
 }
@@ -248,6 +275,7 @@ function cleanFilterQuery() {
   delete query.is_favorite
   delete query.ranking
   delete query.period
+  delete query.feed
 
   return query
 }
@@ -271,6 +299,8 @@ async function applyFilters(): Promise<void> {
     query.period = selectedRanking.period
   }
 
+  if (selectedFeed.value !== "") query.feed = selectedFeed.value
+
   await router.push({ query })
 }
 
@@ -283,6 +313,7 @@ async function applyAutomaticControls(): Promise<void> {
 
   delete query.ranking
   delete query.period
+  delete query.feed
 
   if (selectedSort.by !== "" && selectedSort.order !== "") {
     query.sort_by = selectedSort.by
@@ -295,6 +326,8 @@ async function applyAutomaticControls(): Promise<void> {
     query.ranking = selectedRanking.by
     query.period = selectedRanking.period
   }
+
+  if (selectedFeed.value !== "") query.feed = selectedFeed.value
 
   await router.push({ query })
 }
@@ -312,6 +345,7 @@ async function resetFilters(): Promise<void> {
   selectedSort.order = ""
   selectedRanking.by = ""
   selectedRanking.period = ""
+  selectedFeed.value = ""
   favoritesOnly.value = false
 
   await router.push({ query: cleanFilterQuery() })
@@ -332,7 +366,7 @@ watch(
   syncFiltersWithUrl,
 )
 watch(
-  () => [route.query.sort_by, route.query.sort_order, route.query.is_favorite, route.query.ranking, route.query.period],
+  () => [route.query.sort_by, route.query.sort_order, route.query.is_favorite, route.query.ranking, route.query.period, route.query.feed],
   syncAutomaticControlsWithUrl,
 )
 
@@ -397,13 +431,19 @@ onMounted(async () => {
             </DatedFilter>
             <button
               type="button"
-              class="form-control min-h-11 rounded-full border-2 px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"
+              class="min-h-11 rounded-full border-2 px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"
+              :class="selectedFeed === 'new' ? 'button-primary' : 'form-control'"
+              :aria-pressed="selectedFeed === 'new'"
+              @click="activateFeed('new')"
             >
               Nouveaux
             </button>
             <button
               type="button"
-              class="form-control min-h-11 rounded-full border-2 px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"
+              class="min-h-11 rounded-full border-2 px-5 py-2 text-sm font-medium focus:outline-none focus:ring-2"
+              :class="selectedFeed === 'trending' ? 'button-primary' : 'form-control'"
+              :aria-pressed="selectedFeed === 'trending'"
+              @click="activateFeed('trending')"
             >
               Tendance
             </button>

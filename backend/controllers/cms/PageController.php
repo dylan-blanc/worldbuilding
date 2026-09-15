@@ -41,6 +41,7 @@ final class PageController
         $favoritesOnly = $this->optionalBooleanQuery("is_favorite");
         $ranking = $this->optionalEnumQuery("ranking", ["popular", "favorites", "updated"]);
         $period = $this->optionalEnumQuery("period", ["24h", "7d", "1month", "3month", "6month", "1year"]);
+        $feed = $this->optionalEnumQuery("feed", ["new", "trending"]);
 
         if (($sortBy === null) !== ($sortOrder === null)) {
             Response::error("Le type et l'ordre du tri sont requis ensemble", 422);
@@ -54,14 +55,14 @@ final class PageController
             Response::error("Un seul classement peut etre applique", 422);
         }
 
-        $favoriteUserId = null;
+        if ($ranking !== null && $feed !== null) {
+            Response::error("Un seul mode de decouverte peut etre applique", 422);
+        }
 
-        if ($favoritesOnly) {
-            $favoriteUserId = Session::userId();
+        $viewerUserId = Session::userId();
 
-            if ($favoriteUserId === null) {
-                Response::error("Non authentifie", 401, "authentication_required");
-            }
+        if ($favoritesOnly && $viewerUserId === null) {
+            Response::error("Non authentifie", 401, "authentication_required");
         }
 
         Response::json(200, [
@@ -71,9 +72,11 @@ final class PageController
                 $subcategoryId,
                 $sortBy,
                 $sortOrder,
-                $favoriteUserId,
+                $viewerUserId,
+                $favoritesOnly,
                 $ranking,
-                $period
+                $period,
+                $feed
             ),
         ]);
     }

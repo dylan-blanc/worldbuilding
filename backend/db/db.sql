@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS pages (
     number_of_likes INT DEFAULT 0,
     number_of_view INT DEFAULT 0,
     number_of_followers INT DEFAULT 0,
+    number_of_favorites INT NOT NULL DEFAULT 0,
     page_description TEXT,
     page_picture VARCHAR(255),
     pagecontent JSON NOT NULL,
@@ -207,8 +208,9 @@ CREATE TABLE IF NOT EXISTS users_engagement (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     page_id INT NOT NULL,
-    engagement_type ENUM('like', 'follow') NOT NULL,
+    engagement_type ENUM('like', 'follow', 'favorite') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_page_engagement (user_id, page_id, engagement_type),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE
 );

@@ -5,8 +5,8 @@
   ModerationReportAction delegates reports to the shared composable and POST /api/pages/{id}/reports.
 -->
 <script setup lang="ts">
-import { EyeIcon, HeartIcon } from "@heroicons/vue/24/outline"
-import { StarIcon } from "@heroicons/vue/24/solid"
+import { EyeIcon, HeartIcon, StarIcon as StarOutlineIcon } from "@heroicons/vue/24/outline"
+import { StarIcon as StarSolidIcon } from "@heroicons/vue/24/solid"
 
 type PublicPage = {
   id: number
@@ -19,6 +19,8 @@ type PublicPage = {
   number_of_likes: number
   number_of_view: number
   number_of_followers: number
+  number_of_favorites: number
+  is_favorite: boolean | number
   page_description: string | null
   page_picture: string | null
   created_at: string
@@ -29,11 +31,19 @@ type PagesResponse = {
   pages: PublicPage[]
 }
 
+type FavoriteResponse = {
+  is_favorite: boolean
+  number_of_favorites: number
+}
+
 const config = useRuntimeConfig()
 const route = useRoute()
 const pages = ref<PublicPage[]>([])
 const pending = ref(true)
 const errorMessage = ref("")
+const favoriteErrorMessage = ref("")
+const favoritePending = reactive<Record<number, boolean>>({})
+const apiFetch = useApi()
 const { resolveUrl: resolvePagePicture } = usePagePicture()
 const { renewSession } = useSessionActivity()
 
@@ -52,6 +62,7 @@ const apiQuery = computed(() => {
     "is_favorite",
     "ranking",
     "period",
+    "feed",
   ]
 
   for (const parameter of allowedParameters) {
@@ -74,6 +85,7 @@ async function fetchPages(): Promise<void> {
   try {
     const response = await $fetch<PagesResponse>(`${config.public.apiBase}/pages`, {
       query: apiQuery.value,
+      credentials: "include",
     })
 
     if (requestId !== latestRequest) return
@@ -88,6 +100,35 @@ async function fetchPages(): Promise<void> {
   }
 }
 
+async function togglePageFavorite(page: PublicPage): Promise<void> {
+  if (favoritePending[page.id]) return
+
+  favoritePending[page.id] = true
+  favoriteErrorMessage.value = ""
+
+  try {
+    const response = await apiFetch<FavoriteResponse>(`${config.public.apiBase}/pages/${page.id}/favorite`, {
+      method: Boolean(page.is_favorite) ? "DELETE" : "POST",
+    })
+
+    page.is_favorite = response.is_favorite
+    page.number_of_favorites = response.number_of_favorites
+
+    if (!response.is_favorite && route.query.is_favorite === "1") {
+      pages.value = pages.value.filter((listedPage) => listedPage.id !== page.id)
+    }
+  } catch (error: unknown) {
+    const failure = error as { status?: number, statusCode?: number, response?: { status?: number } }
+    const status = failure.status || failure.statusCode || failure.response?.status || 0
+
+    favoriteErrorMessage.value = status === 401
+      ? "Connectez-vous pour ajouter cette page aux favoris."
+      : "Impossible de modifier ce favori."
+  } finally {
+    favoritePending[page.id] = false
+  }
+}
+
 onMounted(() => {
   watch(apiQueryKey, fetchPages, { immediate: true })
 })
@@ -95,6 +136,10 @@ onMounted(() => {
 
 <template>
   <section class="flex flex-col gap-4">
+    <p v-if="favoriteErrorMessage" class="error-color text-center text-sm" role="alert">
+      {{ favoriteErrorMessage }}
+    </p>
+
     <LoadingSpinner
       v-if="pending"
       label="Chargement des pages"
@@ -157,13 +202,18 @@ onMounted(() => {
         />
 
         <div class="pointer-events-none absolute inset-0 p-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-          <div
-            class="absolute left-3 top-2 flex flex-col items-center text-sm leading-none text-(--primary-color)"
-            aria-label="Vote en attente"
+          <button
+            type="button"
+            class="pointer-events-auto absolute left-3 top-2 flex flex-col items-center text-sm leading-none text-(--primary-color) disabled:cursor-wait disabled:opacity-60"
+            :disabled="favoritePending[page.id]"
+            :aria-label="page.is_favorite ? `Retirer ${page.page_title} des favoris` : `Ajouter ${page.page_title} aux favoris`"
+            :aria-pressed="Boolean(page.is_favorite)"
+            @click.stop="togglePageFavorite(page)"
           >
-            <StarIcon class="h-7 w-7" aria-hidden="true" />
-            <span>--</span>
-          </div>
+            <StarSolidIcon v-if="page.is_favorite" class="h-7 w-7" aria-hidden="true" />
+            <StarOutlineIcon v-else class="h-7 w-7" aria-hidden="true" />
+            <span>{{ page.number_of_favorites }}</span>
+          </button>
 
           <div class="absolute bottom-4 left-4 flex flex-col gap-2">
             <UserAvatar
